@@ -10,6 +10,12 @@ from datetime import datetime, timedelta
 # We configure it to serve static files from the 'frontend' folder
 frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend')
 app = Flask(__name__, static_folder=frontend_dir, static_url_path='')
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
+@app.after_request
+def add_header(response):
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
 
 def load_db():
     if os.path.exists(DB_PATH):
