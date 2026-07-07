@@ -302,10 +302,8 @@ function renderTable() {
                 <td class="col-event" data-label="Event Name"><span class="clickable-promoter" onclick="openEventProfile('${item.event_id}', '${item.event_name.replace(/'/g, "\\'")}', '${item.event_date}')">${item.event_name}</span></td>
                 <td class="col-promoter" data-label="Promoter Name"><span class="clickable-promoter" onclick="openPromoterProfile('${item.promoter_id}')">${item.promoter_name}</span></td>
                 <td class="col-cash" data-label="Cash Collected">
-                    ${item.payment_method === 'bank_transfer' ? 
-                        '<span class="badge" style="background: rgba(16, 185, 129, 0.1); color: var(--color-success); border: 1px solid rgba(16, 185, 129, 0.2);"><i class="fa-solid fa-building-columns"></i> Transfer</span>' : 
-                        '<i class="fa-solid fa-money-bill"></i>'}
-                    <strong>${item.amount.toFixed(2)}€</strong>
+                    ${cashDisplayHtml}
+                    ${breakdownHtml}
                 </td>
                 <td class="col-status" data-label="Status">${badge}</td>
                 <td class="col-action" data-label="Amount Returned">
