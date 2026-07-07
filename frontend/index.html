@@ -41,6 +41,9 @@
                 <button class="nav-tab" data-tab="performance">
                     <i class="fa-solid fa-chart-line"></i> Promoter Performance
                 </button>
+                <button class="nav-tab" data-tab="sales">
+                    <i class="fa-solid fa-list-ul"></i> Full Sales History
+                </button>
             </div>
 
             <div class="header-actions">
@@ -299,6 +302,33 @@
                 </div>
             </main>
         </div>
+
+        <!-- Sales History View -->
+        <div id="view-sales" class="view-pane hidden">
+            <main class="sheet-container">
+                <div class="table-wrapper" style="max-height: 80vh; overflow-y: auto;">
+                    <table class="tracking-table data-table">
+                        <thead style="position: sticky; top: 0; background: var(--bg-surface); z-index: 10;">
+                            <tr>
+                                <th style="width: 20%; text-align: left;">Sale Date/Time</th>
+                                <th style="width: 25%; text-align: left;">Event Date & Name</th>
+                                <th style="width: 25%; text-align: left;">Promoter Name</th>
+                                <th style="width: 15%; text-align: center;">Payment Method</th>
+                                <th style="width: 15%; text-align: right;">Price (€)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sales-table-body">
+                            <tr>
+                                <td colspan="5" class="loading-state">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> Loading sales history...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+
         <!-- Promoter Profile Modal -->
         <div id="promoter-modal" class="modal">
             <div class="modal-content" style="max-width: 800px;">

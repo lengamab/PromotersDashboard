@@ -15,6 +15,8 @@ const viewOnline = document.getElementById('view-online');
 const onlineTableBody = document.getElementById('online-table-body');
 const viewPerformance = document.getElementById('view-performance');
 const performanceTableBody = document.getElementById('performance-table-body');
+const viewSales = document.getElementById('view-sales');
+const salesTableBody = document.getElementById('sales-table-body');
 const navTabs = document.querySelectorAll('.nav-tab');
 const searchInput = document.getElementById('search-input');
 const filterBtns = document.querySelectorAll('.filter-btn');
@@ -1056,6 +1058,7 @@ navTabs.forEach(tab => {
         viewSettings.classList.add('hidden');
         viewOnline.classList.add('hidden');
         viewPerformance.classList.add('hidden');
+        if (viewSales) viewSales.classList.add('hidden');
         
         // Show active and update stat labels
         if (viewName === 'tracking') {
@@ -1078,9 +1081,62 @@ navTabs.forEach(tab => {
             mainStats.classList.add('hidden');
             setStatLabels('cash');
             loadPerformanceData();
+        } else if (viewName === 'sales') {
+            if (viewSales) viewSales.classList.remove('hidden');
+            mainStats.classList.add('hidden');
+            loadSalesHistory();
         }
     });
 });
+
+// Fetch and load sales history
+async function loadSalesHistory() {
+    try {
+        salesTableBody.innerHTML = `
+            <tr>
+                <td colspan="5" class="loading-state">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Loading sales history...
+                </td>
+            </tr>
+        `;
+        const response = await fetch(`/api/sales${getDateQueryString()}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            const sales = result.data || [];
+            
+            if (sales.length === 0) {
+                salesTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 20px;">No sales found for this period.</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            salesTableBody.innerHTML = sales.map(item => {
+                const badgeClass = item.payment_method === 'Online' ? 'badge badge-returned' : 'badge badge-pending';
+                return `
+                    <tr class="table-row">
+                        <td style="font-family: var(--font-mono); font-size: 13px;">${item.sale_date}</td>
+                        <td>
+                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">${item.event_name}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>${item.event_date}</div>
+                        </td>
+                        <td style="font-weight: 500;">${item.promoter_name}</td>
+                        <td style="text-align: center;"><span class="${badgeClass}">${item.payment_method}</span></td>
+                        <td style="text-align: right; font-weight: 600; font-family: var(--font-mono);">${item.price.toFixed(2)}€</td>
+                    </tr>
+                `;
+            }).join('');
+        } else {
+            showToast('Failed to load sales history.', 'error');
+        }
+    } catch (error) {
+        console.error('Error fetching sales history:', error);
+        showToast('Connection error.', 'error');
+    }
+}
 
 // Initial load
 initDateDefaults();
@@ -1148,6 +1204,9 @@ function reloadCurrentTab() {
             break;
         case 'performance':
             loadPerformanceData();
+            break;
+        case 'sales':
+            loadSalesHistory();
             break;
     }
 }

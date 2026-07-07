@@ -2,7 +2,8 @@ import os
 import json
 from flask import Flask, jsonify, request, send_from_directory
 from email_sender import (gather_cash_report, build_email_body, send_email, DB_PATH, 
-                          gather_performance_report, gather_online_report, gather_promoter_profile)
+                          gather_performance_report, gather_online_report, gather_promoter_profile,
+                          gather_sales_history)
 from datetime import datetime, timedelta
 
 # Initialize Flask app
@@ -52,6 +53,17 @@ def get_performance():
         end = request.args.get('end')
         report = gather_performance_report(start_date=start, end_date=end)
         return jsonify({"success": True, "data": report})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# API: Get full sales history
+@app.route('/api/sales', methods=['GET'])
+def get_sales_history():
+    try:
+        start = request.args.get('start')
+        end = request.args.get('end')
+        sales = gather_sales_history(start_date=start, end_date=end)
+        return jsonify({"success": True, "data": sales})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

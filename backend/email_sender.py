@@ -1105,6 +1105,78 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
         "promoter_breakdown": promoter_breakdown
     }
 
+def gather_sales_history(start_date=None, end_date=None):
+    """
+    Fetches all individual ticket sales within the given date range.
+    """
+    # To get tickets sold between start_date and end_date, 
+    # we need events that could potentially contain these sales.
+    # We fetch events from the start of the year (or earlier) to future.
+    if not start_date:
+        current_year = datetime.now().year
+        start_date = f"{current_year}-01-01"
+    if not end_date:
+        end_date = f"{datetime.now().year}-12-31"
+        
+    fetch_start = "2024-01-01" # Broad fetch to ensure we catch all tickets
+    fetch_end = (datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=365)).strftime("%Y-%m-%d")
+    events = get_fourvenues_data(f"events?start={fetch_start}&end={fetch_end}")
+    
+    users = get_fourvenues_data("users")
+    users_dict = {
+        u["_id"]: f"{u['profile']['name']} {u['profile']['last_name']}".strip() or u.get("email")
+        for u in users
+    }
+    
+    event_tickets_map = get_all_event_tickets(events)
+    sales = []
+    
+    for event in events:
+        event_id = event["_id"]
+        event_name = event.get("name", "Unknown Event")
+        event_date_raw = event.get("date")
+        
+        event_date_str = "Unknown"
+        if event_date_raw:
+            event_date_str = datetime.fromtimestamp(event_date_raw).strftime("%Y-%m-%d")
+            
+        tickets = event_tickets_map.get(event_id)
+        if not tickets:
+            continue
+            
+        for t in tickets:
+            created_at = t.get("created_at")
+            if not created_at:
+                continue
+                
+            day_str = created_at.split('T')[0]
+            if start_date and day_str < start_date:
+                continue
+            if end_date and day_str > end_date:
+                continue
+                
+            promoter_id = t.get("referral_id") or "unknown"
+            promoter_name = users_dict.get(promoter_id, "Direct Sale / No Promoter")
+            payment_method = "Online" if t.get("payment_id") else "Cash"
+            price = float(t.get("price", 0))
+            
+            # Format datetime nicely
+            sale_time = created_at.replace('T', ' ').split('.')[0]
+            
+            sales.append({
+                "sale_date": sale_time,
+                "event_date": event_date_str,
+                "event_name": event_name,
+                "promoter_name": promoter_name,
+                "payment_method": payment_method,
+                "price": price
+            })
+            
+    # Sort sales newest first
+    sales.sort(key=lambda x: x["sale_date"], reverse=True)
+    return sales
+
+
 if __name__ == "__main__":
     print("Generating daily cash report...")
     report = gather_cash_report()
