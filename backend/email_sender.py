@@ -154,13 +154,15 @@ def gather_performance_report(start_date=None, end_date=None):
         for u in users
     }
     
-    # 2. Get events from start of year to today (or end of year)
-    if not start_date or not end_date:
+    # 2. Get events. To capture pre-sales, fetch from start_date up to 1 year in the future.
+    if not start_date:
         current_year = datetime.now().year
         start_date = f"{current_year}-01-01"
-        end_date = f"{current_year}-12-31"
+    if not end_date:
+        end_date = f"{datetime.now().year}-12-31"
         
-    events = get_fourvenues_data(f"events?start={start_date}&end={end_date}")
+    fetch_end = (datetime.strptime(start_date, "%Y-%m-%d") + timedelta(days=365)).strftime("%Y-%m-%d")
+    events = get_fourvenues_data(f"events?start={start_date}&end={fetch_end}")
     
     cache = load_performance_cache()
     if "events" not in cache:
@@ -181,7 +183,17 @@ def gather_performance_report(start_date=None, end_date=None):
         event_date_raw = event.get("date", 0)
         is_completed = (event_date_raw + 86400) < current_time
         
-        if not (is_completed and event_id in cache["events"]):
+        # Invalidate cache if it doesn't have the new format (checking for commission in daily stats)
+        is_valid_cache = False
+        if is_completed and event_id in cache["events"] and isinstance(cache["events"][event_id], dict):
+            daily_data = cache["events"][event_id].get("daily", {})
+            if daily_data:
+                first_day = next(iter(daily_data.values()))
+                first_promoter = next(iter(first_day.get("promoters", {}).values()), {})
+                if "commission" in first_promoter:
+                    is_valid_cache = True
+                    
+        if not (is_completed and is_valid_cache):
             events_to_fetch.append(event)
             
     # 2. Fetch required tickets in parallel
@@ -195,19 +207,26 @@ def gather_performance_report(start_date=None, end_date=None):
         # Consider event completed if its date + 24 hours is in the past
         is_completed = (event_date_raw + 86400) < current_time
         
-        event_promoters = {}
         event_daily = {}
         
-        if is_completed and event_id in cache["events"] and isinstance(cache["events"][event_id], dict) and "promoters" in cache["events"][event_id]:
-            # Load from cache (new format)
+        # Re-check cache validity for this event
+        is_valid_cache = False
+        if is_completed and event_id in cache["events"] and isinstance(cache["events"][event_id], dict):
+            daily_data = cache["events"][event_id].get("daily", {})
+            if daily_data:
+                first_day = next(iter(daily_data.values()))
+                first_promoter = next(iter(first_day.get("promoters", {}).values()), {})
+                if "commission" in first_promoter:
+                    is_valid_cache = True
+                    
+        if is_completed and is_valid_cache:
+            # Load from cache
             event_data = cache["events"][event_id]
-            event_promoters = event_data.get("promoters", {})
             event_daily = event_data.get("daily", {})
         else:
             # Fetch live
             tickets = event_tickets_map.get(event_id)
             if tickets is None:
-                # API failed for this event, do not cache and do not process it
                 continue
                 
             for t in tickets:
@@ -217,97 +236,92 @@ def gather_performance_report(start_date=None, end_date=None):
                 promoter_id = referral_id or "unknown"
                 if promoter_id not in users_dict:
                     promoter_id = "unknown"
-                    
-                if promoter_id not in event_promoters:
-                    event_promoters[promoter_id] = {
-                        "tickets": 0,
-                        "revenue": 0.0,
-                        "commission": 0.0,
-                        "no_shows": 0
-                    }
-                    
-                event_promoters[promoter_id]["tickets"] += 1
-                event_promoters[promoter_id]["revenue"] += price
                 
                 rate_name = t.get("rate_name", "Unknown Rate")
                 rate_slug = t.get("rate_slug", "unknown-slug")
                 sale_type = "online" if t.get("payment_id") else "cash"
                 comm = calculate_ticket_commission(rate_name, price, rate_slug, custom_commissions, sale_type=sale_type)
                 
-                # Zero out commission if they haven't entered the venue, BUT ONLY FOR ONLINE TICKETS
                 if sale_type == "online" and t.get("enter", 0) != 1:
                     comm = 0.0
                     
-                event_promoters[promoter_id]["commission"] += comm
-                
-                # A no-show is simply any ticket that wasn't scanned at the door for a completed event
-                if is_completed and t.get("enter", 0) != 1:
-                    event_promoters[promoter_id]["no_shows"] += 1
-                    
-                # Daily trends tracking
                 created_at = t.get("created_at")
                 day_str = created_at.split('T')[0] if created_at else "Unknown"
+                
                 if day_str not in event_daily:
                     event_daily[day_str] = {"sales": 0, "revenue": 0.0, "promoters": {}, "no_shows": 0}
+                    
                 event_daily[day_str]["sales"] += 1
                 event_daily[day_str]["revenue"] += price
                 if is_completed and t.get("enter", 0) != 1:
                     event_daily[day_str]["no_shows"] += 1
                 
                 if promoter_id not in event_daily[day_str]["promoters"]:
-                    event_daily[day_str]["promoters"][promoter_id] = {"sales": 0, "revenue": 0.0}
+                    event_daily[day_str]["promoters"][promoter_id] = {
+                        "sales": 0, 
+                        "revenue": 0.0,
+                        "commission": 0.0,
+                        "no_shows": 0
+                    }
                 event_daily[day_str]["promoters"][promoter_id]["sales"] += 1
                 event_daily[day_str]["promoters"][promoter_id]["revenue"] += price
+                event_daily[day_str]["promoters"][promoter_id]["commission"] += comm
+                
+                if is_completed and t.get("enter", 0) != 1:
+                    event_daily[day_str]["promoters"][promoter_id]["no_shows"] += 1
             
             # Save to cache if completed
             if is_completed:
                 cache["events"][event_id] = {
-                    "promoters": event_promoters,
                     "daily": event_daily
                 }
                 cache_dirty = True
                 
-        # Merge event daily stats into global daily stats
-        for day, stats in event_daily.items():
-            if day not in daily_trends:
-                daily_trends[day] = {"date": day, "sales": 0, "revenue": 0.0, "promoters": {}, "no_shows": 0}
-            daily_trends[day]["sales"] += stats["sales"]
-            daily_trends[day]["revenue"] += stats["revenue"]
-            daily_trends[day]["no_shows"] += stats.get("no_shows", 0)
-            for pid, pstats in stats.get("promoters", {}).items():
-                if pid not in daily_trends[day]["promoters"]:
-                    daily_trends[day]["promoters"][pid] = {"sales": 0, "revenue": 0.0, "events": {}}
-                daily_trends[day]["promoters"][pid]["sales"] += pstats["sales"]
-                daily_trends[day]["promoters"][pid]["revenue"] += pstats["revenue"]
+        # Now process event_daily but filter strictly by start_date and end_date!
+        for day_str, stats in event_daily.items():
+            if day_str == "Unknown":
+                continue
+            if start_date and day_str < start_date:
+                continue
+            if end_date and day_str > end_date:
+                continue
                 
-                # Add event breakdown
-                if event_name not in daily_trends[day]["promoters"][pid]["events"]:
-                    daily_trends[day]["promoters"][pid]["events"][event_name] = 0
-                daily_trends[day]["promoters"][pid]["events"][event_name] += pstats["sales"]
-                
-        # Merge event stats into global stats
-        for p_id, stats in event_promoters.items():
-            if p_id not in promoter_globals:
-                promoter_globals[p_id] = {
-                    "promoter_id": p_id,
-                    "promoter_name": users_dict.get(p_id, "Direct Sale / No Promoter"),
-                    "total_tickets": 0,
-                    "total_revenue": 0.0,
-                    "total_commission": 0.0,
-                    "total_no_shows": 0,
-                    "events_promoted": 0
-                }
+            # Merge into daily_trends
+            if day_str not in daily_trends:
+                daily_trends[day_str] = {"date": day_str, "sales": 0, "revenue": 0.0, "promoters": {}, "no_shows": 0}
+            daily_trends[day_str]["sales"] += stats["sales"]
+            daily_trends[day_str]["revenue"] += stats["revenue"]
+            daily_trends[day_str]["no_shows"] += stats.get("no_shows", 0)
             
-            pg = promoter_globals[p_id]
-            pg["total_tickets"] += stats["tickets"]
-            pg["total_revenue"] += stats["revenue"]
-            # Zero commission for venue's own accounts
-            if pg["promoter_name"].lower() in NO_COMMISSION_PROMOTERS:
-                pass  # Don't add commission
-            else:
-                pg["total_commission"] += stats["commission"]
-            pg["total_no_shows"] += stats["no_shows"]
-            pg["events_promoted"] += 1
+            for pid, pstats in stats.get("promoters", {}).items():
+                if pid not in daily_trends[day_str]["promoters"]:
+                    daily_trends[day_str]["promoters"][pid] = {"sales": 0, "revenue": 0.0, "events": {}}
+                daily_trends[day_str]["promoters"][pid]["sales"] += pstats["sales"]
+                daily_trends[day_str]["promoters"][pid]["revenue"] += pstats["revenue"]
+                
+                if event_name not in daily_trends[day_str]["promoters"][pid]["events"]:
+                    daily_trends[day_str]["promoters"][pid]["events"][event_name] = 0
+                daily_trends[day_str]["promoters"][pid]["events"][event_name] += pstats["sales"]
+                
+                # Merge into promoter_globals
+                if pid not in promoter_globals:
+                    promoter_globals[pid] = {
+                        "promoter_id": pid,
+                        "promoter_name": users_dict.get(pid, "Direct Sale / No Promoter"),
+                        "total_tickets": 0,
+                        "total_revenue": 0.0,
+                        "total_commission": 0.0,
+                        "total_no_shows": 0,
+                        "events_promoted_set": set()
+                    }
+                
+                pg = promoter_globals[pid]
+                pg["total_tickets"] += pstats["sales"]
+                pg["total_revenue"] += pstats["revenue"]
+                if pg["promoter_name"].lower() not in NO_COMMISSION_PROMOTERS:
+                    pg["total_commission"] += pstats.get("commission", 0.0)
+                pg["total_no_shows"] += pstats.get("no_shows", 0)
+                pg["events_promoted_set"].add(event_id)
             
     if cache_dirty:
         save_performance_cache(cache)
@@ -320,11 +334,14 @@ def gather_performance_report(start_date=None, end_date=None):
         else:
             pg["no_show_rate"] = 0.0
             
-        events_promoted = pg["events_promoted"]
+        events_promoted = len(pg["events_promoted_set"])
+        pg["events_promoted"] = events_promoted
         if events_promoted > 0:
             pg["sales_per_event"] = round(tickets / events_promoted, 1)
         else:
             pg["sales_per_event"] = 0.0
+            
+        del pg["events_promoted_set"] # Remove before returning JSON
             
     results = list(promoter_globals.values())
     # Default sort by total tickets descending
