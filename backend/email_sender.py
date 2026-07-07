@@ -251,6 +251,9 @@ def gather_performance_report(start_date=None, end_date=None):
                 continue
                 
             for t in tickets:
+                if t.get("status") in ["cancelled", "filling_client"]:
+                    continue
+                    
                 price = float(t.get("price", 0))
                 referral_id = t.get("referral_id")
                 
@@ -451,6 +454,9 @@ def gather_cash_report(start_date=None, end_date=None):
         # Aggregate by promoter
         promoter_cash = {}
         for t in tickets:
+            if t.get("status") in ["cancelled", "filling_client"]:
+                continue
+                
             price = float(t.get("price", 0))
             payment_id = t.get("payment_id")
             referral_id = t.get("referral_id")
@@ -612,6 +618,9 @@ def gather_online_report(start_date=None, end_date=None):
         # Aggregate by promoter
         promoter_online = {}
         for t in tickets:
+            if t.get("status") in ["cancelled", "filling_client"]:
+                continue
+                
             price = float(t.get("price", 0))
             payment_id = t.get("payment_id")
             referral_id = t.get("referral_id")
@@ -778,6 +787,9 @@ def gather_promoter_profile(promoter_id, start_date=None, end_date=None):
         event_online_comm = 0.0
         
         for t in tickets:
+            if t.get("status") in ["cancelled", "filling_client"]:
+                continue
+                
             ref_id = t.get("referral_id")
             if (ref_id or "unknown") == promoter_id:
                 price = float(t.get("price", 0))
@@ -1071,6 +1083,9 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
     promoters = {}
     
     for t in tickets:
+        if t.get("status") in ["cancelled", "filling_client"]:
+            continue
+            
         price = float(t.get("price", 0))
         
         total_tickets += 1
@@ -1181,6 +1196,7 @@ def gather_sales_history(start_date=None, end_date=None):
             promoter_name = users_dict.get(promoter_id, "Direct Sale / No Promoter")
             payment_method = "Online" if t.get("payment_id") else "Cash"
             price = float(t.get("price", 0))
+            status = t.get("status", "activated")
             
             sales.append({
                 "sale_date": sale_time,
@@ -1188,7 +1204,8 @@ def gather_sales_history(start_date=None, end_date=None):
                 "event_name": event_name,
                 "promoter_name": promoter_name,
                 "payment_method": payment_method,
-                "price": price
+                "price": price,
+                "status": status
             })
             
     # Sort sales newest first

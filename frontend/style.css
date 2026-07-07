@@ -1309,3 +1309,8 @@ body {
 .status-btn:active {
     transform: translateY(0);
 }
+
+.badge-cancelled {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--color-danger);
+}
