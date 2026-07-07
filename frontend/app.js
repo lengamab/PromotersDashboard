@@ -292,6 +292,10 @@ function renderTable() {
                 <div class="cash-row owed-row">
                     <span class="cash-label">Owed:</span>
                     <span class="cash-amount">${item.net_due.toFixed(2)}€</span>
+                </div>
+            `;
+        }
+            
         return `
             <tr class="${rowClass}">
                 <td class="col-date" data-label="Event Date">${item.event_date}</td>
