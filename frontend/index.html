@@ -14,7 +14,7 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <link rel="stylesheet" href="style.css?v=12">
+    <link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
     <div class="app-container">
@@ -239,7 +239,7 @@
 
         <div id="view-performance" class="view-pane hidden">
             <!-- Performance Stats Grid -->
-            <div class="stats-grid" style="margin-bottom: 24px; grid-template-columns: repeat(4, 1fr);">
+            <div class="stats-grid" style="margin-bottom: 24px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
                 <div class="stat-card">
                     <div class="stat-icon"><i class="fa-solid fa-ticket"></i></div>
                     <div class="stat-info">
@@ -337,7 +337,7 @@
                     <span class="close-modal" onclick="closePromoterModal()">&times;</span>
                 </div>
                 
-                <div id="promoter-stats-grid" class="stats-grid" style="margin-bottom: 24px; grid-template-columns: repeat(5, 1fr);">
+                <div id="promoter-stats-grid" class="stats-grid" style="margin-bottom: 24px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
                     <div class="stat-card">
                         <div class="stat-icon"><i class="fa-solid fa-ticket"></i></div>
                         <div class="stat-info">
@@ -452,7 +452,7 @@
                 </div>
                 <div style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;" id="modal-event-date"></div>
                 
-                <div id="event-stats-grid" class="stats-grid" style="margin-bottom: 24px; grid-template-columns: repeat(4, 1fr);">
+                <div id="event-stats-grid" class="stats-grid" style="margin-bottom: 24px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
                     <div class="stat-card">
                         <div class="stat-icon"><i class="fa-solid fa-ticket"></i></div>
                         <div class="stat-info">
