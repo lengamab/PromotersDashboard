@@ -251,7 +251,7 @@ def gather_performance_report(start_date=None, end_date=None):
                 continue
                 
             for t in tickets:
-                if t.get("status") in ["cancelled", "filling_client"]:
+                if t.get("status") == "cancelled":
                     continue
                     
                 price = float(t.get("price", 0))
@@ -454,7 +454,7 @@ def gather_cash_report(start_date=None, end_date=None):
         # Aggregate by promoter
         promoter_cash = {}
         for t in tickets:
-            if t.get("status") in ["cancelled", "filling_client"]:
+            if t.get("status") == "cancelled":
                 continue
                 
             price = float(t.get("price", 0))
@@ -618,7 +618,7 @@ def gather_online_report(start_date=None, end_date=None):
         # Aggregate by promoter
         promoter_online = {}
         for t in tickets:
-            if t.get("status") in ["cancelled", "filling_client"]:
+            if t.get("status") == "cancelled":
                 continue
                 
             price = float(t.get("price", 0))
@@ -787,7 +787,7 @@ def gather_promoter_profile(promoter_id, start_date=None, end_date=None):
         event_online_comm = 0.0
         
         for t in tickets:
-            if t.get("status") in ["cancelled", "filling_client"]:
+            if t.get("status") == "cancelled":
                 continue
                 
             ref_id = t.get("referral_id")
@@ -1083,7 +1083,7 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
     promoters = {}
     
     for t in tickets:
-        if t.get("status") in ["cancelled", "filling_client"]:
+        if t.get("status") == "cancelled":
             continue
             
         price = float(t.get("price", 0))

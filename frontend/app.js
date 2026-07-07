@@ -1115,7 +1115,7 @@ async function loadSalesHistory() {
             }
             
             salesTableBody.innerHTML = sales.map(item => {
-                const isCancelled = item.status === 'cancelled' || item.status === 'filling_client';
+                const isCancelled = item.status === 'cancelled';
                 let badgeClass = item.payment_method === 'Online' ? 'badge badge-returned' : 'badge badge-pending';
                 let badgeText = item.payment_method;
                 
