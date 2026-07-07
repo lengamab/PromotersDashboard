@@ -292,23 +292,21 @@ function renderTable() {
                 <div class="cash-row owed-row">
                     <span class="cash-label">Owed:</span>
                     <span class="cash-amount">${item.net_due.toFixed(2)}€</span>
-                </div>
-            `;
-        }
-            
         return `
             <tr class="${rowClass}">
-                <td class="col-date">${item.event_date}</td>
-                <td class="col-event"><span class="clickable-promoter" onclick="openEventProfile('${item.event_id}', '${item.event_name.replace(/'/g, "\\'")}', '${item.event_date}')">${item.event_name}</span></td>
-                <td class="col-promoter"><span class="clickable-promoter" onclick="openPromoterProfile('${item.promoter_id}')">${item.promoter_name}</span></td>
-                <td class="col-cash">
-                    ${cashDisplayHtml}
-                    ${breakdownHtml}
+                <td class="col-date" data-label="Event Date">${item.event_date}</td>
+                <td class="col-event" data-label="Event Name"><span class="clickable-promoter" onclick="openEventProfile('${item.event_id}', '${item.event_name.replace(/'/g, "\\'")}', '${item.event_date}')">${item.event_name}</span></td>
+                <td class="col-promoter" data-label="Promoter Name"><span class="clickable-promoter" onclick="openPromoterProfile('${item.promoter_id}')">${item.promoter_name}</span></td>
+                <td class="col-cash" data-label="Cash Collected">
+                    ${item.payment_method === 'bank_transfer' ? 
+                        '<span class="badge" style="background: rgba(16, 185, 129, 0.1); color: var(--color-success); border: 1px solid rgba(16, 185, 129, 0.2);"><i class="fa-solid fa-building-columns"></i> Transfer</span>' : 
+                        '<i class="fa-solid fa-money-bill"></i>'}
+                    <strong>${item.amount.toFixed(2)}€</strong>
                 </td>
-                <td class="col-status">${badge}</td>
-                <td class="col-action">
+                <td class="col-status" data-label="Status">${badge}</td>
+                <td class="col-action" data-label="Amount Returned">
                     <div class="action-amount-wrapper">
-                        <input type="number" step="0.01" min="0" max="${item.net_due}" 
+                        <input type="number" step="0.5" min="0" max="${item.net_due}" 
                             value="${item.returned_amount}" 
                             onchange="updateReturnedAmount('${item.event_id}', '${item.promoter_id}', this.value)" 
                             class="amount-input">
@@ -626,22 +624,22 @@ async function loadRatesData() {
             
             settingsTableBody.innerHTML = result.rates.map(rate => `
                 <tr>
-                    <td>${rate.event_date}</td>
-                    <td style="font-weight: 600; color: var(--text-primary);">${rate.event_name}</td>
-                    <td>${rate.rate_name}</td>
-                    <td style="text-align: right; font-weight: 600; font-family: var(--font-mono);">${rate.price.toFixed(2)}€</td>
-                    <td style="text-align: center;">
+                    <td data-label="Event Date">${rate.event_date}</td>
+                    <td data-label="Event Name" style="font-weight: 600; color: var(--text-primary);">${rate.event_name}</td>
+                    <td data-label="Ticket Type">${rate.rate_name}</td>
+                    <td data-label="Price" style="text-align: right; font-weight: 600; font-family: var(--font-mono);">${rate.price.toFixed(2)}€</td>
+                    <td data-label="Cash Comm" style="text-align: center;">
                         <div class="action-amount-wrapper" style="display: inline-flex; align-items: center;">
-                            <input type="number" step="0.01" min="0" 
+                            <input type="number" step="0.5" min="0" 
                                 value="${rate.commission_cash}" 
                                 onchange="updateRateCommission('${rate.rate_slug}', this.value, 'cash')" 
                                 class="amount-input cash-comm-input">
                             <span class="currency-symbol">€</span>
                         </div>
                     </td>
-                    <td style="text-align: center;">
+                    <td data-label="Online Comm" style="text-align: center;">
                         <div class="action-amount-wrapper" style="display: inline-flex; align-items: center;">
-                            <input type="number" step="0.01" min="0" 
+                            <input type="number" step="0.5" min="0" 
                                 value="${rate.commission_online}" 
                                 onchange="updateRateCommission('${rate.rate_slug}', this.value, 'online')" 
                                 class="amount-input online-comm-input">
@@ -870,19 +868,19 @@ async function loadPerformanceData() {
                 
                 return `
                     <tr class="table-row">
-                        <td class="promoter-name">
+                        <td class="promoter-name" data-label="Promoter">
                             <div style="font-weight: 500; font-size: 15px;">
                                 <span class="clickable-promoter" onclick="openPromoterProfile('${item.promoter_id}')">${item.promoter_name}</span>
                             </div>
                         </td>
-                        <td style="text-align: center;"><strong>${item.total_tickets}</strong></td>
-                        <td style="text-align: center; font-family: var(--font-heading); color: var(--color-primary);">${item.total_revenue.toFixed(2)}€</td>
-                        <td style="text-align: center; font-weight: 600;">${item.total_commission.toFixed(2)}€</td>
-                        <td style="text-align: center;">
+                        <td data-label="Total Tickets" style="text-align: center;"><strong>${item.total_tickets}</strong></td>
+                        <td data-label="Revenue" style="text-align: center; font-family: var(--font-heading); color: var(--color-primary);">${item.total_revenue.toFixed(2)}€</td>
+                        <td data-label="Commission" style="text-align: center; font-weight: 600;">${item.total_commission.toFixed(2)}€</td>
+                        <td data-label="No-Show Rate" style="text-align: center;">
                             <span class="badge ${noShowClass}">${item.no_show_rate}%</span>
                             <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">(${item.total_no_shows} total)</div>
                         </td>
-                        <td style="text-align: center;">
+                        <td data-label="Sales/Event" style="text-align: center;">
                             <span class="badge" style="background-color: var(--color-primary); color: white;">${item.sales_per_event} / event</span>
                         </td>
                     </tr>
@@ -940,14 +938,14 @@ async function loadOnlineData() {
                 
                 return `
                     <tr class="${rowClass}">
-                        <td>${item.event_date}</td>
-                        <td style="font-weight: 600; color: var(--text-primary);"><span class="clickable-promoter" onclick="openEventProfile('${item.event_id}', '${item.event_name.replace(/'/g, "\\'")}', '${item.event_date}')">${item.event_name}</span></td>
-                        <td style="font-weight: 500;"><span class="clickable-promoter" onclick="openPromoterProfile('${item.promoter_id}')">${item.promoter_name}</span></td>
-                        <td>${breakdownHtml}</td>
-                        <td style="text-align: right; font-family: var(--font-mono);">${item.amount.toFixed(2)}€</td>
-                        <td style="text-align: center; font-weight: 600; color: var(--color-primary);">${item.commission.toFixed(2)}€</td>
-                        <td style="text-align: center;">${statusBadge}</td>
-                        <td style="text-align: center;">
+                        <td data-label="Event Date">${item.event_date}</td>
+                        <td data-label="Event Name" style="font-weight: 600; color: var(--text-primary);"><span class="clickable-promoter" onclick="openEventProfile('${item.event_id}', '${item.event_name.replace(/'/g, "\\'")}', '${item.event_date}')">${item.event_name}</span></td>
+                        <td data-label="Promoter Name" style="font-weight: 500;"><span class="clickable-promoter" onclick="openPromoterProfile('${item.promoter_id}')">${item.promoter_name}</span></td>
+                        <td data-label="Breakdown">${breakdownHtml}</td>
+                        <td data-label="Revenue" style="text-align: right; font-family: var(--font-mono);">${item.amount.toFixed(2)}€</td>
+                        <td data-label="Commission" style="text-align: center; font-weight: 600; color: var(--color-primary);">${item.commission.toFixed(2)}€</td>
+                        <td data-label="Status" style="text-align: center;">${statusBadge}</td>
+                        <td data-label="Amount Paid" style="text-align: center;">
                             <div class="action-amount-wrapper" style="display: inline-flex; align-items: center;">
                                 <input type="number" step="0.01" min="0" max="${item.commission}" 
                                     value="${item.paid_amount}" 
@@ -1118,14 +1116,14 @@ async function loadSalesHistory() {
                 const badgeClass = item.payment_method === 'Online' ? 'badge badge-returned' : 'badge badge-pending';
                 return `
                     <tr class="table-row">
-                        <td style="font-family: var(--font-mono); font-size: 13px;">${item.sale_date}</td>
-                        <td>
+                        <td data-label="Sale Date" style="font-family: var(--font-mono); font-size: 13px;">${item.sale_date}</td>
+                        <td data-label="Event">
                             <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">${item.event_name}</div>
                             <div style="font-size: 12px; color: var(--text-secondary);"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>${item.event_date}</div>
                         </td>
-                        <td style="font-weight: 500;">${item.promoter_name}</td>
-                        <td style="text-align: center;"><span class="${badgeClass}">${item.payment_method}</span></td>
-                        <td style="text-align: right; font-weight: 600; font-family: var(--font-mono);">${item.price.toFixed(2)}€</td>
+                        <td data-label="Promoter" style="font-weight: 500;">${item.promoter_name}</td>
+                        <td data-label="Method" style="text-align: center;"><span class="${badgeClass}">${item.payment_method}</span></td>
+                        <td data-label="Price" style="text-align: right; font-weight: 600; font-family: var(--font-mono);">${item.price.toFixed(2)}€</td>
                     </tr>
                 `;
             }).join('');
