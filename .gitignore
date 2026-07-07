@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+env/
+
+# Environment variables (contains secrets!)
+.env
+
+# Data files (stored in Cloud Storage in production)
+backend/tracking.json
+backend/commissions.json
+backend/performance_cache.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+automation.log
+
+# Proofshot
+proofshot-artifacts/
+
+# Inspect scripts (dev only)
+inspect_*.py
+test_*.py
+
+# macOS automation
+*.plist
+setup_automation.sh

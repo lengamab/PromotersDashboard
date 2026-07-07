@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La French - Promoter Cash Tracking</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link rel="stylesheet" href="style.css?v=4">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar/Header -->
+        <header class="main-header">
+            <div class="header-logo">
+                <i class="fa-solid fa-money-bill-transfer logo-icon"></i>
+                <div class="logo-text">
+                    <h1>LA FRENCH</h1>
+                    <span>BARCELONA • CASH TRACKING</span>
+                </div>
+            </div>
+            
+            <div class="header-nav">
+                <button class="nav-tab active" data-tab="tracking">
+                    <i class="fa-solid fa-table"></i> Cash Tracking
+                </button>
+                <button class="nav-tab" data-tab="commissions">
+                    <i class="fa-solid fa-percent"></i> Commissions Settings
+                </button>
+                <button class="nav-tab" data-tab="online">
+                    <i class="fa-solid fa-credit-card"></i> Online Tracking
+                </button>
+                <button class="nav-tab" data-tab="performance">
+                    <i class="fa-solid fa-chart-line"></i> Promoter Performance
+                </button>
+            </div>
+
+            <div class="header-actions">
+                <button id="btn-sync" class="btn btn-secondary">
+                    <i class="fa-solid fa-rotate sync-icon"></i> Sync Data
+                </button>
+                <button id="btn-email" class="btn btn-primary">
+                    <i class="fa-solid fa-paper-plane"></i> Send Daily Report
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Section -->
+        <section id="main-stats-grid" class="stats-grid">
+            <div class="stat-card total">
+                <div class="stat-icon-wrapper">
+                    <i class="fa-solid fa-coins"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Total Cash Gathered</h3>
+                    <p id="stat-total">0.00€</p>
+                </div>
+                <div class="card-glow"></div>
+            </div>
+            
+            <div class="stat-card commission">
+                <div class="stat-icon-wrapper">
+                    <i class="fa-solid fa-percent"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Promoter Commission</h3>
+                    <p id="stat-commission">0.00€</p>
+                </div>
+                <div class="card-glow"></div>
+            </div>
+
+            <div class="stat-card net-due">
+                <div class="stat-icon-wrapper">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Net Cash Owed</h3>
+                    <p id="stat-net-due">0.00€</p>
+                </div>
+                <div class="card-glow"></div>
+            </div>
+            
+            <div class="stat-card returned">
+                <div class="stat-icon-wrapper">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Cash Returned</h3>
+                    <p id="stat-returned">0.00€</p>
+                </div>
+                <div class="card-glow"></div>
+            </div>
+
+            <div class="stat-card pending">
+                <div class="stat-icon-wrapper">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Pending Cash</h3>
+                    <p id="stat-pending">0.00€</p>
+                </div>
+                <div class="card-glow"></div>
+            </div>
+        </section>
+
+        <!-- Date Range Filter -->
+        <section class="date-filter-bar">
+            <div class="date-presets">
+                <button class="date-preset-btn" data-preset="7d">Last 7 days</button>
+                <button class="date-preset-btn" data-preset="30d">Last 30 days</button>
+                <button class="date-preset-btn" data-preset="this-month">This Month</button>
+                <button class="date-preset-btn" data-preset="last-month">Last Month</button>
+                <button class="date-preset-btn" data-preset="all">All Time</button>
+            </div>
+            <div class="date-custom">
+                <label>
+                    <i class="fa-solid fa-calendar-day"></i>
+                    <input type="date" id="date-start">
+                </label>
+                <span class="date-separator">→</span>
+                <label>
+                    <i class="fa-solid fa-calendar-day"></i>
+                    <input type="date" id="date-end">
+                </label>
+                <button id="btn-apply-dates" class="btn btn-secondary btn-sm">
+                    <i class="fa-solid fa-filter"></i> Apply
+                </button>
+            </div>
+        </section>
+
+        <!-- View Pane: Cash Tracking -->
+        <div id="view-tracking" class="view-pane">
+            <!-- Controls Section -->
+            <section class="controls-bar">
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="search-input" placeholder="Search promoter or event...">
+                </div>
+                <div class="filter-options">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="pending">Pending</button>
+                    <button class="filter-btn" data-filter="returned">Returned</button>
+                </div>
+            </section>
+
+            <!-- Spreadsheet Content -->
+            <main class="sheet-container">
+                <div class="table-wrapper">
+                    <table class="tracking-table">
+                        <thead>
+                            <tr>
+                                <th class="col-date">Event Date</th>
+                                <th class="col-event">Event Name</th>
+                                <th class="col-promoter">Promoter Name</th>
+                                <th class="col-cash">Cash Collected</th>
+                                <th class="col-status">Status</th>
+                                <th class="col-action">Amount Returned</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- Content injected via JS -->
+                            <tr>
+                                <td colspan="6" class="loading-state">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> Loading cash records from Fourvenues...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+
+        <!-- View Pane: Commission Settings -->
+        <div id="view-settings" class="view-pane hidden">
+            <main class="sheet-container">
+                <div class="table-wrapper">
+                    <table class="tracking-table settings-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 15%">Event Date</th>
+                                <th style="width: 35%">Event Name</th>
+                                <th style="width: 25%">Ticket Type</th>
+                                <th style="width: 9%; text-align: right;">Price</th>
+                                <th style="width: 8%; text-align: center;">Cash Comm</th>
+                                <th style="width: 8%; text-align: center;">Online Comm</th>
+                            </tr>
+                        </thead>
+                        <tbody id="settings-table-body">
+                            <tr>
+                                <td colspan="6" class="loading-state">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> Loading ticket rates...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+
+        <!-- View Pane: Online Sales Tracking -->
+        <div id="view-online" class="view-pane hidden">
+            <main class="sheet-container">
+                <div class="table-wrapper">
+                    <table class="tracking-table online-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 10%">Event Date</th>
+                                <th style="width: 25%">Event Name</th>
+                                <th style="width: 15%">Promoter Name</th>
+                                <th style="width: 20%">Sales Breakdown</th>
+                                <th style="width: 10%; text-align: right;">Revenue Generated</th>
+                                <th style="width: 8%; text-align: center;">Commission</th>
+                                <th style="width: 6%; text-align: center;">Status</th>
+                                <th style="width: 6%; text-align: center;">Amount Paid</th>
+                            </tr>
+                        </thead>
+                        <tbody id="online-table-body">
+                            <tr>
+                                <td colspan="8" class="loading-state">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> Loading online sales data...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+
+        <div id="view-performance" class="view-pane hidden">
+            <!-- Performance Stats Grid -->
+            <div class="stats-grid" style="margin-bottom: 24px; grid-template-columns: repeat(4, 1fr);">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fa-solid fa-ticket"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-label">Total Sold</div>
+                        <div class="stat-value" id="perf-total-sold">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--color-success); background: rgba(16, 185, 129, 0.1);"><i class="fa-solid fa-chart-line"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-label">Total Revenue</div>
+                        <div class="stat-value" id="perf-total-revenue" style="color: var(--color-success);">0.00€</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--color-danger); background: rgba(239, 68, 68, 0.1);"><i class="fa-solid fa-user-xmark"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-label">Avg No-Show Rate</div>
+                        <div class="stat-value" id="perf-avg-noshow">0%</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--color-primary); background: rgba(29, 78, 216, 0.1);"><i class="fa-solid fa-trophy"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-label">Top Promoter</div>
+                        <div class="stat-value" id="perf-top-promoter" style="font-size: 20px;">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Chart -->
+            <main class="sheet-container" style="margin-bottom: 24px;">
+                <div style="padding: 20px; height: 350px;">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </main>
+
+            <!-- Performance Table -->
+            <main class="sheet-container">
+                <div class="table-wrapper">
+                    <table class="tracking-table performance-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%">Promoter</th>
+                                <th style="width: 15%; text-align: center;">Total Tickets</th>
+                                <th style="width: 15%; text-align: center;">Revenue (€)</th>
+                                <th style="width: 15%; text-align: center;">Commission (€)</th>
+                                <th style="width: 15%; text-align: center;">No-Show Rate</th>
+                                <th style="width: 15%; text-align: center;">Sales / Event</th>
+                            </tr>
+                        </thead>
+                        <tbody id="performance-table-body">
+                            <tr>
+                                <td colspan="6" class="loading-state">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> Loading historical performance data...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+        <!-- Promoter Profile Modal -->
+        <div id="promoter-modal" class="modal">
+            <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h2><i class="fa-solid fa-user"></i> <span id="modal-promoter-name">Promoter Profile</span></h2>
+                    <span class="close-modal" onclick="closePromoterModal()">&times;</span>
+                </div>
+                
+                <div id="promoter-stats-grid" class="stats-grid" style="margin-bottom: 24px; grid-template-columns: repeat(5, 1fr);">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fa-solid fa-ticket"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Tickets</div>
+                            <div class="stat-value" id="modal-total-tickets">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color: var(--color-success); background: rgba(16, 185, 129, 0.1);"><i class="fa-solid fa-chart-line"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Revenue</div>
+                            <div class="stat-value" id="modal-total-revenue" style="color: var(--color-success);">0.00€</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color: var(--color-danger); background: rgba(239, 68, 68, 0.1);"><i class="fa-solid fa-money-bill-wave"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Cash Pending (Owes Us)</div>
+                            <div class="stat-value" id="modal-cash-pending" style="color: var(--color-danger);">0.00€</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color: var(--color-primary); background: rgba(29, 78, 216, 0.1);"><i class="fa-solid fa-globe"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Online Pending (We Owe)</div>
+                            <div class="stat-value" id="modal-online-pending" style="color: var(--color-primary);">0.00€</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fa-solid fa-star"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Average Score</div>
+                            <div class="stat-value" id="modal-avg-score">0%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3 style="margin-bottom: 16px; font-weight: 500;">Event History</h3>
+                <div class="table-container" style="max-height: 500px; overflow-y: auto;">
+                    <table class="data-table" id="modal-history-table">
+                        <thead>
+                            <tr>
+                                <th>Event</th>
+                                <th style="text-align: right;">Entered / Tkts</th>
+                                <th style="text-align: right;">Cash Due</th>
+                                <th style="text-align: center;">Cash Status</th>
+                                <th style="text-align: right;">Online Due</th>
+                                <th style="text-align: center;">Online Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-history-body">
+                            <!-- History injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Sales Breakdown Modal -->
+    <div id="modal-daily-sales" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 id="daily-sales-title">Daily Breakdown</h2>
+                    <div id="daily-sales-date" style="color: var(--text-secondary); font-size: 14px; margin-top: 4px;"></div>
+                </div>
+                <button class="close-btn" onclick="closeDailySalesModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="stats-grid" style="margin-bottom: 24px; grid-template-columns: repeat(2, 1fr);">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fa-solid fa-ticket"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Tickets Sold</div>
+                            <div class="stat-value" id="daily-total-sold">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color: var(--color-success); background: rgba(16, 185, 129, 0.1);"><i class="fa-solid fa-chart-line"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Revenue</div>
+                            <div class="stat-value" id="daily-total-revenue" style="color: var(--color-success);">0.00€</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="margin-bottom: 12px; font-size: 16px;">Promoter Breakdown</h3>
+                <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                    <table class="tracking-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50%">Promoter</th>
+                                <th style="width: 25%; text-align: center;">Tickets</th>
+                                <th style="width: 25%; text-align: right;">Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody id="daily-sales-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event Profile Modal -->
+        <div id="event-modal" class="modal">
+            <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h2><i class="fa-solid fa-calendar-check"></i> <span id="modal-event-name">Event Profile</span></h2>
+                    <span class="close-modal" onclick="closeEventModal()">&times;</span>
+                </div>
+                <div style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;" id="modal-event-date"></div>
+                
+                <div id="event-stats-grid" class="stats-grid" style="margin-bottom: 24px; grid-template-columns: repeat(4, 1fr);">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fa-solid fa-ticket"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Sold</div>
+                            <div class="stat-value" id="modal-event-sold">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color: var(--color-success); background: rgba(16, 185, 129, 0.1);"><i class="fa-solid fa-chart-line"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Revenue</div>
+                            <div class="stat-value" id="modal-event-revenue" style="color: var(--color-success);">0.00€</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color: var(--color-primary); background: rgba(29, 78, 216, 0.1);"><i class="fa-solid fa-door-open"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Entered</div>
+                            <div class="stat-value" id="modal-event-entered" style="color: var(--color-primary);">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color: var(--color-danger); background: rgba(239, 68, 68, 0.1);"><i class="fa-solid fa-user-xmark"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">No-Show Rate</div>
+                            <div class="stat-value" id="modal-event-noshow">0%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                    <div>
+                        <h3 style="margin-bottom: 12px; font-weight: 500; font-size: 15px;"><i class="fa-solid fa-tags" style="color: var(--text-secondary); margin-right: 6px;"></i> By Ticket Type</h3>
+                        <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                            <table class="data-table" id="modal-event-tickets-table">
+                                <thead>
+                                    <tr>
+                                        <th style="text-align: left;">Ticket Name</th>
+                                        <th style="text-align: right; width: 60px;">Sold</th>
+                                        <th style="text-align: right; width: 90px;">Revenue</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="modal-event-tickets-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 style="margin-bottom: 12px; font-weight: 500; font-size: 15px;"><i class="fa-solid fa-users" style="color: var(--text-secondary); margin-right: 6px;"></i> By Promoter</h3>
+                        <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                            <table class="data-table" id="modal-event-promoters-table">
+                                <thead>
+                                    <tr>
+                                        <th style="text-align: left;">Promoter</th>
+                                        <th style="text-align: right; width: 60px;">Sold</th>
+                                        <th style="text-align: right; width: 90px;">Revenue</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="modal-event-promoters-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Toast Notifications -->
+        <div id="toast-container" class="toast-container"></div>
+    </div>
+
+    <script src="app.js?v=21"></script>
+</body>
+</html>

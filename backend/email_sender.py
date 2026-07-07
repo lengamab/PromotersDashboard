@@ -1,0 +1,1095 @@
+import os
+import json
+import urllib.request
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from datetime import datetime, timedelta
+import concurrent.futures
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
+
+# Promoters that should never receive commission (venue's own accounts)
+NO_COMMISSION_PROMOTERS = {
+    "la french barcelona",
+    "direct sale / no promoter",
+}
+
+API_KEY = os.getenv("FOURVENUES_API_KEY")
+SMTP_SERVER = os.getenv("SMTP_SERVER")
+SMTP_PORT = os.getenv("SMTP_PORT")
+SMTP_USERNAME = os.getenv("SMTP_USERNAME")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+RECIPIENT_EMAIL = os.getenv("RECIPIENT_EMAIL")
+DASHBOARD_URL = os.getenv("DASHBOARD_URL", "http://localhost:5000")
+
+DATA_DIR = os.environ.get("DATA_DIR", os.path.dirname(__file__))
+DB_PATH = os.path.join(DATA_DIR, 'tracking.json')
+COMMISSIONS_PATH = os.path.join(DATA_DIR, 'commissions.json')
+PERFORMANCE_CACHE_PATH = os.path.join(DATA_DIR, 'performance_cache.json')
+
+def load_db():
+    if os.path.exists(DB_PATH):
+        try:
+            with open(DB_PATH, 'r') as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def load_performance_cache():
+    if os.path.exists(PERFORMANCE_CACHE_PATH):
+        try:
+            with open(PERFORMANCE_CACHE_PATH, 'r') as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def save_performance_cache(data):
+    try:
+        with open(PERFORMANCE_CACHE_PATH, 'w') as f:
+            json.dump(data, f, indent=2)
+        return True
+    except Exception as e:
+        print(f"Error saving performance cache: {e}")
+        return False
+
+def load_commissions():
+    if os.path.exists(COMMISSIONS_PATH):
+        try:
+            with open(COMMISSIONS_PATH, 'r') as f:
+                return json.load(f).get("rates", {})
+        except Exception:
+            return {}
+    return {}
+
+def save_commissions(rates):
+    try:
+        with open(COMMISSIONS_PATH, 'w') as f:
+            json.dump({"rates": rates}, f, indent=2)
+        return True
+    except Exception as e:
+        print(f"Error saving commissions: {e}")
+        return False
+
+def get_fourvenues_data(endpoint, return_none_on_error=False):
+    import time
+    url = f"https://api.fourvenues.com/integrations/{endpoint}"
+    req = urllib.request.Request(url, headers={"X-Api-Key": API_KEY})
+    
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(req) as response:
+                return json.loads(response.read().decode()).get("data", [])
+        except urllib.error.HTTPError as e:
+            if e.code == 429:
+                time.sleep(1.0 + attempt)  # Backoff
+            else:
+                print(f"Error fetching Fourvenues endpoint {endpoint}: {e}")
+                return None if return_none_on_error else []
+        except Exception as e:
+            print(f"Error fetching Fourvenues endpoint {endpoint}: {e}")
+            return None if return_none_on_error else []
+            
+    print(f"Failed to fetch {endpoint} after 4 retries.")
+    return None if return_none_on_error else []
+
+def get_all_event_tickets(events):
+    """
+    Fetches tickets for all events concurrently.
+    Returns a dictionary mapping event_id -> list of tickets.
+    """
+    results = {}
+    
+    def fetch_for_event(ev_id):
+        return ev_id, get_fourvenues_data(f"tickets/?event_id={ev_id}", return_none_on_error=True)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        future_to_ev = {executor.submit(fetch_for_event, ev["_id"]): ev["_id"] for ev in events}
+        for future in concurrent.futures.as_completed(future_to_ev):
+            ev_id = future_to_ev[future]
+            try:
+                res_id, t_data = future.result()
+                results[res_id] = t_data
+            except Exception as exc:
+                print(f"Event {ev_id} generated an exception: {exc}")
+                results[ev_id] = None
+                
+    return results
+
+def calculate_ticket_commission(rate_name, price, rate_slug, custom_commissions=None, sale_type="cash"):
+    if custom_commissions is None:
+        custom_commissions = {}
+        
+    # Check if a custom commission was configured for this rate name/slug
+    comm_config = custom_commissions.get(rate_slug) or custom_commissions.get(rate_name)
+    if comm_config is not None:
+        if isinstance(comm_config, dict):
+            return float(comm_config.get(sale_type, 0.0))
+        else:
+            return float(comm_config)
+
+    rate_upper = rate_name.upper()
+    # 1. Open Bar check first (7€)
+    if "OPEN BAR" in rate_upper or "OPENBAR" in rate_upper:
+        return 7.0
+    # 2. Fanzone checks (1€)
+    if "FAN ZONE" in rate_upper or "FANZONE" in rate_upper:
+        return 1.0
+    # 3. PASS at 10€ check (5€)
+    if "PASS" in rate_upper and abs(price - 10.0) < 0.01:
+        return 5.0
+    return 1.0
+
+def gather_performance_report(start_date=None, end_date=None):
+    import time
+    
+    # 1. Resolve promoters (users)
+    users = get_fourvenues_data("users")
+    users_dict = {
+        u["_id"]: f"{u['profile']['name']} {u['profile']['last_name']}".strip() or u.get("email")
+        for u in users
+    }
+    
+    # 2. Get events from start of year to today (or end of year)
+    if not start_date or not end_date:
+        current_year = datetime.now().year
+        start_date = f"{current_year}-01-01"
+        end_date = f"{current_year}-12-31"
+        
+    events = get_fourvenues_data(f"events?start={start_date}&end={end_date}")
+    
+    cache = load_performance_cache()
+    if "events" not in cache:
+        cache["events"] = {}
+        
+    custom_commissions = load_commissions()
+    
+    promoter_globals = {}
+    daily_trends = {}
+    current_time = time.time()
+    
+    cache_dirty = False
+    
+    # 1. Determine which events need live fetching
+    events_to_fetch = []
+    for event in events:
+        event_id = event["_id"]
+        event_date_raw = event.get("date", 0)
+        is_completed = (event_date_raw + 86400) < current_time
+        
+        if not (is_completed and event_id in cache["events"]):
+            events_to_fetch.append(event)
+            
+    # 2. Fetch required tickets in parallel
+    event_tickets_map = get_all_event_tickets(events_to_fetch)
+    
+    for event in events:
+        event_id = event["_id"]
+        event_date_raw = event.get("date", 0)
+        event_name = event.get("name", "Unknown Event")
+        
+        # Consider event completed if its date + 24 hours is in the past
+        is_completed = (event_date_raw + 86400) < current_time
+        
+        event_promoters = {}
+        event_daily = {}
+        
+        if is_completed and event_id in cache["events"] and isinstance(cache["events"][event_id], dict) and "promoters" in cache["events"][event_id]:
+            # Load from cache (new format)
+            event_data = cache["events"][event_id]
+            event_promoters = event_data.get("promoters", {})
+            event_daily = event_data.get("daily", {})
+        else:
+            # Fetch live
+            tickets = event_tickets_map.get(event_id)
+            if tickets is None:
+                # API failed for this event, do not cache and do not process it
+                continue
+                
+            for t in tickets:
+                price = float(t.get("price", 0))
+                referral_id = t.get("referral_id")
+                
+                promoter_id = referral_id or "unknown"
+                if promoter_id not in users_dict:
+                    promoter_id = "unknown"
+                    
+                if promoter_id not in event_promoters:
+                    event_promoters[promoter_id] = {
+                        "tickets": 0,
+                        "revenue": 0.0,
+                        "commission": 0.0,
+                        "no_shows": 0
+                    }
+                    
+                event_promoters[promoter_id]["tickets"] += 1
+                event_promoters[promoter_id]["revenue"] += price
+                
+                rate_name = t.get("rate_name", "Unknown Rate")
+                rate_slug = t.get("rate_slug", "unknown-slug")
+                sale_type = "online" if t.get("payment_id") else "cash"
+                comm = calculate_ticket_commission(rate_name, price, rate_slug, custom_commissions, sale_type=sale_type)
+                
+                # Zero out commission if they haven't entered the venue, BUT ONLY FOR ONLINE TICKETS
+                if sale_type == "online" and t.get("enter", 0) != 1:
+                    comm = 0.0
+                    
+                event_promoters[promoter_id]["commission"] += comm
+                
+                # A no-show is simply any ticket that wasn't scanned at the door for a completed event
+                if is_completed and t.get("enter", 0) != 1:
+                    event_promoters[promoter_id]["no_shows"] += 1
+                    
+                # Daily trends tracking
+                created_at = t.get("created_at")
+                day_str = created_at.split('T')[0] if created_at else "Unknown"
+                if day_str not in event_daily:
+                    event_daily[day_str] = {"sales": 0, "revenue": 0.0, "promoters": {}, "no_shows": 0}
+                event_daily[day_str]["sales"] += 1
+                event_daily[day_str]["revenue"] += price
+                if is_completed and t.get("enter", 0) != 1:
+                    event_daily[day_str]["no_shows"] += 1
+                
+                if promoter_id not in event_daily[day_str]["promoters"]:
+                    event_daily[day_str]["promoters"][promoter_id] = {"sales": 0, "revenue": 0.0}
+                event_daily[day_str]["promoters"][promoter_id]["sales"] += 1
+                event_daily[day_str]["promoters"][promoter_id]["revenue"] += price
+            
+            # Save to cache if completed
+            if is_completed:
+                cache["events"][event_id] = {
+                    "promoters": event_promoters,
+                    "daily": event_daily
+                }
+                cache_dirty = True
+                
+        # Merge event daily stats into global daily stats
+        for day, stats in event_daily.items():
+            if day not in daily_trends:
+                daily_trends[day] = {"date": day, "sales": 0, "revenue": 0.0, "promoters": {}, "no_shows": 0}
+            daily_trends[day]["sales"] += stats["sales"]
+            daily_trends[day]["revenue"] += stats["revenue"]
+            daily_trends[day]["no_shows"] += stats.get("no_shows", 0)
+            for pid, pstats in stats.get("promoters", {}).items():
+                if pid not in daily_trends[day]["promoters"]:
+                    daily_trends[day]["promoters"][pid] = {"sales": 0, "revenue": 0.0, "events": {}}
+                daily_trends[day]["promoters"][pid]["sales"] += pstats["sales"]
+                daily_trends[day]["promoters"][pid]["revenue"] += pstats["revenue"]
+                
+                # Add event breakdown
+                if event_name not in daily_trends[day]["promoters"][pid]["events"]:
+                    daily_trends[day]["promoters"][pid]["events"][event_name] = 0
+                daily_trends[day]["promoters"][pid]["events"][event_name] += pstats["sales"]
+                
+        # Merge event stats into global stats
+        for p_id, stats in event_promoters.items():
+            if p_id not in promoter_globals:
+                promoter_globals[p_id] = {
+                    "promoter_id": p_id,
+                    "promoter_name": users_dict.get(p_id, "Direct Sale / No Promoter"),
+                    "total_tickets": 0,
+                    "total_revenue": 0.0,
+                    "total_commission": 0.0,
+                    "total_no_shows": 0,
+                    "events_promoted": 0
+                }
+            
+            pg = promoter_globals[p_id]
+            pg["total_tickets"] += stats["tickets"]
+            pg["total_revenue"] += stats["revenue"]
+            # Zero commission for venue's own accounts
+            if pg["promoter_name"].lower() in NO_COMMISSION_PROMOTERS:
+                pass  # Don't add commission
+            else:
+                pg["total_commission"] += stats["commission"]
+            pg["total_no_shows"] += stats["no_shows"]
+            pg["events_promoted"] += 1
+            
+    if cache_dirty:
+        save_performance_cache(cache)
+        
+    # Calculate final derived metrics
+    for p_id, pg in promoter_globals.items():
+        tickets = pg["total_tickets"]
+        if tickets > 0:
+            pg["no_show_rate"] = round((pg["total_no_shows"] / tickets) * 100, 1)
+        else:
+            pg["no_show_rate"] = 0.0
+            
+        events_promoted = pg["events_promoted"]
+        if events_promoted > 0:
+            pg["sales_per_event"] = round(tickets / events_promoted, 1)
+        else:
+            pg["sales_per_event"] = 0.0
+            
+    results = list(promoter_globals.values())
+    # Default sort by total tickets descending
+    results.sort(key=lambda x: x["total_tickets"], reverse=True)
+    
+    # Sort daily trends chronologically, discard "Unknown" if you want or keep it
+    sorted_trends = []
+    for k in sorted(daily_trends.keys()):
+        if k == "Unknown":
+            continue
+        # Only include dates within our requested range
+        if start_date and k < start_date:
+            continue
+        if end_date and k > end_date:
+            continue
+            
+        trend = daily_trends[k].copy()
+        
+        # Convert promoters dict to sorted list
+        promoter_list = []
+        for pid, pstats in trend.get("promoters", {}).items():
+            pname = users_dict.get(pid, "Direct Sale / No Promoter")
+            events_sold = ", ".join(f"{count}x {ename}" for ename, count in pstats.get("events", {}).items())
+            
+            promoter_list.append({
+                "promoter_id": pid,
+                "promoter_name": pname,
+                "sales": pstats["sales"],
+                "revenue": pstats["revenue"],
+                "events_sold": events_sold
+            })
+        promoter_list.sort(key=lambda x: x["sales"], reverse=True)
+        trend["promoters"] = promoter_list
+        
+        sorted_trends.append(trend)
+    
+    return {
+        "promoter_stats": results,
+        "daily_trends": sorted_trends
+    }
+
+def gather_cash_report(start_date=None, end_date=None):
+    db = load_db()
+    custom_commissions = load_commissions()
+    
+    # 1. Resolve promoters (users)
+    users = get_fourvenues_data("users")
+    users_dict = {
+        u["_id"]: f"{u['profile']['name']} {u['profile']['last_name']}".strip() or u.get("email")
+        for u in users
+    }
+    
+    # 2. Get events for specified date range (default: 7 days ago to 14 days in the future)
+    if not start_date:
+        start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+    if not end_date:
+        end_date = (datetime.now() + timedelta(days=14)).strftime("%Y-%m-%d")
+    events = get_fourvenues_data(f"events?start={start_date}&end={end_date}")
+    
+    event_tickets_map = get_all_event_tickets(events)
+    
+    report_data = []
+    
+    total_gathered = 0.0
+    total_commission = 0.0
+    total_net_due = 0.0
+    total_returned = 0.0
+    total_pending = 0.0
+    
+    for event in events:
+        ev_id = event["_id"]
+        ev_name = event["name"]
+        ev_date_raw = event.get("date")
+        
+        # Format date for display
+        if ev_date_raw:
+            try:
+                ev_date = datetime.fromtimestamp(ev_date_raw).strftime("%d/%m/%Y")
+            except Exception:
+                ev_date = str(ev_date_raw)
+        else:
+            ev_date = "N/A"
+            
+        tickets = event_tickets_map.get(ev_id, [])
+        
+        # Aggregate by promoter
+        promoter_cash = {}
+        for t in tickets:
+            price = float(t.get("price", 0))
+            payment_id = t.get("payment_id")
+            referral_id = t.get("referral_id")
+            sale_type = t.get("sale_type", "")
+            
+            # Cash ticket condition: no payment_id and not an online sale
+            if price >= 0 and not payment_id and sale_type != "online":
+                promoter_id = referral_id or "unknown"
+                if promoter_id not in users_dict:
+                    promoter_id = "unknown"
+                promoter_name = users_dict.get(promoter_id, "Direct Sale / No Promoter")
+                
+                amount = float(t.get("raised", 0) or t.get("total_paid", 0) or price)
+                comm = calculate_ticket_commission(t.get("rate_name", "Unknown Rate"), price, t.get("rate_slug", "unknown-slug"), custom_commissions)
+                
+                # Zero commission for venue's own accounts
+                if promoter_name.lower() in NO_COMMISSION_PROMOTERS:
+                    comm = 0.0
+                
+                if promoter_id not in promoter_cash:
+                    promoter_cash[promoter_id] = {
+                        "name": promoter_name,
+                        "amount": 0.0,
+                        "commission": 0.0,
+                        "breakdown": {}
+                    }
+                promoter_cash[promoter_id]["amount"] += amount
+                promoter_cash[promoter_id]["commission"] += comm
+                
+                # Ticket type breakdown
+                rate_name = t.get("rate_name", "Unknown Rate")
+                breakdown_key = f"{rate_name} ({price:.2f}€)"
+                if breakdown_key not in promoter_cash[promoter_id]["breakdown"]:
+                    promoter_cash[promoter_id]["breakdown"][breakdown_key] = {
+                        "count": 0,
+                        "price": price,
+                        "rate_name": rate_name,
+                        "commission_unit": comm
+                    }
+                promoter_cash[promoter_id]["breakdown"][breakdown_key]["count"] += 1
+
+        # Add to report
+        for p_id, data in promoter_cash.items():
+            db_key = f"{ev_id}_{p_id}"
+            db_record = db.get(db_key, {})
+            
+            amount = data["amount"]
+            commission = data["commission"]
+            net_due = max(0.0, amount - commission)
+            
+            total_gathered += amount
+            total_commission += commission
+            total_net_due += net_due
+            
+            # Resolve returned amount and handle compatibility with legacy boolean
+            db_returned_amt = db_record.get("returned_amount")
+            db_returned_bool = db_record.get("returned", False)
+            
+            if db_returned_amt is not None:
+                if db_returned_amt == -1.0:
+                    returned_amount = net_due if db_returned_bool else 0.0
+                else:
+                    returned_amount = float(db_returned_amt)
+            else:
+                returned_amount = net_due if db_returned_bool else 0.0
+            
+            # Cap the values to net_due to avoid boundaries anomalies
+            returned_amount = min(returned_amount, net_due)
+            returned_amount = max(0.0, returned_amount)
+            
+            # Check statuses against net_due
+            is_returned = returned_amount >= net_due
+            is_partial = 0.0 < returned_amount < net_due
+            
+            total_returned += returned_amount
+            total_pending += (net_due - returned_amount)
+            
+            # Compile breakdown descriptions sorted by unit price descending
+            breakdown_list = []
+            sorted_keys = sorted(data["breakdown"].keys(), key=lambda k: data["breakdown"][k]["price"], reverse=True)
+            for k in sorted_keys:
+                bd_item = data["breakdown"][k]
+                comm_info = f" | Comm: {bd_item['commission_unit'] * bd_item['count']:.2f}€" if bd_item['commission_unit'] > 0 else ""
+                breakdown_list.append(f"{bd_item['count']}x {bd_item['rate_name']} ({bd_item['price']:.2f}€){comm_info}")
+                
+            report_data.append({
+                "event_id": ev_id,
+                "event_name": ev_name,
+                "event_date": ev_date,
+                "promoter_id": p_id,
+                "promoter_name": data["name"],
+                "amount": amount,
+                "commission": commission,
+                "net_due": net_due,
+                "returned_amount": returned_amount,
+                "returned": is_returned,
+                "partial": is_partial,
+                "returned_at": db_record.get("returned_at", ""),
+                "breakdown": breakdown_list,
+                "event_date_raw": ev_date_raw or 0
+            })
+            
+    # Sort report data: pending first, then by event date (newest first)
+    report_data.sort(key=lambda x: (x["returned"], -x["event_date_raw"]))
+    
+    return {
+        "items": report_data,
+        "total_gathered": total_gathered,
+        "total_commission": total_commission,
+        "total_net_due": total_net_due,
+        "total_returned": total_returned,
+        "total_pending": total_pending,
+        "timestamp": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    }
+
+def gather_online_report(start_date=None, end_date=None):
+    db = load_db()
+    custom_commissions = load_commissions()
+    
+    # 1. Resolve promoters (users)
+    users = get_fourvenues_data("users")
+    users_dict = {
+        u["_id"]: f"{u['profile']['name']} {u['profile']['last_name']}".strip() or u.get("email")
+        for u in users
+    }
+    
+    # 2. Get events for specified date range (default: 7 days ago to 14 days in the future)
+    if not start_date:
+        start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+    if not end_date:
+        end_date = (datetime.now() + timedelta(days=14)).strftime("%Y-%m-%d")
+    events = get_fourvenues_data(f"events?start={start_date}&end={end_date}")
+    
+    event_tickets_map = get_all_event_tickets(events)
+    
+    report_data = []
+    
+    total_sales = 0.0
+    total_commission_owed = 0.0
+    total_paid = 0.0
+    total_pending = 0.0
+    
+    for event in events:
+        ev_id = event["_id"]
+        ev_name = event["name"]
+        ev_date_raw = event.get("date")
+        
+        # Format date for display
+        if ev_date_raw:
+            try:
+                ev_date = datetime.fromtimestamp(ev_date_raw).strftime("%d/%m/%Y")
+            except Exception:
+                ev_date = str(ev_date_raw)
+        else:
+            ev_date = "N/A"
+            
+        tickets = event_tickets_map.get(ev_id, [])
+        
+        # Aggregate by promoter
+        promoter_online = {}
+        for t in tickets:
+            price = float(t.get("price", 0))
+            payment_id = t.get("payment_id")
+            referral_id = t.get("referral_id")
+            sale_type = t.get("sale_type", "")
+            
+            # Online ticket condition: has payment_id or marked as online sale
+            if price >= 0 and (payment_id or sale_type == "online"):
+                promoter_id = referral_id or "unknown"
+                if promoter_id not in users_dict:
+                    promoter_id = "unknown"
+                promoter_name = users_dict.get(promoter_id, "Direct Sale / No Promoter")
+                
+                amount = float(t.get("raised", 0) or t.get("total_paid", 0) or price)
+                comm = calculate_ticket_commission(t.get("rate_name", "Unknown Rate"), price, t.get("rate_slug", "unknown-slug"), custom_commissions, sale_type="online")
+                
+                # Zero commission for no-shows or venue's own accounts
+                if t.get("enter", 0) != 1 or promoter_name.lower() in NO_COMMISSION_PROMOTERS:
+                    comm = 0.0
+                
+                if promoter_id not in promoter_online:
+                    promoter_online[promoter_id] = {
+                        "name": promoter_name,
+                        "amount": 0.0,
+                        "commission": 0.0,
+                        "breakdown": {}
+                    }
+                promoter_online[promoter_id]["amount"] += amount
+                promoter_online[promoter_id]["commission"] += comm
+                
+                # Ticket type breakdown
+                rate_name = t.get("rate_name", "Unknown Rate")
+                breakdown_key = f"{rate_name} ({price:.2f}€)"
+                if breakdown_key not in promoter_online[promoter_id]["breakdown"]:
+                    promoter_online[promoter_id]["breakdown"][breakdown_key] = {
+                        "count": 0,
+                        "price": price,
+                        "rate_name": rate_name,
+                        "commission_unit": comm
+                    }
+                promoter_online[promoter_id]["breakdown"][breakdown_key]["count"] += 1
+
+        # Add to report
+        for p_id, data in promoter_online.items():
+            db_key = f"online_{ev_id}_{p_id}"
+            db_record = db.get(db_key, {})
+            
+            sales_amount = data["amount"]
+            commission_owed = data["commission"]
+            
+            total_sales += sales_amount
+            total_commission_owed += commission_owed
+            
+            # Auto-mark no-commission promoters as paid (nothing to pay)
+            if data["name"].lower() in NO_COMMISSION_PROMOTERS:
+                paid_amount = commission_owed
+                is_paid = True
+                is_partial = False
+            else:
+                db_paid_amt = db_record.get("paid_amount")
+                db_paid_bool = db_record.get("paid", False)
+                
+                if db_paid_amt is not None:
+                    paid_amount = commission_owed if db_paid_bool else float(db_paid_amt)
+                else:
+                    paid_amount = commission_owed if db_paid_bool else 0.0
+                
+                paid_amount = min(paid_amount, commission_owed)
+                paid_amount = max(0.0, paid_amount)
+                
+                is_paid = paid_amount >= commission_owed
+            is_partial = 0.0 < paid_amount < commission_owed
+            
+            total_paid += paid_amount
+            total_pending += (commission_owed - paid_amount)
+            
+            breakdown_list = []
+            sorted_keys = sorted(data["breakdown"].keys(), key=lambda k: data["breakdown"][k]["price"], reverse=True)
+            for k in sorted_keys:
+                bd_item = data["breakdown"][k]
+                comm_info = f" | Comm: {bd_item['commission_unit'] * bd_item['count']:.2f}€" if bd_item['commission_unit'] > 0 else ""
+                breakdown_list.append(f"{bd_item['count']}x {bd_item['rate_name']} ({bd_item['price']:.2f}€){comm_info}")
+                
+            report_data.append({
+                "event_id": ev_id,
+                "event_name": ev_name,
+                "event_date": ev_date,
+                "promoter_id": p_id,
+                "promoter_name": data["name"],
+                "amount": sales_amount,
+                "commission": commission_owed,
+                "net_due": commission_owed,
+                "paid_amount": paid_amount,
+                "paid": is_paid,
+                "partial": is_partial,
+                "paid_at": db_record.get("paid_at", ""),
+                "breakdown": breakdown_list,
+                "event_date_raw": ev_date_raw or 0
+            })
+            
+    report_data.sort(key=lambda x: (x["paid"], -x["event_date_raw"]))
+    
+    return {
+        "items": report_data,
+        "total_sales": total_sales,
+        "total_commission_owed": total_commission_owed,
+        "total_paid": total_paid,
+        "total_pending": total_pending,
+        "timestamp": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    }
+
+def gather_promoter_profile(promoter_id, start_date=None, end_date=None):
+    db = load_db()
+    custom_commissions = load_commissions()
+    
+    users = get_fourvenues_data("users")
+    users_dict = {
+        u["_id"]: f"{u['profile']['name']} {u['profile']['last_name']}".strip() or u.get("email")
+        for u in users
+    }
+    
+    promoter_name = users_dict.get(promoter_id, "Direct Sale / No Promoter")
+    
+    if not start_date:
+        current_year = datetime.now().year
+        start_date = f"{current_year}-01-01"
+    if not end_date:
+        end_date = (datetime.now() + timedelta(days=14)).strftime("%Y-%m-%d")
+        
+    events = get_fourvenues_data(f"events?start={start_date}&end={end_date}")
+    
+    event_tickets_map = get_all_event_tickets(events)
+    
+    total_tickets = 0
+    total_revenue = 0.0
+    total_commission = 0.0
+    total_no_shows = 0
+    total_paid_out = 0.0
+    
+    event_history = []
+    
+    for event in events:
+        ev_id = event["_id"]
+        ev_name = event["name"]
+        ev_date_raw = event.get("date")
+        
+        if ev_date_raw:
+            try:
+                ev_date = datetime.fromtimestamp(ev_date_raw).strftime("%d/%m/%Y")
+                ev_month_key = datetime.fromtimestamp(ev_date_raw).strftime("%B %Y") # e.g. July 2026
+            except Exception:
+                ev_date = str(ev_date_raw)
+                ev_month_key = "Unknown Month"
+        else:
+            ev_date = "N/A"
+            ev_month_key = "Unknown Month"
+            
+        tickets = event_tickets_map.get(ev_id, [])
+        
+        event_tickets = 0
+        event_no_shows = 0
+        
+        event_cash_revenue = 0.0
+        event_cash_comm = 0.0
+        event_online_comm = 0.0
+        
+        for t in tickets:
+            ref_id = t.get("referral_id")
+            if (ref_id or "unknown") == promoter_id:
+                price = float(t.get("price", 0))
+                sale_type = "online" if t.get("payment_id") or t.get("sale_type") == "online" else "cash"
+                
+                event_tickets += 1
+                
+                # Check if it's a no-show
+                if t.get("enter", 0) == 0 and t.get("status") == "activated":
+                    event_no_shows += 1
+                
+                # Commission
+                comm = 0.0
+                if promoter_name.lower() not in NO_COMMISSION_PROMOTERS:
+                    comm = calculate_ticket_commission(t.get("rate_name", "Unknown Rate"), price, t.get("rate_slug", "unknown-slug"), custom_commissions, sale_type=sale_type)
+                    
+                    if sale_type == "online" and t.get("enter", 0) != 1:
+                        comm = 0.0
+                
+                if sale_type == "cash":
+                    event_cash_revenue += price
+                    event_cash_comm += comm
+                else:
+                    event_online_comm += comm
+                    
+        if event_tickets > 0:
+            db_cash_key = f"cash_{ev_id}_{promoter_id}"
+            db_online_key = f"online_{ev_id}_{promoter_id}"
+            
+            cash_rec = db.get(db_cash_key, {})
+            online_rec = db.get(db_online_key, {})
+            
+            cash_net_due = max(0.0, event_cash_revenue - event_cash_comm)
+            
+            # Cash tracking
+            cash_returned = 0.0
+            if cash_rec.get("paid_amount") is not None and cash_rec.get("paid_amount") > 0:
+                cash_returned = cash_rec["paid_amount"]
+            elif cash_rec.get("paid"):
+                cash_returned = cash_net_due
+                
+            cash_pending = max(0.0, cash_net_due - cash_returned)
+            
+            # Online tracking
+            online_paid = 0.0
+            if online_rec.get("paid_amount") is not None and online_rec.get("paid_amount") > 0:
+                online_paid = online_rec["paid_amount"]
+            elif online_rec.get("paid") or promoter_name.lower() in NO_COMMISSION_PROMOTERS:
+                online_paid = event_online_comm
+                
+            online_pending = max(0.0, event_online_comm - online_paid)
+            
+            score = round(((event_tickets - event_no_shows) / event_tickets) * 100, 1)
+            
+            total_tickets += event_tickets
+            total_no_shows += event_no_shows
+            
+            event_history.append({
+                "event_id": ev_id,
+                "promoter_id": promoter_id,
+                "event_date": ev_date,
+                "month_key": ev_month_key,
+                "event_name": ev_name,
+                "tickets": event_tickets,
+                "no_shows": event_no_shows,
+                "score": score,
+                "cash_net_due": cash_net_due,
+                "cash_returned": cash_returned,
+                "cash_pending": cash_pending,
+                "online_comm": event_online_comm,
+                "online_paid": online_paid,
+                "online_pending": online_pending,
+                "event_date_raw": ev_date_raw or 0
+            })
+            
+    # Sort history descending by date 
+    event_history.sort(key=lambda x: -x["event_date_raw"])
+    
+    # Group by month
+    monthly_history = {}
+    for ev in event_history:
+        mk = ev["month_key"]
+        if mk not in monthly_history:
+            monthly_history[mk] = []
+        monthly_history[mk].append(ev)
+    
+    # Create final array of months for ordered rendering with month totals
+    history_grouped = []
+    for mk, events in monthly_history.items():
+        month_revenue = sum(ev.get("cash_revenue", 0.0) + ev.get("online_revenue", 0.0) for ev in events)
+        month_cash_pending = sum(ev.get("cash_pending", 0.0) for ev in events)
+        month_online_pending = sum(ev.get("online_pending", 0.0) for ev in events)
+        history_grouped.append({
+            "month": mk,
+            "month_revenue": month_revenue,
+            "month_cash_pending": month_cash_pending,
+            "month_online_pending": month_online_pending,
+            "events": events
+        })
+    
+    avg_score = round(((total_tickets - total_no_shows) / total_tickets) * 100, 1) if total_tickets > 0 else 0.0
+    
+    # Overall balances across all events
+    total_cash_pending = sum(ev["cash_pending"] for ev in event_history)
+    total_online_pending = sum(ev["online_pending"] for ev in event_history)
+    
+    return {
+        "promoter_name": promoter_name,
+        "total_tickets": total_tickets,
+        "total_revenue": total_revenue,
+        "total_cash_pending": total_cash_pending,
+        "total_online_pending": total_online_pending,
+        "avg_score": avg_score,
+        "history_grouped": history_grouped
+    }
+
+def build_email_body(report):
+    # CSS styled HTML email with premium branding matching La French
+    rows = ""
+    for item in report["items"]:
+        if item["returned"]:
+            status_badge = '<span style="background-color: #d1fae5; color: #065f46; padding: 4px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; text-transform: uppercase;">Returned</span>'
+        elif item["partial"]:
+            status_badge = '<span style="background-color: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; text-transform: uppercase;">Partial</span>'
+        else:
+            status_badge = '<span style="background-color: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; text-transform: uppercase;">Pending</span>'
+            
+        cash_display = f"""
+        <div style="font-weight: 600; color: #111827;">Gross: {item['amount']:.2f}€</div>
+        """
+        if item["commission"] > 0:
+            cash_display += f"""
+            <div style="font-size: 11px; color: #b45309; margin-top: 1px;">Comm: -{item['commission']:.2f}€</div>
+            <div style="font-size: 12px; font-weight: 600; color: #1e3a8a; margin-top: 2px; border-top: 1px solid #e5e7eb; padding-top: 2px;">Net Due: {item['net_due']:.2f}€</div>
+            """
+        else:
+            cash_display += f"""
+            <div style="font-size: 12px; font-weight: 600; color: #1e3a8a; margin-top: 2px;">Net Due: {item['net_due']:.2f}€</div>
+            """
+            
+        if item["returned"]:
+            pass  # fully paid
+        elif item["partial"]:
+            cash_display += f"""
+            <div style="font-size: 11px; color: #059669; margin-top: 2px; font-weight: 500;">Recv: {item['returned_amount']:.2f}€</div>
+            <div style="font-size: 11px; color: #dc2626; font-weight: 500;">Owed: {item['net_due'] - item['returned_amount']:.2f}€</div>
+            """
+        else:
+            cash_display += f"""
+            <div style="font-size: 11px; color: #dc2626; margin-top: 2px; font-weight: 500;">Owed: {item['net_due']:.2f}€</div>
+            """
+            
+        breakdown_html = "<br>".join([f'<span style="color: #6b7280; font-size: 11px;">{bd}</span>' for bd in item["breakdown"]])
+        rows += f"""
+        <tr style="border-bottom: 1px solid #e5e7eb; vertical-align: top;">
+            <td style="padding: 12px 8px; font-size: 14px; color: #374151;">{item['event_date']}</td>
+            <td style="padding: 12px 8px; font-size: 14px; font-weight: 500; color: #111827;">{item['event_name']}</td>
+            <td style="padding: 12px 8px; font-size: 14px; color: #4b5563;">
+                <span style="font-weight: 500; color: #111827;">{item['promoter_name']}</span>
+                <div style="margin-top: 4px;">{breakdown_html}</div>
+            </td>
+            <td style="padding: 12px 8px; font-size: 13px; text-align: right; color: #111827; white-space: nowrap;">{cash_display}</td>
+            <td style="padding: 12px 8px; text-align: center; white-space: nowrap;">{status_badge}</td>
+        </tr>
+        """
+
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>La French - Daily Cash Report</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; color: #1f2937;">
+        <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border: 1px solid #e5e7eb;">
+            <!-- Header -->
+            <tr>
+                <td style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 30px; text-align: center; color: #ffffff;">
+                    <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">LA FRENCH BARCELONA</h1>
+                    <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">Daily Cash Promoter Report • {report['timestamp']}</p>
+                </td>
+            </tr>
+            <!-- Stats -->
+            <tr>
+                <td style="padding: 24px;">
+                    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                        <tr>
+                            <td width="25%" style="text-align: center; padding: 10px; background-color: #f9fafb; border-radius: 8px 0 0 8px; border: 1px solid #e5e7eb; border-right: none;">
+                                <div style="font-size: 10px; font-weight: 700; color: #6b7280; text-transform: uppercase;">Gross Collected</div>
+                                <div style="font-size: 16px; font-weight: 800; color: #111827; margin-top: 4px;">{report['total_gathered']:.2f}€</div>
+                            </td>
+                            <td width="25%" style="text-align: center; padding: 10px; background-color: #fffbeb; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; border-right: none;">
+                                <div style="font-size: 10px; font-weight: 700; color: #b45309; text-transform: uppercase;">Commissions</div>
+                                <div style="font-size: 16px; font-weight: 800; color: #b45309; margin-top: 4px;">{report['total_commission']:.2f}€</div>
+                            </td>
+                            <td width="25%" style="text-align: center; padding: 10px; background-color: #ecfdf5; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb;">
+                                <div style="font-size: 10px; font-weight: 700; color: #047857; text-transform: uppercase;">Returned</div>
+                                <div style="font-size: 16px; font-weight: 800; color: #065f46; margin-top: 4px;">{report['total_returned']:.2f}€</div>
+                            </td>
+                            <td width="25%" style="text-align: center; padding: 10px; background-color: #fef2f2; border-radius: 0 8px 8px 0; border: 1px solid #e5e7eb; border-left: none;">
+                                <div style="font-size: 10px; font-weight: 700; color: #b91c1c; text-transform: uppercase;">Pending</div>
+                                <div style="font-size: 16px; font-weight: 800; color: #991b1b; margin-top: 4px;">{report['total_pending']:.2f}€</div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <!-- Breakdown Table -->
+            <tr>
+                <td style="padding: 0 24px 20px 24px;">
+                    <h2 style="font-size: 16px; font-weight: 700; color: #111827; margin: 0 0 12px 0;">Promoter Breakdown</h2>
+                    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #e5e7eb; text-align: left;">
+                                <th style="padding: 8px; font-size: 12px; font-weight: 700; color: #4b5563; text-transform: uppercase; width: 15%;">Date</th>
+                                <th style="padding: 8px; font-size: 12px; font-weight: 700; color: #4b5563; text-transform: uppercase; width: 35%;">Event</th>
+                                <th style="padding: 8px; font-size: 12px; font-weight: 700; color: #4b5563; text-transform: uppercase; width: 25%;">Promoter</th>
+                                <th style="padding: 8px; font-size: 12px; font-weight: 700; color: #4b5563; text-transform: uppercase; text-align: right; width: 15%;">Cash Summary</th>
+                                <th style="padding: 8px; font-size: 12px; font-weight: 700; color: #4b5563; text-transform: uppercase; text-align: center; width: 10%;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rows if rows else '<tr><td colspan="5" style="padding: 20px; text-align: center; font-size: 14px; color: #6b7280;">No promoter cash registered for current events.</td></tr>'}
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+            <!-- Call to Action -->
+            <tr>
+                <td style="padding: 10px 24px 30px 24px; text-align: center;">
+                    <p style="font-size: 13px; color: #6b7280; margin-bottom: 16px;">Open the tracking sheet to mark pending cash as returned, check details, or add manual adjustments.</p>
+                    <a href="{DASHBOARD_URL}" target="_blank" style="background-color: #3b82f6; color: #ffffff; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 700; text-decoration: none; display: inline-block; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);">Open Tracking Sheet Dashboard</a>
+                </td>
+            </tr>
+            <!-- Footer -->
+            <tr>
+                <td style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af;">
+                    This email is automated. To change the schedule, update the launchd service on the host machine.<br>
+                    © 2026 La French Barcelona. All rights reserved.
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+    return html
+
+def send_email(html_content, report_summary):
+    if not SMTP_USERNAME or not SMTP_PASSWORD:
+        print("\n[WARNING] Email not sent: SMTP_USERNAME or SMTP_PASSWORD is not configured in .env.")
+        print("Generated HTML report output printed below:\n")
+        print("="*60)
+        print(f"Summary: Gathered={report_summary['total_gathered']}€, Returned={report_summary['total_returned']}€, Pending={report_summary['total_pending']}€")
+        print("="*60)
+        return False
+        
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = f"La French Cash Report - {report_summary['total_pending']:.2f}€ Pending"
+        msg['From'] = SMTP_USERNAME
+        msg['To'] = RECIPIENT_EMAIL
+        
+        msg.attach(MIMEText("Please enable HTML to view the Cash Report summary.", 'plain'))
+        msg.attach(MIMEText(html_content, 'html'))
+        
+        server = smtplib.SMTP(SMTP_SERVER, int(SMTP_PORT))
+        server.starttls()
+        server.login(SMTP_USERNAME, SMTP_PASSWORD)
+        server.sendmail(SMTP_USERNAME, RECIPIENT_EMAIL, msg.as_string())
+        server.quit()
+        print("Daily Cash Report email sent successfully!")
+        return True
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+        return False
+
+def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unknown Date"):
+    users = get_fourvenues_data("users")
+    users_dict = {
+        u["_id"]: f"{u['profile']['name']} {u['profile']['last_name']}".strip() or u.get("email")
+        for u in users
+    }
+    
+    tickets = get_fourvenues_data(f"tickets/?event_id={event_id}")
+    
+    total_tickets = 0
+    total_revenue = 0.0
+    total_entered = 0
+    
+    ticket_types = {}
+    promoters = {}
+    
+    for t in tickets:
+        price = float(t.get("price", 0))
+        
+        total_tickets += 1
+        total_revenue += price
+        
+        is_entered = (t.get("enter", 0) == 1)
+        if is_entered:
+            total_entered += 1
+            
+        rate_name = t.get("rate_name", "Unknown Rate")
+        if rate_name not in ticket_types:
+            ticket_types[rate_name] = {"sold": 0, "revenue": 0.0}
+        ticket_types[rate_name]["sold"] += 1
+        ticket_types[rate_name]["revenue"] += price
+        
+        referral_id = t.get("referral_id")
+        promoter_id = referral_id or "unknown"
+        if promoter_id not in users_dict:
+            promoter_id = "unknown"
+        promoter_name = users_dict.get(promoter_id, "Direct Sale / No Promoter")
+        
+        if promoter_name not in promoters:
+            promoters[promoter_name] = {"sold": 0, "revenue": 0.0}
+        promoters[promoter_name]["sold"] += 1
+        promoters[promoter_name]["revenue"] += price
+
+    no_show_rate = 0.0
+    if total_tickets > 0:
+        no_show_rate = round(((total_tickets - total_entered) / total_tickets) * 100, 1)
+
+    # Sort ticket types by revenue descending
+    ticket_breakdown = [
+        {"name": k, "sold": v["sold"], "revenue": v["revenue"]}
+        for k, v in ticket_types.items()
+    ]
+    ticket_breakdown.sort(key=lambda x: x["revenue"], reverse=True)
+    
+    # Sort promoters by revenue descending
+    promoter_breakdown = [
+        {"name": k, "sold": v["sold"], "revenue": v["revenue"]}
+        for k, v in promoters.items()
+    ]
+    promoter_breakdown.sort(key=lambda x: x["revenue"], reverse=True)
+
+    return {
+        "event_name": event_name,
+        "event_date": event_date,
+        "total_tickets": total_tickets,
+        "total_revenue": total_revenue,
+        "total_entered": total_entered,
+        "no_show_rate": no_show_rate,
+        "ticket_breakdown": ticket_breakdown,
+        "promoter_breakdown": promoter_breakdown
+    }
+
+if __name__ == "__main__":
+    print("Generating daily cash report...")
+    report = gather_cash_report()
+    html = build_email_body(report)
+    send_email(html, report)
