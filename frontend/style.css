@@ -766,6 +766,61 @@ body {
         flex-direction: column;
         align-items: stretch;
     }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    
+    .tabs-nav {
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 4px;
+        justify-content: flex-start;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -16px; /* Bleed edge-to-edge on mobile */
+        padding: 0 16px;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 10px auto;
+        max-height: 95vh;
+    }
+    
+    .modal-body {
+        padding: 16px;
+    }
+    
+    .tracking-table th, .tracking-table td,
+    .data-table th, .data-table td {
+        padding: 10px 8px;
+        font-size: 12px;
+    }
+    
+    .tracking-table td .breakdown-tag {
+        font-size: 10px;
+        padding: 2px 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .header-actions {
+        flex-direction: column;
+    }
+    
+    .app-container {
+        padding: 12px;
+    }
 }
 
 /* Breakdown Layout styling */
