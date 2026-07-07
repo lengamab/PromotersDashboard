@@ -8,6 +8,11 @@ from datetime import datetime, timedelta
 import concurrent.futures
 from dotenv import load_dotenv
 
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
+
 # Load environment variables
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
@@ -47,6 +52,22 @@ def load_performance_cache():
         except Exception:
             return {}
     return {}
+
+def parse_fourvenues_time(created_at):
+    """Parses a Fourvenues UTC timestamp into a formatted local string and day string."""
+    if not created_at:
+        return "Unknown", "Unknown"
+    
+    try:
+        clean_str = created_at.replace('Z', '+00:00')
+        dt = datetime.fromisoformat(clean_str)
+        if ZoneInfo:
+            dt = dt.astimezone(ZoneInfo("Europe/Madrid"))
+        return dt.strftime("%Y-%m-%d %H:%M:%S"), dt.strftime("%Y-%m-%d")
+    except Exception:
+        day = created_at.split('T')[0]
+        time_full = created_at.replace('T', ' ').split('.')[0]
+        return time_full, day
 
 def save_performance_cache(data):
     try:
@@ -246,7 +267,7 @@ def gather_performance_report(start_date=None, end_date=None):
                     comm = 0.0
                     
                 created_at = t.get("created_at")
-                day_str = created_at.split('T')[0] if created_at else "Unknown"
+                _, day_str = parse_fourvenues_time(created_at)
                 
                 if day_str not in event_daily:
                     event_daily[day_str] = {"sales": 0, "revenue": 0.0, "promoters": {}, "no_shows": 0}
@@ -1149,7 +1170,8 @@ def gather_sales_history(start_date=None, end_date=None):
             if not created_at:
                 continue
                 
-            day_str = created_at.split('T')[0]
+            sale_time, day_str = parse_fourvenues_time(created_at)
+            
             if start_date and day_str < start_date:
                 continue
             if end_date and day_str > end_date:
@@ -1159,9 +1181,6 @@ def gather_sales_history(start_date=None, end_date=None):
             promoter_name = users_dict.get(promoter_id, "Direct Sale / No Promoter")
             payment_method = "Online" if t.get("payment_id") else "Cash"
             price = float(t.get("price", 0))
-            
-            # Format datetime nicely
-            sale_time = created_at.replace('T', ' ').split('.')[0]
             
             sales.append({
                 "sale_date": sale_time,
