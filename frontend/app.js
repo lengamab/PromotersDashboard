@@ -923,10 +923,27 @@ async function loadEventPerformanceData() {
             const totalEvents = eventsData.length;
             const totalRevenue = eventsData.reduce((sum, e) => sum + e.total_revenue, 0);
             
+            let avgNoShow = 0;
+            if (pastEvents.length > 0) {
+                const totalPastSold = pastEvents.reduce((sum, e) => sum + e.total_tickets, 0);
+                const totalPastEntered = pastEvents.reduce((sum, e) => sum + e.total_entered, 0);
+                if (totalPastSold > 0) {
+                    avgNoShow = ((totalPastSold - totalPastEntered) / totalPastSold) * 100;
+                }
+            }
+            
             document.getElementById('event-perf-total').textContent = totalEvents;
             document.getElementById('event-perf-future').textContent = futureEvents.length;
             document.getElementById('event-perf-past').textContent = pastEvents.length;
             document.getElementById('event-perf-revenue').textContent = totalRevenue.toFixed(2) + '€';
+            
+            const noShowEl = document.getElementById('event-perf-avg-noshow');
+            if (noShowEl) {
+                noShowEl.textContent = avgNoShow.toFixed(1) + '%';
+                if (avgNoShow > 50) noShowEl.style.color = 'var(--color-danger)';
+                else if (avgNoShow > 25) noShowEl.style.color = 'var(--color-warning)';
+                else noShowEl.style.color = 'var(--color-success)';
+            }
             
             // Render Future Events Table
             const futureBody = document.getElementById('event-perf-future-body');
