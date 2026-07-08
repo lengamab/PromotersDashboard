@@ -1082,7 +1082,10 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
         for u in users
     }
     
-    tickets = get_fourvenues_data(f"tickets/?event_id={event_id}")
+    tickets = []
+    for eid in event_id.split(','):
+        if eid.strip():
+            tickets.extend(get_fourvenues_data(f"tickets/?event_id={eid.strip()}"))
     
     total_tickets = 0
     total_revenue = 0.0
@@ -1269,7 +1272,7 @@ def gather_events_performance(start_date=None, end_date=None):
     
     event_tickets_map = get_all_event_tickets(events)
     
-    events_stats = []
+    events_stats_map = {}
     for event in events:
         event_id = event["_id"]
         event_name = event.get("name", "Unknown Event")
@@ -1301,19 +1304,30 @@ def gather_events_performance(start_date=None, end_date=None):
             if t.get("enter", 0) == 1:
                 total_entered += 1
                 
-        no_show_rate = 0.0
-        if total_tickets > 0:
-            no_show_rate = round(((total_tickets - total_entered) / total_tickets) * 100, 2)
+        key = (event_name, event_date_str)
+        if key not in events_stats_map:
+            events_stats_map[key] = {
+                "event_id": event_id,
+                "event_name": event_name,
+                "event_date": event_date_str,
+                "total_tickets": 0,
+                "total_revenue": 0.0,
+                "total_entered": 0
+            }
+        else:
+            events_stats_map[key]["event_id"] += f",{event_id}"
             
-        events_stats.append({
-            "event_id": event_id,
-            "event_name": event_name,
-            "event_date": event_date_str,
-            "total_tickets": total_tickets,
-            "total_revenue": total_revenue,
-            "total_entered": total_entered,
-            "no_show_rate": no_show_rate
-        })
+        events_stats_map[key]["total_tickets"] += total_tickets
+        events_stats_map[key]["total_revenue"] += total_revenue
+        events_stats_map[key]["total_entered"] += total_entered
+
+    events_stats = []
+    for stats in events_stats_map.values():
+        no_show_rate = 0.0
+        if stats["total_tickets"] > 0:
+            no_show_rate = round(((stats["total_tickets"] - stats["total_entered"]) / stats["total_tickets"]) * 100, 2)
+        stats["no_show_rate"] = no_show_rate
+        events_stats.append(stats)
         
     return events_stats
 
