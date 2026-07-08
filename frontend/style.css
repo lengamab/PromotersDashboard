@@ -1,40 +1,44 @@
 /* Core Design System Tokens */
 :root {
-    --bg-main: #090d16;
-    --bg-card: rgba(17, 24, 39, 0.7);
-    --bg-header: rgba(13, 18, 30, 0.85);
+    --bg-main: #040914;
+    --bg-card: rgba(13, 17, 28, 0.65);
+    --bg-header: rgba(10, 14, 23, 0.55);
     
-    --border-color: rgba(255, 255, 255, 0.08);
-    --border-hover: rgba(255, 255, 255, 0.15);
+    --border-color: rgba(255, 255, 255, 0.06);
+    --border-hover: rgba(255, 255, 255, 0.12);
+    --border-glow: rgba(59, 130, 246, 0.3);
     
     --color-primary: #3b82f6;
     --color-primary-hover: #2563eb;
-    --color-primary-glow: rgba(59, 130, 246, 0.15);
+    --color-primary-glow: rgba(59, 130, 246, 0.2);
     
     --color-success: #10b981;
     --color-success-hover: #059669;
-    --color-success-bg: rgba(16, 185, 129, 0.1);
-    --color-success-glow: rgba(16, 185, 129, 0.15);
+    --color-success-bg: rgba(16, 185, 129, 0.12);
+    --color-success-glow: rgba(16, 185, 129, 0.25);
     
     --color-danger: #ef4444;
     --color-danger-hover: #dc2626;
-    --color-danger-bg: rgba(239, 68, 68, 0.1);
-    --color-danger-glow: rgba(239, 68, 68, 0.15);
+    --color-danger-bg: rgba(239, 68, 68, 0.12);
+    --color-danger-glow: rgba(239, 68, 68, 0.25);
     
     --color-warning: #f59e0b;
+    --color-warning-bg: rgba(245, 158, 11, 0.12);
     
-    --text-primary: #f3f4f6;
-    --text-secondary: #9ca3af;
-    --text-muted: #6b7280;
+    --text-primary: #ffffff;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
     
-    --font-ui: 'Inter', sans-serif;
-    --font-heading: 'Outfit', sans-serif;
+    --font-ui: 'Inter', -apple-system, sans-serif;
+    --font-heading: 'Outfit', -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
     
-    --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    --transition-normal: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     
-    --glass-blur: blur(12px);
-    --shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    --glass-blur: blur(24px);
+    --shadow-premium: 0 20px 40px -15px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    --shadow-hover: 0 30px 60px -20px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* Reset */
@@ -45,7 +49,8 @@
 }
 
 body {
-    background-color: var(--bg-main);
+    background: radial-gradient(circle at 50% 0%, #0f1c3f 0%, var(--bg-main) 60%);
+    background-attachment: fixed;
     color: var(--text-primary);
     font-family: var(--font-ui);
     line-height: 1.5;
@@ -66,6 +71,24 @@ body {
     box-sizing: border-box;
 }
 
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
 /* Main Header */
 .main-header {
     background-color: var(--bg-header);
@@ -77,7 +100,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: var(--shadow-premium);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     z-index: 10;
 }
 
@@ -112,7 +135,7 @@ body {
 
 /* Header Navigation Tabs */
 .header-nav {
-    background-color: rgba(255, 255, 255, 0.02);
+    background-color: rgba(255, 255, 255, 0.015); transform: scale(1.002); box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     border: 1px solid var(--border-color);
     border-radius: 9999px;
     padding: 4px;
@@ -138,7 +161,9 @@ body {
 
 .nav-tab:hover {
     color: var(--text-primary);
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: rgba(255, 255, 255, 0.03);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .nav-tab.active {
@@ -212,7 +237,11 @@ body {
 }
 
 .stat-card {
-    background-color: var(--bg-card);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(145deg, rgba(20,25,35,0.7) 0%, rgba(10,15,25,0.85) 100%);
+    backdrop-filter: blur(20px);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--border-color);
@@ -223,12 +252,12 @@ body {
     gap: 16px;
     position: relative;
     overflow: hidden;
-    box-shadow: var(--shadow-premium);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     transition: var(--transition-normal);
 }
 
 .stat-card:hover {
-    transform: translateY(-2px);
+    transform: translateY(-6px);
     border-color: var(--border-hover);
 }
 
@@ -335,7 +364,8 @@ body {
 
 /* Date Filter Bar */
 .date-filter-bar {
-    background-color: var(--bg-card);
+    background: linear-gradient(145deg, rgba(20,25,35,0.7) 0%, rgba(10,15,25,0.85) 100%);
+    backdrop-filter: blur(20px);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--border-color);
@@ -363,7 +393,7 @@ body {
     color: var(--text-secondary);
     font-family: var(--font-ui);
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: var(--transition-fast);
     white-space: nowrap;
@@ -395,7 +425,7 @@ body {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    padding: 4px 10px;
+    padding: 6px 14px;
     cursor: pointer;
     transition: var(--transition-fast);
 }
@@ -439,7 +469,8 @@ body {
 
 /* Controls Bar */
 .controls-bar {
-    background-color: var(--bg-card);
+    background: linear-gradient(145deg, rgba(20,25,35,0.7) 0%, rgba(10,15,25,0.85) 100%);
+    backdrop-filter: blur(20px);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--border-color);
@@ -516,12 +547,13 @@ body {
 
 /* Spreadsheet Grid Table */
 .sheet-container {
-    background-color: var(--bg-card);
+    background: linear-gradient(145deg, rgba(20,25,35,0.7) 0%, rgba(10,15,25,0.85) 100%);
+    backdrop-filter: blur(20px);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--border-color);
     border-radius: 16px;
-    box-shadow: var(--shadow-premium);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     overflow: hidden;
 }
 
@@ -536,6 +568,10 @@ body {
 }
 
 .tracking-table th {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 11px;
+    color: var(--text-muted);
     background-color: rgba(0, 0, 0, 0.2);
     padding: 16px 20px;
     font-size: 12px;
@@ -558,7 +594,7 @@ body {
 }
 
 .tracking-table tbody tr:hover {
-    background-color: rgba(255, 255, 255, 0.02);
+    background-color: rgba(255, 255, 255, 0.015); transform: scale(1.002); box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .tracking-table tbody tr.row-returned {
@@ -588,7 +624,7 @@ body {
 }
 
 .col-date { width: 12%; }
-.col-event { width: 30%; font-weight: 500; }
+.col-event { width: 30%; font-weight: 600; }
 .col-promoter { width: 18%; }
 .col-cash { width: 18%; text-align: right; }
 .col-status { width: 10%; text-align: center; }
@@ -596,8 +632,11 @@ body {
 
 /* Status Badges */
 .badge {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.05);
     display: inline-block;
-    padding: 4px 10px;
+    padding: 6px 14px;
     border-radius: 9999px;
     font-size: 11px;
     font-weight: 700;
@@ -650,7 +689,7 @@ body {
     width: 24px;
     background-color: rgba(0, 0, 0, 0.3);
     border: 2px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     transition: var(--transition-fast);
 }
 
@@ -723,11 +762,11 @@ body {
     border-radius: 10px;
     color: var(--text-primary);
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     display: flex;
     align-items: center;
     gap: 12px;
-    box-shadow: var(--shadow-premium);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     transform: translateX(120%);
     animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
@@ -845,6 +884,9 @@ body {
     }
     
     .stat-card {
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
         padding: 12px 10px;
         gap: 8px;
         border-radius: 12px;
@@ -980,9 +1022,11 @@ body {
 
 .breakdown-tag {
     font-size: 11px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-secondary);
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: rgba(255, 255, 255, 0.03);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     border: 1px solid var(--border-color);
     padding: 2px 6px;
     border-radius: 4px;
@@ -1008,7 +1052,7 @@ body {
     background-color: rgba(0, 0, 0, 0.35);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
-    border-radius: 6px;
+    border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     padding: 6px 8px;
     width: 80px;
     text-align: right;
@@ -1048,7 +1092,7 @@ body {
     cursor: pointer;
     font-size: 18px;
     padding: 4px;
-    border-radius: 6px;
+    border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1076,7 +1120,7 @@ body {
 
 .cash-label {
     opacity: 0.75;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .cash-amount {
@@ -1150,7 +1194,8 @@ body {
 }
 
 .modal-content {
-    background-color: var(--bg-card);
+    background: linear-gradient(145deg, rgba(20,25,35,0.7) 0%, rgba(10,15,25,0.85) 100%);
+    backdrop-filter: blur(20px);
     margin: 5% auto;
     padding: 24px;
     border: 1px solid var(--border-color);
@@ -1204,6 +1249,9 @@ body {
 }
 
 .modal .stat-card {
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
     background: var(--bg-body);
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -1251,6 +1299,10 @@ body {
 }
 
 .data-table th {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 11px;
+    color: var(--text-muted);
     color: var(--text-secondary);
     font-size: 12px;
     font-weight: 600;
@@ -1263,7 +1315,7 @@ body {
 
 /* Mark Paid Button Styles */
 .btn-mark-paid {
-    padding: 4px 10px;
+    padding: 6px 14px;
     font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
@@ -1271,7 +1323,7 @@ body {
     background: rgba(29, 78, 216, 0.15);
     color: var(--color-primary);
     border: 1px solid rgba(29, 78, 216, 0.3);
-    border-radius: 6px;
+    border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     cursor: pointer;
     transition: all 0.2s ease;
     display: inline-flex;
@@ -1296,7 +1348,7 @@ body {
     background: rgba(16, 185, 129, 0.1);
     color: var(--color-success);
     border: 1px solid rgba(16, 185, 129, 0.3);
-    border-radius: 6px;
+    border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     cursor: pointer;
     transition: all 0.2s ease;
     display: inline-flex;

@@ -7,6 +7,17 @@ let dateEnd = null;
 let activeTab = 'tracking';
 let salesRefreshInterval = null;
 
+// Premium Chart.js Defaults
+Chart.defaults.color = '#a1a1aa';
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(13, 17, 28, 0.85)';
+Chart.defaults.plugins.tooltip.titleColor = '#ffffff';
+Chart.defaults.plugins.tooltip.bodyColor = '#e4e4e7';
+Chart.defaults.plugins.tooltip.borderColor = 'rgba(255, 255, 255, 0.1)';
+Chart.defaults.plugins.tooltip.borderWidth = 1;
+Chart.defaults.plugins.tooltip.padding = 12;
+Chart.defaults.plugins.tooltip.cornerRadius = 8;
+
 // DOM Elements
 const tableBody = document.getElementById('table-body');
 const settingsTableBody = document.getElementById('settings-table-body');
@@ -1262,6 +1273,12 @@ navTabs.forEach(tab => {
         
         const viewName = tab.dataset.tab;
         activeTab = viewName;
+        
+        // Clear sales auto-refresh if we leave the tab
+        if (activeTab !== 'sales' && salesRefreshInterval) {
+            clearInterval(salesRefreshInterval);
+            salesRefreshInterval = null;
+        }
         
         const mainStats = document.getElementById('main-stats-grid');
         
