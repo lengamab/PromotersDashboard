@@ -867,7 +867,11 @@ async function loadPerformanceData() {
             performanceTableBody.innerHTML = promoterStats.map(item => {
                 const noShowRate = parseFloat(item.no_show_rate) || 0;
                 let noShowClass = 'badge-returned'; // green (low no-show)
-                if (noShowRate > 20) noShowClass = 'badge-pending'; // red/orange (high no-show)
+                if (noShowRate > 50) {
+                    noShowClass = 'badge-pending'; // red (high no-show)
+                } else if (noShowRate > 25) {
+                    noShowClass = 'badge-warning'; // orange (medium no-show)
+                }
                 
                 return `
                     <tr class="table-row">
@@ -950,7 +954,9 @@ async function loadEventPerformanceData() {
             } else {
                 pastBody.innerHTML = pastEvents.map(e => {
                     const noShowRate = e.no_show_rate;
-                    const noShowColor = noShowRate > 20 ? 'var(--color-danger)' : (noShowRate < 10 ? 'var(--color-success)' : 'var(--text-primary)');
+                    let noShowColor = 'var(--color-success)';
+                    if (noShowRate > 50) noShowColor = 'var(--color-danger)';
+                    else if (noShowRate > 25) noShowColor = 'var(--color-warning)';
                     
                     return `
                         <tr class="table-row">

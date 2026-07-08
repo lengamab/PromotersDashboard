@@ -21,6 +21,8 @@
     --color-danger-bg: rgba(239, 68, 68, 0.1);
     --color-danger-glow: rgba(239, 68, 68, 0.15);
     
+    --color-warning: #f59e0b;
+    
     --text-primary: #f3f4f6;
     --text-secondary: #9ca3af;
     --text-muted: #6b7280;
@@ -613,6 +615,12 @@ body {
     background-color: var(--color-success-bg);
     color: var(--color-success);
     border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.badge-warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: var(--color-warning);
+    border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 /* Custom Checkboxes */
