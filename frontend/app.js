@@ -959,7 +959,9 @@ async function loadEventPerformanceData() {
                                 <span style="font-weight: 500;">${e.event_name}</span>
                             </td>
                             <td data-label="Tickets Sold" style="text-align: center;">${e.total_tickets}</td>
-                            <td data-label="Entrances" style="text-align: center;">${e.total_entered}</td>
+                            <td data-label="Entrances" style="text-align: center;">
+                                <span style="font-weight: 600; color: var(--color-primary);">${e.total_entered}</span><span style="color: var(--text-secondary); font-size: 0.9em;">/${e.total_tickets}</span>
+                            </td>
                             <td data-label="No-Show Rate" style="text-align: center; font-weight: 600; color: ${noShowColor};">${noShowRate}%</td>
                             <td data-label="Revenue" style="text-align: right; font-weight: 600; font-family: var(--font-mono); color: var(--color-primary);">${e.total_revenue.toFixed(2)}€</td>
                         </tr>
