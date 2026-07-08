@@ -18,6 +18,36 @@ Chart.defaults.plugins.tooltip.borderWidth = 1;
 Chart.defaults.plugins.tooltip.padding = 12;
 Chart.defaults.plugins.tooltip.cornerRadius = 8;
 
+
+// Elite Animations Utility
+function animateValue(obj, start, end, duration, isCurrency = false, prefix = '', suffix = '') {
+    if (!obj) return;
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        
+        // Easing function (easeOutQuart)
+        const easeProgress = 1 - Math.pow(1 - progress, 4);
+        const current = start + easeProgress * (end - start);
+        
+        if (isCurrency) {
+            obj.textContent = prefix + current.toFixed(2) + '€' + suffix;
+        } else {
+            obj.textContent = prefix + Math.floor(current) + suffix;
+        }
+        
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        } else {
+            // Final guarantee
+            if (isCurrency) obj.textContent = prefix + end.toFixed(2) + '€' + suffix;
+            else obj.textContent = prefix + end + suffix;
+        }
+    };
+    window.requestAnimationFrame(step);
+}
+
 // DOM Elements
 const tableBody = document.getElementById('table-body');
 const settingsTableBody = document.getElementById('settings-table-body');
@@ -140,20 +170,20 @@ async function loadData(showLoading = false) {
 
 // Update stats metrics for cash tracking
 function updateStats(data) {
-    statTotal.textContent = `${(data.total_gathered || 0).toFixed(2)}€`;
-    statCommission.textContent = `${(data.total_commission || 0).toFixed(2)}€`;
-    statNetDue.textContent = `${(data.total_net_due || 0).toFixed(2)}€`;
-    statReturned.textContent = `${(data.total_returned || 0).toFixed(2)}€`;
-    statPending.textContent = `${(data.total_pending || 0).toFixed(2)}€`;
+    animateValue(statTotal, 0, data.total_gathered || 0, 1500, true);
+    animateValue(statCommission, 0, data.total_commission || 0, 1500, true);
+    animateValue(statNetDue, 0, data.total_net_due || 0, 1500, true);
+    animateValue(statReturned, 0, data.total_returned || 0, 1500, true);
+    animateValue(statPending, 0, data.total_pending || 0, 1500, true);
 }
 
 // Update stats metrics for online tracking
 function updateOnlineStats(data) {
-    statTotal.textContent = `${(data.total_sales || 0).toFixed(2)}€`;
-    statCommission.textContent = `${(data.total_commission_owed || 0).toFixed(2)}€`;
-    statNetDue.textContent = `${(data.total_commission_owed || 0).toFixed(2)}€`;
-    statReturned.textContent = `${(data.total_paid || 0).toFixed(2)}€`;
-    statPending.textContent = `${(data.total_pending || 0).toFixed(2)}€`;
+    animateValue(statTotal, 0, data.total_sales || 0, 1500, true);
+    animateValue(statCommission, 0, data.total_commission_owed || 0, 1500, true);
+    animateValue(statNetDue, 0, data.total_commission_owed || 0, 1500, true);
+    animateValue(statReturned, 0, data.total_paid || 0, 1500, true);
+    animateValue(statPending, 0, data.total_pending || 0, 1500, true);
 }
 
 // Switch stat card labels between cash and online contexts
@@ -722,11 +752,43 @@ btnEmail.addEventListener('click', async () => {
 async function loadRatesData() {
     try {
         settingsTableBody.innerHTML = `
-            <tr>
-                <td colspan="5" class="loading-state">
-                    <i class="fa-solid fa-spinner fa-spin"></i> Loading ticket rates...
+            
+            <tr class="stagger-in">
+                <td colspan="6">
+                    <div style="display: flex; gap: 10px; padding: 5px;">
+                        <div class="skeleton-box" style="width: 15%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 25%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 20%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 10%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 10%; height: 20px;"></div>
+                    </div>
                 </td>
             </tr>
+
+            <tr class="stagger-in">
+                <td colspan="6">
+                    <div style="display: flex; gap: 10px; padding: 5px;">
+                        <div class="skeleton-box" style="width: 15%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 25%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 20%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 10%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 10%; height: 20px;"></div>
+                    </div>
+                </td>
+            </tr>
+
+            <tr class="stagger-in">
+                <td colspan="6">
+                    <div style="display: flex; gap: 10px; padding: 5px;">
+                        <div class="skeleton-box" style="width: 15%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 25%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 20%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 10%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 10%; height: 20px;"></div>
+                    </div>
+                </td>
+            </tr>
+
         `;
         const response = await fetch(`/api/rates${getDateQueryString()}`);
         const result = await response.json();
@@ -994,7 +1056,7 @@ async function loadPerformanceData() {
                 }
                 
                 return `
-                    <tr class="table-row">
+                    <tr class="table-row stagger-in">
                         <td class="promoter-name" data-label="Promoter">
                             <div style="font-weight: 500; font-size: 15px;">
                                 <span class="clickable-promoter" onclick="openPromoterProfile('${item.promoter_id}')">${item.promoter_name}</span>
@@ -1071,7 +1133,7 @@ async function loadEventPerformanceData() {
                 futureBody.innerHTML = '<tr><td colspan="6" class="empty-state"><i class="fa-solid fa-folder-open"></i> No future events found in period.</td></tr>';
             } else {
                 futureBody.innerHTML = futureEvents.map(e => `
-                    <tr class="table-row">
+                    <tr class="table-row stagger-in">
                         <td data-label="Date" style="font-family: var(--font-mono); font-size: 13px;">${e.event_date}</td>
                         <td data-label="Event Name" class="clickable-cell" onclick="openEventProfile('${e.event_id}', '${e.event_name.replace(/'/g, "\\'")}', '${e.event_date}')">
                             <span style="font-weight: 500;">${e.event_name}</span>
@@ -1096,7 +1158,7 @@ async function loadEventPerformanceData() {
                     else if (noShowRate > 25) noShowColor = 'var(--color-warning)';
                     
                     return `
-                        <tr class="table-row">
+                        <tr class="table-row stagger-in">
                             <td data-label="Date" style="font-family: var(--font-mono); font-size: 13px;">${e.event_date}</td>
                             <td data-label="Event Name" class="clickable-cell" onclick="openEventProfile('${e.event_id}', '${e.event_name.replace(/'/g, "\\'")}', '${e.event_date}')">
                                 <span style="font-weight: 500;">${e.event_name}</span>
@@ -1336,11 +1398,43 @@ async function loadSalesHistory(isBackgroundRefresh = false) {
     try {
         if (!isBackgroundRefresh) {
             salesTableBody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="loading-state">
-                        <i class="fa-solid fa-spinner fa-spin"></i> Loading sales history...
-                    </td>
-                </tr>
+                
+            <tr class="stagger-in">
+                <td colspan="6">
+                    <div style="display: flex; gap: 10px; padding: 5px;">
+                        <div class="skeleton-box" style="width: 15%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 25%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 20%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 10%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 10%; height: 20px;"></div>
+                    </div>
+                </td>
+            </tr>
+
+            <tr class="stagger-in">
+                <td colspan="6">
+                    <div style="display: flex; gap: 10px; padding: 5px;">
+                        <div class="skeleton-box" style="width: 15%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 25%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 20%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 10%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 10%; height: 20px;"></div>
+                    </div>
+                </td>
+            </tr>
+
+            <tr class="stagger-in">
+                <td colspan="6">
+                    <div style="display: flex; gap: 10px; padding: 5px;">
+                        <div class="skeleton-box" style="width: 15%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 25%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 20%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 10%; height: 20px;"></div>
+                        <div class="skeleton-box" style="width: 10%; height: 20px;"></div>
+                    </div>
+                </td>
+            </tr>
+
             `;
         }
         
@@ -1409,7 +1503,7 @@ async function loadSalesHistory(isBackgroundRefresh = false) {
                 const rowStyle = isCancelled ? 'opacity: 0.6;' : '';
                 
                 return `
-                    <tr class="table-row" style="${rowStyle}">
+                    <tr class="table-row stagger-in" style="${rowStyle}">
                         <td data-label="Sale Date" style="font-family: var(--font-mono); font-size: 13px;">${item.sale_date}</td>
                         <td data-label="Event" class="clickable-cell" onclick="openEventProfile('${item.event_id}', '${item.event_name.replace(/'/g, "\\'")}', '${item.event_date}')">
                             <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">${item.event_name}</div>
@@ -1548,7 +1642,7 @@ function openDailySalesModal(dayData) {
         tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">No sales data for this date</td></tr>';
     } else {
         tbody.innerHTML = promoters.map(p => `
-            <tr class="table-row">
+            <tr class="table-row stagger-in">
                 <td class="promoter-name">
                     <div style="font-weight: 500; font-size: 14px;">${p.promoter_name}</div>
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${p.events_sold || ''}</div>
