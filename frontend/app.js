@@ -5,6 +5,7 @@ let searchQuery = '';
 let dateStart = null;
 let dateEnd = null;
 let activeTab = 'tracking';
+let salesRefreshInterval = null;
 
 // DOM Elements
 const tableBody = document.getElementById('table-body');
@@ -1301,20 +1302,30 @@ navTabs.forEach(tab => {
             if (viewSales) viewSales.classList.remove('hidden');
             mainStats.classList.add('hidden');
             loadSalesHistory();
+            
+            if (!salesRefreshInterval) {
+                salesRefreshInterval = setInterval(() => {
+                    if (activeTab === 'sales') {
+                        loadSalesHistory(true);
+                    }
+                }, 60000);
+            }
         }
     });
 });
 
 // Fetch and load sales history
-async function loadSalesHistory() {
+async function loadSalesHistory(isBackgroundRefresh = false) {
     try {
-        salesTableBody.innerHTML = `
-            <tr>
-                <td colspan="5" class="loading-state">
-                    <i class="fa-solid fa-spinner fa-spin"></i> Loading sales history...
-                </td>
-            </tr>
-        `;
+        if (!isBackgroundRefresh) {
+            salesTableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="loading-state">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Loading sales history...
+                    </td>
+                </tr>
+            `;
+        }
         
         // Format today's date for the API
         const today = new Date();
