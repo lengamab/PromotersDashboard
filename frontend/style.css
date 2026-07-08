@@ -205,8 +205,8 @@ body {
 /* Stats Section */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
 }
 
 .stat-card {
@@ -215,10 +215,10 @@ body {
     -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--border-color);
     border-radius: 16px;
-    padding: 24px;
+    padding: 20px;
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
     position: relative;
     overflow: hidden;
     box-shadow: var(--shadow-premium);
