@@ -816,7 +816,7 @@ def gather_promoter_profile(promoter_id, start_date=None, end_date=None):
                     event_online_comm += comm
                     
         if event_tickets > 0:
-            db_cash_key = f"cash_{ev_id}_{promoter_id}"
+            db_cash_key = f"{ev_id}_{promoter_id}"
             db_online_key = f"online_{ev_id}_{promoter_id}"
             
             cash_rec = db.get(db_cash_key, {})
@@ -826,11 +826,20 @@ def gather_promoter_profile(promoter_id, start_date=None, end_date=None):
             
             # Cash tracking
             cash_returned = 0.0
-            if cash_rec.get("paid_amount") is not None and cash_rec.get("paid_amount") > 0:
-                cash_returned = cash_rec["paid_amount"]
-            elif cash_rec.get("paid"):
-                cash_returned = cash_net_due
+            db_returned_amt = cash_rec.get("returned_amount")
+            db_returned_bool = cash_rec.get("returned", False)
+            
+            if db_returned_amt is not None:
+                if db_returned_amt == -1.0:
+                    cash_returned = cash_net_due if db_returned_bool else 0.0
+                else:
+                    cash_returned = float(db_returned_amt)
+            else:
+                cash_returned = cash_net_due if db_returned_bool else 0.0
                 
+            cash_returned = min(cash_returned, cash_net_due)
+            cash_returned = max(0.0, cash_returned)
+            
             cash_pending = max(0.0, cash_net_due - cash_returned)
             
             # Online tracking
