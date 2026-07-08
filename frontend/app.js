@@ -1099,11 +1099,49 @@ async function loadSalesHistory() {
                 </td>
             </tr>
         `;
-        const response = await fetch(`/api/sales${getDateQueryString()}`);
-        const result = await response.json();
         
-        if (result.success) {
+        // Format today's date for the API
+        const today = new Date();
+        const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+        
+        const [response, todayResponse] = await Promise.all([
+            fetch(`/api/sales${getDateQueryString()}`),
+            fetch(`/api/sales?start=${todayStr}&end=${todayStr}`)
+        ]);
+        
+        const result = await response.json();
+        const todayResult = await todayResponse.json();
+        
+        if (result.success && (todayResult.success || !todayResult.success)) { // todayResult might fail if no sales, but we handle it
             const sales = result.data || [];
+            const todaySales = todayResult.data || [];
+            
+            const calcStats = (arr) => {
+                let cash = 0, online = 0, count = 0;
+                arr.forEach(item => {
+                    if (item.status !== 'cancelled') {
+                        count++;
+                        if (item.payment_method === 'Online') {
+                            online += item.price;
+                        } else {
+                            cash += item.price;
+                        }
+                    }
+                });
+                return { cash, online, total: cash + online, count };
+            };
+            
+            const periodStats = calcStats(sales);
+            const todayStats = calcStats(todaySales);
+            
+            // Update UI
+            document.getElementById('sales-stat-period').innerText = periodStats.total.toFixed(2) + '€';
+            document.getElementById('sales-stat-period-detail').innerText = `Cash: ${periodStats.cash.toFixed(2)}€ | Online: ${periodStats.online.toFixed(2)}€`;
+            document.getElementById('sales-count-period').innerText = periodStats.count;
+            
+            document.getElementById('sales-stat-today').innerText = todayStats.total.toFixed(2) + '€';
+            document.getElementById('sales-stat-today-detail').innerText = `Cash: ${todayStats.cash.toFixed(2)}€ | Online: ${todayStats.online.toFixed(2)}€`;
+            document.getElementById('sales-count-today').innerText = todayStats.count;
             
             if (sales.length === 0) {
                 salesTableBody.innerHTML = `
