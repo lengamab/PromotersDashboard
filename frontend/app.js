@@ -1167,11 +1167,11 @@ async function loadSalesHistory() {
                 return `
                     <tr class="table-row" style="${rowStyle}">
                         <td data-label="Sale Date" style="font-family: var(--font-mono); font-size: 13px;">${item.sale_date}</td>
-                        <td data-label="Event">
+                        <td data-label="Event" class="clickable-cell" onclick="openEventModal('${item.event_id}', '${item.event_name.replace(/'/g, "\\'")}', '${item.event_date}')">
                             <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">${item.event_name}</div>
                             <div style="font-size: 12px; color: var(--text-secondary);"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>${item.event_date}</div>
                         </td>
-                        <td data-label="Promoter" style="font-weight: 500;">${item.promoter_name}</td>
+                        <td data-label="Promoter" style="font-weight: 500;" class="clickable-cell" onclick="openPromoterModal('${item.promoter_id}')">${item.promoter_name}</td>
                         <td data-label="Method" style="text-align: center;"><span class="${badgeClass}">${badgeText}</span></td>
                         <td data-label="Price" style="text-align: right; font-weight: 600; font-family: var(--font-mono);">${item.price.toFixed(2)}€</td>
                     </tr>

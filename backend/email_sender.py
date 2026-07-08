@@ -1200,8 +1200,10 @@ def gather_sales_history(start_date=None, end_date=None):
             
             sales.append({
                 "sale_date": sale_time,
+                "event_id": event_id,
                 "event_date": event_date_str,
                 "event_name": event_name,
+                "promoter_id": promoter_id,
                 "promoter_name": promoter_name,
                 "payment_method": payment_method,
                 "price": price,

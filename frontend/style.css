@@ -1314,3 +1314,12 @@ body {
     background-color: rgba(239, 68, 68, 0.1);
     color: var(--color-danger);
 }
+
+.clickable-cell {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.clickable-cell:hover {
+    color: var(--color-primary, #3b82f6) !important;
+    text-decoration: underline;
+}
