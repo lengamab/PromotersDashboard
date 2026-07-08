@@ -1068,7 +1068,7 @@ navTabs.forEach(tab => {
             loadData(false);
         } else if (viewName === 'commissions') {
             viewSettings.classList.remove('hidden');
-            mainStats.classList.remove('hidden');
+            mainStats.classList.add('hidden');
             setStatLabels('cash');
             loadRatesData();
         } else if (viewName === 'online') {
