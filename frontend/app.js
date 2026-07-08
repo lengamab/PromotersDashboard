@@ -503,6 +503,9 @@ async function openEventProfile(eventId, eventName, eventDate) {
             modalEventEntered.textContent = data.total_entered;
             modalEventNoshow.textContent = `${data.no_show_rate}%`;
             
+            currentEventChartData = data;
+            updateEventChart();
+            
             // Render Tickets Table
             if (data.ticket_breakdown.length === 0) {
                 modalEventTicketsBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">No ticket data.</td></tr>';
@@ -540,6 +543,109 @@ async function openEventProfile(eventId, eventName, eventDate) {
 
 function closeEventModal() {
     eventModal.style.display = 'none';
+}
+
+function updateEventChart() {
+    if (!currentEventChartData) return;
+    
+    const isDayView = document.getElementById('event-chart-toggle-day').checked;
+    const timeline = isDayView ? currentEventChartData.timeline_day : currentEventChartData.timeline_hour;
+    
+    const labels = timeline.map(item => isDayView ? item.date : item.hour);
+    const salesData = timeline.map(item => item.sales);
+    const revenueData = timeline.map(item => item.revenue);
+    
+    const ctx = document.getElementById('eventChart').getContext('2d');
+    
+    if (eventChartInstance) {
+        eventChartInstance.destroy();
+    }
+    
+    eventChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Revenue (€)',
+                    data: revenueData,
+                    type: 'line',
+                    borderColor: 'rgb(29, 78, 216)',
+                    backgroundColor: 'rgba(29, 78, 216, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    yAxisID: 'y1'
+                },
+                {
+                    label: 'Tickets Sold',
+                    data: salesData,
+                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    yAxisID: 'y'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { boxWidth: 12, usePointStyle: true }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    titleColor: '#1e293b',
+                    bodyColor: '#475569',
+                    borderColor: '#e2e8f0',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.datasetIndex === 0) {
+                                label += context.parsed.y.toFixed(2) + '€';
+                            } else {
+                                label += context.parsed.y;
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { drawOnChartArea: false },
+                    ticks: { maxRotation: 45, minRotation: 45 }
+                },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: { display: true, text: 'Tickets' },
+                    grid: { drawOnChartArea: false },
+                    min: 0,
+                    suggestedMax: Math.max(...salesData) + 5
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: { display: true, text: 'Revenue (€)' },
+                    min: 0,
+                    suggestedMax: Math.max(...revenueData) * 1.2
+                }
+            }
+        }
+    });
 }
 
 // Close modals when clicking outside
@@ -702,6 +808,8 @@ async function updateRateCommission(rateSlug, value, type) {
 }
 
 let performanceChartInstance = null;
+let eventChartInstance = null;
+let currentEventChartData = null;
 
 function renderPerformanceChart(dailyTrends) {
     const ctx = document.getElementById('performanceChart').getContext('2d');

@@ -628,6 +628,26 @@
                     </div>
                 </div>
                 
+                <div class="chart-container" style="background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h3 style="margin: 0; font-weight: 500; font-size: 15px;"><i class="fa-solid fa-chart-area" style="color: var(--text-secondary); margin-right: 6px;"></i> Sales & Revenue Timeline</h3>
+                        <div class="toggle-switch" style="display: flex; background: var(--background-color); border-radius: 6px; padding: 2px;">
+                            <style>
+                                .toggle-switch input[type="radio"] { display: none; }
+                                .toggle-switch label { padding: 6px 12px; font-size: 12px; cursor: pointer; border-radius: 4px; color: var(--text-secondary); transition: all 0.2s; }
+                                .toggle-switch input[type="radio"]:checked + label { background: var(--surface-color); color: var(--text-primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+                            </style>
+                            <input type="radio" id="event-chart-toggle-day" name="event-chart-toggle" value="day" checked onchange="updateEventChart()">
+                            <label for="event-chart-toggle-day">By Day</label>
+                            <input type="radio" id="event-chart-toggle-hour" name="event-chart-toggle" value="hour" onchange="updateEventChart()">
+                            <label for="event-chart-toggle-hour">By Hour</label>
+                        </div>
+                    </div>
+                    <div style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="eventChart"></canvas>
+                    </div>
+                </div>
+                
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
                     <div>
                         <h3 style="margin-bottom: 12px; font-weight: 500; font-size: 15px;"><i class="fa-solid fa-tags" style="color: var(--text-secondary); margin-right: 6px;"></i> By Ticket Type</h3>

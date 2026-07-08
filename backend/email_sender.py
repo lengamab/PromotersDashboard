@@ -1090,6 +1090,8 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
     
     ticket_types = {}
     promoters = {}
+    timeline_day_dict = {}
+    timeline_hour_dict = {}
     
     for t in tickets:
         if t.get("status") == "cancelled":
@@ -1099,6 +1101,22 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
         
         total_tickets += 1
         total_revenue += price
+        
+        created_at = t.get("created_at")
+        time_full, day = parse_fourvenues_time(created_at)
+        
+        if day != "Unknown":
+            if day not in timeline_day_dict:
+                timeline_day_dict[day] = {"sales": 0, "revenue": 0.0}
+            timeline_day_dict[day]["sales"] += 1
+            timeline_day_dict[day]["revenue"] += price
+            
+            if " " in time_full:
+                hour = time_full.split(" ")[1].split(":")[0] + ":00"
+                if hour not in timeline_hour_dict:
+                    timeline_hour_dict[hour] = {"sales": 0, "revenue": 0.0}
+                timeline_hour_dict[hour]["sales"] += 1
+                timeline_hour_dict[hour]["revenue"] += price
         
         is_entered = (t.get("enter", 0) == 1)
         if is_entered:
@@ -1139,6 +1157,16 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
     ]
     promoter_breakdown.sort(key=lambda x: x["revenue"], reverse=True)
 
+    timeline_day = [
+        {"date": k, "sales": v["sales"], "revenue": v["revenue"]}
+        for k, v in sorted(timeline_day_dict.items())
+    ]
+    
+    timeline_hour = [
+        {"hour": k, "sales": v["sales"], "revenue": v["revenue"]}
+        for k, v in sorted(timeline_hour_dict.items())
+    ]
+
     return {
         "event_name": event_name,
         "event_date": event_date,
@@ -1147,7 +1175,9 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
         "total_entered": total_entered,
         "no_show_rate": no_show_rate,
         "ticket_breakdown": ticket_breakdown,
-        "promoter_breakdown": promoter_breakdown
+        "promoter_breakdown": promoter_breakdown,
+        "timeline_day": timeline_day,
+        "timeline_hour": timeline_hour
     }
 
 def gather_sales_history(start_date=None, end_date=None):
