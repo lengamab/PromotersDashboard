@@ -1214,6 +1214,70 @@ def gather_sales_history(start_date=None, end_date=None):
     sales.sort(key=lambda x: x["sale_date"], reverse=True)
     return sales
 
+def gather_events_performance(start_date=None, end_date=None):
+    """
+    Fetches events and calculates performance stats (tickets, revenue, entrances) for each.
+    """
+    if not start_date:
+        current_year = datetime.now().year
+        start_date = f"{current_year}-01-01"
+    if not end_date:
+        end_date = f"{datetime.now().year}-12-31"
+        
+    # We fetch a bit wider to capture all events
+    fetch_end = (datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=365)).strftime("%Y-%m-%d")
+    events = get_fourvenues_data(f"events?start={start_date}&end={fetch_end}")
+    
+    event_tickets_map = get_all_event_tickets(events)
+    
+    events_stats = []
+    for event in events:
+        event_id = event["_id"]
+        event_name = event.get("name", "Unknown Event")
+        event_date_raw = event.get("date")
+        
+        event_date_str = "Unknown"
+        if event_date_raw:
+            event_date_str = datetime.fromtimestamp(event_date_raw).strftime("%Y-%m-%d")
+            
+        # Filter by event date
+        if event_date_str != "Unknown":
+            if start_date and event_date_str < start_date:
+                continue
+            if end_date and event_date_str > end_date:
+                continue
+                
+        tickets = event_tickets_map.get(event_id, [])
+        
+        total_tickets = 0
+        total_revenue = 0.0
+        total_entered = 0
+        
+        for t in tickets:
+            if t.get("status") == "cancelled":
+                continue
+            
+            total_tickets += 1
+            total_revenue += float(t.get("price", 0))
+            if t.get("enter", 0) == 1:
+                total_entered += 1
+                
+        no_show_rate = 0.0
+        if total_tickets > 0:
+            no_show_rate = round(((total_tickets - total_entered) / total_tickets) * 100, 2)
+            
+        events_stats.append({
+            "event_id": event_id,
+            "event_name": event_name,
+            "event_date": event_date_str,
+            "total_tickets": total_tickets,
+            "total_revenue": total_revenue,
+            "total_entered": total_entered,
+            "no_show_rate": no_show_rate
+        })
+        
+    return events_stats
+
 
 if __name__ == "__main__":
     print("Generating daily cash report...")

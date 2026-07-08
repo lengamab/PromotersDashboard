@@ -41,6 +41,9 @@
                 <button class="nav-tab" data-tab="performance">
                     <i class="fa-solid fa-chart-line"></i> Promoter Performance
                 </button>
+                <button class="nav-tab" data-tab="event-performance">
+                    <i class="fa-solid fa-calendar-check"></i> Event Performance
+                </button>
                 <button class="nav-tab" data-tab="sales">
                     <i class="fa-solid fa-list-ul"></i> Full Sales History
                 </button>
@@ -295,6 +298,90 @@
                             <tr>
                                 <td colspan="6" class="loading-state">
                                     <i class="fa-solid fa-spinner fa-spin"></i> Loading historical performance data...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+
+        <div id="view-event-performance" class="view-pane hidden">
+            <!-- Event Performance Stats Grid -->
+            <div class="stats-grid" style="margin-bottom: 24px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fa-solid fa-calendar-days"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-label">Total Events</div>
+                        <div class="stat-value" id="event-perf-total">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--color-success); background: rgba(16, 185, 129, 0.1);"><i class="fa-solid fa-hourglass-half"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-label">Future Events</div>
+                        <div class="stat-value" id="event-perf-future" style="color: var(--color-success);">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--color-danger); background: rgba(239, 68, 68, 0.1);"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-label">Past Events</div>
+                        <div class="stat-value" id="event-perf-past" style="color: var(--color-danger);">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--color-primary); background: rgba(29, 78, 216, 0.1);"><i class="fa-solid fa-money-bill-wave"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-label">Total Revenue</div>
+                        <div class="stat-value" id="event-perf-revenue" style="color: var(--color-primary);">0.00€</div>
+                    </div>
+                </div>
+            </div>
+
+            <main class="sheet-container" style="margin-bottom: 24px;">
+                <h3 style="padding: 16px; margin: 0; border-bottom: 1px solid var(--border-color); color: var(--text-primary);"><i class="fa-solid fa-forward"></i> Future Events</h3>
+                <div class="table-wrapper">
+                    <table class="tracking-table event-performance-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 15%">Date</th>
+                                <th style="width: 30%">Event Name</th>
+                                <th style="width: 15%; text-align: center;">Tickets Sold</th>
+                                <th style="width: 15%; text-align: center;">Entrances</th>
+                                <th style="width: 10%; text-align: center;">No-Show Rate</th>
+                                <th style="width: 15%; text-align: right;">Revenue (€)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="event-perf-future-body">
+                            <tr>
+                                <td colspan="6" class="loading-state">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> Loading future events...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+
+            <main class="sheet-container">
+                <h3 style="padding: 16px; margin: 0; border-bottom: 1px solid var(--border-color); color: var(--text-primary);"><i class="fa-solid fa-backward-step"></i> Past Events</h3>
+                <div class="table-wrapper">
+                    <table class="tracking-table event-performance-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 15%">Date</th>
+                                <th style="width: 30%">Event Name</th>
+                                <th style="width: 15%; text-align: center;">Tickets Sold</th>
+                                <th style="width: 15%; text-align: center;">Entrances</th>
+                                <th style="width: 10%; text-align: center;">No-Show Rate</th>
+                                <th style="width: 15%; text-align: right;">Revenue (€)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="event-perf-past-body">
+                            <tr>
+                                <td colspan="6" class="loading-state">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> Loading past events...
                                 </td>
                             </tr>
                         </tbody>

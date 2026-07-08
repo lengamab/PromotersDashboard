@@ -14,6 +14,7 @@ const viewSettings = document.getElementById('view-settings');
 const viewOnline = document.getElementById('view-online');
 const onlineTableBody = document.getElementById('online-table-body');
 const viewPerformance = document.getElementById('view-performance');
+const viewEventPerformance = document.getElementById('view-event-performance');
 const performanceTableBody = document.getElementById('performance-table-body');
 const viewSales = document.getElementById('view-sales');
 const salesTableBody = document.getElementById('sales-table-body');
@@ -899,6 +900,83 @@ async function loadPerformanceData() {
     }
 }
 
+// Fetch and load event performance data
+async function loadEventPerformanceData() {
+    try {
+        const url = `/api/events/performance${getDateQueryString()}`;
+        const response = await fetch(url);
+        const result = await response.json();
+        
+        if (result.success) {
+            const eventsData = result.data || [];
+            
+            // Separate future and past events
+            const today = new Date().toISOString().split('T')[0];
+            const futureEvents = eventsData.filter(e => e.event_date >= today).sort((a, b) => a.event_date.localeCompare(b.event_date));
+            const pastEvents = eventsData.filter(e => e.event_date < today).sort((a, b) => b.event_date.localeCompare(a.event_date));
+            
+            // KPI Cards
+            const totalEvents = eventsData.length;
+            const totalRevenue = eventsData.reduce((sum, e) => sum + e.total_revenue, 0);
+            
+            document.getElementById('event-perf-total').textContent = totalEvents;
+            document.getElementById('event-perf-future').textContent = futureEvents.length;
+            document.getElementById('event-perf-past').textContent = pastEvents.length;
+            document.getElementById('event-perf-revenue').textContent = totalRevenue.toFixed(2) + '€';
+            
+            // Render Future Events Table
+            const futureBody = document.getElementById('event-perf-future-body');
+            if (futureEvents.length === 0) {
+                futureBody.innerHTML = '<tr><td colspan="6" class="empty-state"><i class="fa-solid fa-folder-open"></i> No future events found in period.</td></tr>';
+            } else {
+                futureBody.innerHTML = futureEvents.map(e => `
+                    <tr class="table-row">
+                        <td data-label="Date" style="font-family: var(--font-mono); font-size: 13px;">${e.event_date}</td>
+                        <td data-label="Event Name" class="clickable-cell" onclick="openEventProfile('${e.event_id}', '${e.event_name.replace(/'/g, "\\'")}', '${e.event_date}')">
+                            <span style="font-weight: 500;">${e.event_name}</span>
+                        </td>
+                        <td data-label="Tickets Sold" style="text-align: center;">${e.total_tickets}</td>
+                        <td data-label="Entrances" style="text-align: center; color: var(--text-secondary);">${e.total_entered}</td>
+                        <td data-label="No-Show Rate" style="text-align: center; color: var(--text-secondary);">-</td>
+                        <td data-label="Revenue" style="text-align: right; font-weight: 600; font-family: var(--font-mono); color: var(--color-primary);">${e.total_revenue.toFixed(2)}€</td>
+                    </tr>
+                `).join('');
+            }
+            
+            // Render Past Events Table
+            const pastBody = document.getElementById('event-perf-past-body');
+            if (pastEvents.length === 0) {
+                pastBody.innerHTML = '<tr><td colspan="6" class="empty-state"><i class="fa-solid fa-folder-open"></i> No past events found in period.</td></tr>';
+            } else {
+                pastBody.innerHTML = pastEvents.map(e => {
+                    const noShowRate = e.no_show_rate;
+                    const noShowColor = noShowRate > 20 ? 'var(--color-danger)' : (noShowRate < 10 ? 'var(--color-success)' : 'var(--text-primary)');
+                    
+                    return `
+                        <tr class="table-row">
+                            <td data-label="Date" style="font-family: var(--font-mono); font-size: 13px;">${e.event_date}</td>
+                            <td data-label="Event Name" class="clickable-cell" onclick="openEventProfile('${e.event_id}', '${e.event_name.replace(/'/g, "\\'")}', '${e.event_date}')">
+                                <span style="font-weight: 500;">${e.event_name}</span>
+                            </td>
+                            <td data-label="Tickets Sold" style="text-align: center;">${e.total_tickets}</td>
+                            <td data-label="Entrances" style="text-align: center;">${e.total_entered}</td>
+                            <td data-label="No-Show Rate" style="text-align: center; font-weight: 600; color: ${noShowColor};">${noShowRate}%</td>
+                            <td data-label="Revenue" style="text-align: right; font-weight: 600; font-family: var(--font-mono); color: var(--color-primary);">${e.total_revenue.toFixed(2)}€</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+            
+        } else {
+            showToast('Failed to load event performance data', 'error');
+            console.error(result.error);
+        }
+    } catch (error) {
+        console.error('Error fetching event performance:', error);
+        showToast('Connection error', 'error');
+    }
+}
+
 // Fetch and load online sales data
 async function loadOnlineData() {
     try {
@@ -1058,6 +1136,7 @@ navTabs.forEach(tab => {
         viewSettings.classList.add('hidden');
         viewOnline.classList.add('hidden');
         viewPerformance.classList.add('hidden');
+        if (viewEventPerformance) viewEventPerformance.classList.add('hidden');
         if (viewSales) viewSales.classList.add('hidden');
         
         // Show active and update stat labels
@@ -1081,6 +1160,10 @@ navTabs.forEach(tab => {
             mainStats.classList.add('hidden');
             setStatLabels('cash');
             loadPerformanceData();
+        } else if (viewName === 'event-performance') {
+            if (viewEventPerformance) viewEventPerformance.classList.remove('hidden');
+            mainStats.classList.add('hidden');
+            loadEventPerformanceData();
         } else if (viewName === 'sales') {
             if (viewSales) viewSales.classList.remove('hidden');
             mainStats.classList.add('hidden');
@@ -1252,6 +1335,9 @@ function reloadCurrentTab() {
             break;
         case 'performance':
             loadPerformanceData();
+            break;
+        case 'event-performance':
+            loadEventPerformanceData();
             break;
         case 'sales':
             loadSalesHistory();
