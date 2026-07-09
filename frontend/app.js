@@ -1299,8 +1299,9 @@ function renderSalesPage(page) {
         const rowStyle = isCancelled ? 'opacity: 0.6;' : '';
         
         // Notice we REMOVED stagger-in here to fix mobile freezing!
+        const highlightClass = item.is_new_highlight ? 'new-row-highlight' : '';
         return `
-            <tr class="table-row" style="${rowStyle}">
+            <tr class="table-row ${highlightClass}" style="${rowStyle}">
                 <td data-label="Sale Date" style="font-family: var(--font-mono); font-size: 13px;">${item.sale_date}</td>
                 <td data-label="Event" class="clickable-cell" onclick="openEventProfile('${item.event_id}', '${item.event_name.replace(/'/g, "\'")}', '${item.event_date}')">
                     <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">${item.event_name}</div>
@@ -1550,6 +1551,18 @@ async function loadSalesHistory(isBackgroundRefresh = false) {
             document.getElementById('sales-stat-today-detail').innerText = `Cash: ${todayStats.cash.toFixed(2)}€ | Online: ${todayStats.online.toFixed(2)}€`;
             document.getElementById('sales-count-today').innerText = todayStats.count;
             
+            // Highlight new sales during background refreshes
+            if (isBackgroundRefresh && cachedSalesData.length > 0) {
+                const getSaleHash = (s) => `${s.sale_date}_${s.event_id}_${s.promoter_id}_${s.payment_method}_${s.price}_${s.status}`;
+                const oldHashes = new Set(cachedSalesData.map(getSaleHash));
+                
+                sales.forEach(s => {
+                    if (!oldHashes.has(getSaleHash(s))) {
+                        s.is_new_highlight = true;
+                    }
+                });
+            }
+
             cachedSalesData = sales;
             
             // Re-render the current page to preserve user context during background refreshes

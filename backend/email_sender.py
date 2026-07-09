@@ -443,7 +443,7 @@ def gather_cash_report(start_date=None, end_date=None):
         # Format date for display
         if ev_date_raw:
             try:
-                ev_date = datetime.fromtimestamp(ev_date_raw).strftime("%d/%m/%Y")
+                ev_date = datetime.fromtimestamp(ev_date_raw, tz=ZoneInfo("Europe/Madrid") if ZoneInfo else None).strftime("%d/%m/%Y")
             except Exception:
                 ev_date = str(ev_date_raw)
         else:
@@ -607,7 +607,7 @@ def gather_online_report(start_date=None, end_date=None):
         # Format date for display
         if ev_date_raw:
             try:
-                ev_date = datetime.fromtimestamp(ev_date_raw).strftime("%d/%m/%Y")
+                ev_date = datetime.fromtimestamp(ev_date_raw, tz=ZoneInfo("Europe/Madrid") if ZoneInfo else None).strftime("%d/%m/%Y")
             except Exception:
                 ev_date = str(ev_date_raw)
         else:
@@ -768,8 +768,8 @@ def gather_promoter_profile(promoter_id, start_date=None, end_date=None):
         
         if ev_date_raw:
             try:
-                ev_date = datetime.fromtimestamp(ev_date_raw).strftime("%d/%m/%Y")
-                ev_month_key = datetime.fromtimestamp(ev_date_raw).strftime("%B %Y") # e.g. July 2026
+                ev_date = datetime.fromtimestamp(ev_date_raw, tz=ZoneInfo("Europe/Madrid") if ZoneInfo else None).strftime("%d/%m/%Y")
+                ev_month_key = datetime.fromtimestamp(ev_date_raw, tz=ZoneInfo("Europe/Madrid") if ZoneInfo else None).strftime("%B %Y") # e.g. July 2026
             except Exception:
                 ev_date = str(ev_date_raw)
                 ev_month_key = "Unknown Month"
@@ -1213,7 +1213,7 @@ def gather_sales_history(start_date=None, end_date=None):
         
         event_date_str = "Unknown"
         if event_date_raw:
-            event_date_str = datetime.fromtimestamp(event_date_raw).strftime("%Y-%m-%d")
+            event_date_str = datetime.fromtimestamp(event_date_raw, tz=ZoneInfo("Europe/Madrid") if ZoneInfo else None).strftime("%Y-%m-%d")
             
         tickets = event_tickets_map.get(event_id)
         if not tickets:
@@ -1277,7 +1277,7 @@ def gather_events_performance(start_date=None, end_date=None):
         
         event_date_str = "Unknown"
         if event_date_raw:
-            event_date_str = datetime.fromtimestamp(event_date_raw).strftime("%Y-%m-%d")
+            event_date_str = datetime.fromtimestamp(event_date_raw, tz=ZoneInfo("Europe/Madrid") if ZoneInfo else None).strftime("%Y-%m-%d")
             
         # Filter by event date
         if event_date_str != "Unknown":

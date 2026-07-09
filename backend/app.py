@@ -6,6 +6,11 @@ from email_sender import (gather_cash_report, build_email_body, send_email, DB_P
                           gather_sales_history, gather_events_performance)
 from datetime import datetime, timedelta
 
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
+
 # Initialize Flask app
 # We configure it to serve static files from the 'frontend' folder
 frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend')
@@ -272,7 +277,7 @@ def get_rates():
             
             if ev_date_raw:
                 try:
-                    ev_date = datetime.fromtimestamp(ev_date_raw).strftime("%d/%m/%Y")
+                    ev_date = datetime.fromtimestamp(ev_date_raw, tz=ZoneInfo("Europe/Madrid") if ZoneInfo else None).strftime("%d/%m/%Y")
                 except Exception:
                     ev_date = str(ev_date_raw)
             else:
