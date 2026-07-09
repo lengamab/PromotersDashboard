@@ -471,6 +471,12 @@
                         </tbody>
                     </table>
                 </div>
+                <!-- Pagination Controls -->
+                <div id="sales-pagination" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--bg-surface); border-top: 1px solid var(--border-color); border-radius: 0 0 16px 16px;">
+                    <button id="btn-prev-page" class="action-btn" style="padding: 8px 16px;" onclick="changeSalesPage(-1)" disabled><i class="fa-solid fa-chevron-left" style="margin-right: 8px;"></i> Previous</button>
+                    <div id="sales-page-info" style="font-weight: 500; color: var(--text-secondary); font-size: 14px;">Page 1 of 1</div>
+                    <button id="btn-next-page" class="action-btn" style="padding: 8px 16px;" onclick="changeSalesPage(1)" disabled>Next <i class="fa-solid fa-chevron-right" style="margin-left: 8px;"></i></button>
+                </div>
             </main>
         </div>
 
