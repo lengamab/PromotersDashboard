@@ -1010,6 +1010,126 @@ function renderPerformanceChart(dailyTrends) {
     });
 }
 
+let eventOverviewChartInstance = null;
+
+function renderEventOverviewChart(eventsData) {
+    const ctx = document.getElementById('eventOverviewChart').getContext('2d');
+    
+    // Sort chronologically for the chart
+    const sortedData = [...eventsData].sort((a, b) => a.event_date.localeCompare(b.event_date));
+    
+    const labels = sortedData.map(e => `${e.event_date} - ${e.event_name}`);
+    const salesData = sortedData.map(e => e.total_tickets);
+    const revenueData = sortedData.map(e => e.total_revenue);
+    const noShowData = sortedData.map(e => e.total_tickets > 0 ? (((e.total_tickets - e.total_entered) / e.total_tickets) * 100).toFixed(1) : 0);
+    
+    if (eventOverviewChartInstance) {
+        eventOverviewChartInstance.destroy();
+    }
+    
+    eventOverviewChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    type: 'line',
+                    label: 'No-Show %',
+                    data: noShowData,
+                    borderColor: '#F59E0B',
+                    backgroundColor: '#F59E0B',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    tension: 0.3,
+                    yAxisID: 'y2',
+                },
+                {
+                    type: 'line',
+                    label: 'Revenue (€)',
+                    data: revenueData,
+                    borderColor: '#10B981',
+                    backgroundColor: '#10B981',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    yAxisID: 'y1',
+                },
+                {
+                    type: 'bar',
+                    label: 'Tickets Sold',
+                    data: salesData,
+                    backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                    borderColor: '#3B82F6',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    yAxisID: 'y',
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Event Sales & Revenue Overview',
+                    color: '#9CA3AF',
+                    font: { size: 14, family: "'Inter', sans-serif", weight: '500' }
+                },
+                legend: {
+                    labels: { color: '#D1D5DB', font: { family: "'Inter', sans-serif" } }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { 
+                        color: '#9CA3AF',
+                        maxRotation: 45,
+                        minRotation: 45,
+                        callback: function(val, index) {
+                            const label = this.getLabelForValue(val) || '';
+                            return label.length > 25 ? label.substring(0, 25) + '...' : label;
+                        }
+                    }
+                },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: { display: true, text: 'Tickets Sold', color: '#9CA3AF' },
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { color: '#9CA3AF' }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: { display: true, text: 'Revenue (€)', color: '#9CA3AF' },
+                    grid: { drawOnChartArea: false },
+                    ticks: { color: '#9CA3AF' }
+                },
+                y2: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: { display: true, text: 'No-Show %', color: '#9CA3AF' },
+                    grid: { drawOnChartArea: false },
+                    ticks: { 
+                        color: '#9CA3AF',
+                        callback: function(value) { return value + '%'; }
+                    },
+                    min: 0,
+                    max: 100
+                },
+            }
+        }
+    });
+}
+
 // Fetch and load performance data
 async function loadPerformanceData() {
     try {
@@ -1131,6 +1251,9 @@ async function loadEventPerformanceData() {
                 else if (avgNoShow > 25) noShowEl.style.color = 'var(--color-warning)';
                 else noShowEl.style.color = 'var(--color-success)';
             }
+            
+            // Render Event Overview Chart
+            renderEventOverviewChart(eventsData);
             
             // Render Future Events Table
             const futureBody = document.getElementById('event-perf-future-body');
