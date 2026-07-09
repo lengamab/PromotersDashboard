@@ -1406,6 +1406,9 @@ navTabs.forEach(tab => {
         const viewName = tab.dataset.tab;
         activeTab = viewName;
         
+        // Save active tab state
+        localStorage.setItem('activeDashboardTab', viewName);
+        
         // Clear sales auto-refresh if we leave the tab
         if (activeTab !== 'sales' && salesRefreshInterval) {
             clearInterval(salesRefreshInterval);
@@ -1578,6 +1581,16 @@ async function loadSalesHistory(isBackgroundRefresh = false) {
 
 // Initial load
 initDateDefaults();
+
+// Restore active tab from localStorage if available
+const savedTab = localStorage.getItem('activeDashboardTab');
+if (savedTab) {
+    const tabToClick = Array.from(navTabs).find(t => t.dataset.tab === savedTab);
+    if (tabToClick) {
+        tabToClick.click();
+    }
+}
+
 loadData();
 
 // Date Filter Presets
