@@ -1018,8 +1018,11 @@ let eventOverviewChartInstance = null;
 function renderEventOverviewChart(eventsData) {
     const ctx = document.getElementById('eventOverviewChart').getContext('2d');
     
+    // Filter out empty events (0 tickets, 0 revenue)
+    const filteredData = eventsData.filter(e => e.total_tickets > 0 || e.total_revenue > 0);
+    
     // Sort chronologically for the chart
-    const sortedData = [...eventsData].sort((a, b) => a.event_date.localeCompare(b.event_date));
+    const sortedData = [...filteredData].sort((a, b) => a.event_date.localeCompare(b.event_date));
     
     const labels = sortedData.map(e => `${e.event_date} - ${e.event_name}`);
     const salesData = sortedData.map(e => e.total_tickets);
