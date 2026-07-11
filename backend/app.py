@@ -256,6 +256,20 @@ def trigger_email():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+# API: Get wallet balance
+@app.route('/api/wallet', methods=['GET'])
+def get_wallet():
+    try:
+        from email_sender import get_fourvenues_data
+        data = get_fourvenues_data("wallet-movements/", return_none_on_error=True)
+        if data and isinstance(data, list) and len(data) > 0:
+            balance = data[0].get("final_amount", 0.0)
+            return jsonify({"success": True, "balance": balance})
+        else:
+            return jsonify({"success": False, "error": "No wallet data found"}), 404
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 # API: Get unique rates list with commissions
 @app.route('/api/rates', methods=['GET'])
 def get_rates():

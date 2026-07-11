@@ -68,8 +68,6 @@ const salesTableBody = document.getElementById('sales-table-body');
 const navTabs = document.querySelectorAll('.nav-tab');
 const searchInput = document.getElementById('search-input');
 const filterBtns = document.querySelectorAll('.filter-btn');
-const btnSync = document.getElementById('btn-sync');
-const btnEmail = document.getElementById('btn-email');
 const statTotal = document.getElementById('stat-total');
 const statCommission = document.getElementById('stat-commission');
 const statNetDue = document.getElementById('stat-net-due');
@@ -94,27 +92,69 @@ const statPendingIcon = document.querySelector('.stat-card.pending .stat-icon-wr
 function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    
-    let icon = '<i class="fa-solid fa-circle-info"></i>';
+     let icon = '<i class="fa-solid fa-circle-info"></i>';
     if (type === 'success') icon = '<i class="fa-solid fa-circle-check" style="color: #10b981;"></i>';
     if (type === 'error') icon = '<i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i>';
     
-    toast.innerHTML = `${icon} <span>${message}</span>`;
+    toast.innerHTML = `
+        ${icon}
+        <span>${message}</span>
+    `;
+    
     toastContainer.appendChild(toast);
     
+    // Animate in
     setTimeout(() => {
-        toast.classList.add('toast-exit');
-        toast.addEventListener('animationend', () => toast.remove());
-    }, 4000);
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+    }, 10);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => {
+            if (toast.parentNode === toastContainer) {
+                toastContainer.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
 }
 
-// Build date query string from global state
+// Generate date range query string
 function getDateQueryString() {
-    const params = new URLSearchParams();
-    if (dateStart) params.set('start', dateStart);
-    if (dateEnd) params.set('end', dateEnd);
-    const qs = params.toString();
-    return qs ? `?${qs}` : '';
+    let query = '';
+    if (dateStart) query += `start=${dateStart}&`;
+    if (dateEnd) query += `end=${dateEnd}&`;
+    if (query.endsWith('&')) query = query.slice(0, -1);
+    return query ? `?${query}` : '';
+}
+
+function getRateIcon(rateName) {
+    if (rateName.toLowerCase().includes('bar')) return '<i class="fa-solid fa-martini-glass-citrus"></i>';
+    if (rateName.toLowerCase().includes('pass')) return '<i class="fa-solid fa-ticket"></i>';
+    if (rateName.toLowerCase().includes('vip')) return '<i class="fa-solid fa-crown"></i>';
+    return '<i class="fa-solid fa-receipt"></i>';
+}
+
+async function fetchWalletBalance() {
+    const amountSpan = document.getElementById('wallet-amount');
+    if (!amountSpan) return;
+    
+    amountSpan.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+    try {
+        const response = await fetch('/api/wallet');
+        const data = await response.json();
+        if (data.success) {
+            animateValue(amountSpan, 0, data.balance, 1500, true, '', '');
+        } else {
+            amountSpan.textContent = 'Error';
+            console.error('Wallet error:', data.error);
+        }
+    } catch (err) {
+        amountSpan.textContent = 'Error';
+        console.error('Wallet fetch failed:', err);
+    }
 }
 
 // Set default date range (last 30 days + 14 days future)
@@ -137,22 +177,14 @@ function initDateDefaults() {
     });
 }
 
-// Fetch and load data
-async function loadData(showLoading = false) {
-    if (showLoading) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="6" class="loading-state">
-                    <i class="fa-solid fa-spinner fa-spin"></i> Refreshing cash records...
-                </td>
-            </tr>
-        `;
-    }
+// Fetch and Load initial data
+async function loadData(forceSync = false) {
+    tableBody.innerHTML = '<tr><td colspan="9" class="loading-state"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading cash data...</td></tr>';
+    onlineTableBody.innerHTML = '<tr><td colspan="7" class="loading-state"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading online data...</td></tr>';
+    performanceTableBody.innerHTML = '<tr><td colspan="6" class="loading-state"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading performance data...</td></tr>';
     
-    const syncIcon = btnSync.querySelector('.sync-icon');
-    syncIcon.classList.add('spinning');
-    btnSync.disabled = true;
-    
+    // Also load wallet balance
+    fetchWalletBalance();    
     try {
         const response = await fetch(`/api/data${getDateQueryString()}`);
         const result = await response.json();
@@ -165,11 +197,11 @@ async function loadData(showLoading = false) {
             showToast(result.error || 'Failed to fetch cash records', 'error');
         }
     } catch (err) {
-        showToast('Server connection error. Make sure the backend is running.', 'error');
-        console.error(err);
-    } finally {
-        syncIcon.classList.remove('spinning');
-        btnSync.disabled = false;
+        console.error('Failed to load data:', err);
+        showToast('Failed to load data', 'error');
+        tableBody.innerHTML = '<tr><td colspan="9" class="error-state"><i class="fa-solid fa-triangle-exclamation"></i> Error loading data</td></tr>';
+        onlineTableBody.innerHTML = '<tr><td colspan="7" class="error-state"><i class="fa-solid fa-triangle-exclamation"></i> Error loading online data</td></tr>';
+        performanceTableBody.innerHTML = '<tr><td colspan="6" class="error-state"><i class="fa-solid fa-triangle-exclamation"></i> Error loading performance data</td></tr>';
     }
 }
 
@@ -722,35 +754,6 @@ filterBtns.forEach(btn => {
         activeFilter = btn.dataset.filter;
         renderTable();
     });
-});
-
-btnSync.addEventListener('click', () => {
-    loadData(true);
-    showToast('Syncing with Fourvenues API...', 'info');
-});
-
-btnEmail.addEventListener('click', async () => {
-    btnEmail.disabled = true;
-    const originalText = btnEmail.innerHTML;
-    btnEmail.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
-    
-    try {
-        const response = await fetch('/api/send-email', { method: 'POST' });
-        const result = await response.json();
-        
-        if (result.success) {
-            showToast(result.message, 'success');
-        } else {
-            // Friendly message when email is printed to console instead
-            showToast(result.message || 'SMTP credentials missing, printed to server console.', 'info');
-        }
-    } catch (err) {
-        showToast('Error triggering report email.', 'error');
-        console.error(err);
-    } finally {
-        btnEmail.innerHTML = originalText;
-        btnEmail.disabled = false;
-    }
 });
 
 // Fetch and render ticket rates
