@@ -1095,6 +1095,7 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
     
     total_tickets = 0
     total_revenue = 0.0
+    total_net_revenue = 0.0
     total_entered = 0
     
     ticket_types = {}
@@ -1108,8 +1109,17 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
             
         price = float(t.get("price", 0))
         
+        cost = 0.0
+        if price == 10.0:
+            cost = 7.0
+        elif price == 7.0:
+            cost = 3.0
+            
+        net_price = price - cost
+        
         total_tickets += 1
         total_revenue += price
+        total_net_revenue += net_price
         
         created_at = t.get("created_at")
         time_full, day = parse_fourvenues_time(created_at)
@@ -1181,6 +1191,7 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
         "event_date": event_date,
         "total_tickets": total_tickets,
         "total_revenue": total_revenue,
+        "total_net_revenue": total_net_revenue,
         "total_entered": total_entered,
         "no_show_rate": no_show_rate,
         "ticket_breakdown": ticket_breakdown,

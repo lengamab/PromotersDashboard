@@ -552,6 +552,7 @@ const modalEventName = document.getElementById('modal-event-name');
 const modalEventDate = document.getElementById('modal-event-date');
 const modalEventSold = document.getElementById('modal-event-sold');
 const modalEventRevenue = document.getElementById('modal-event-revenue');
+const modalEventNetRevenue = document.getElementById('modal-event-net-revenue');
 const modalEventEntered = document.getElementById('modal-event-entered');
 const modalEventNoshow = document.getElementById('modal-event-noshow');
 const modalEventTicketsBody = document.getElementById('modal-event-tickets-body');
@@ -579,6 +580,7 @@ async function openEventProfile(eventId, eventName, eventDate) {
             
             modalEventSold.textContent = data.total_tickets;
             modalEventRevenue.textContent = `${data.total_revenue.toFixed(2)}€`;
+            modalEventNetRevenue.textContent = `${data.total_net_revenue.toFixed(2)}€`;
             modalEventEntered.textContent = data.total_entered;
             modalEventNoshow.textContent = `${data.no_show_rate}%`;
             
