@@ -1095,7 +1095,8 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
     
     total_tickets = 0
     total_revenue = 0.0
-    total_net_revenue = 0.0
+    actual_net_revenue = 0.0
+    expected_net_revenue = 0.0
     total_entered = 0
     
     ticket_types = {}
@@ -1108,18 +1109,19 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
             continue
             
         price = float(t.get("price", 0))
+        is_entered = (t.get("enter", 0) == 1)
         
-        cost = 0.0
-        if price == 10.0:
-            cost = 7.0
-        elif price == 7.0:
-            cost = 3.0
+        if price in (10.0, 7.0):
+            act_net = 3.0 if is_entered else price
+            exp_net = (price * 0.15) + (3.0 * 0.85)
+        else:
+            act_net = price
+            exp_net = price
             
-        net_price = price - cost
-        
         total_tickets += 1
         total_revenue += price
-        total_net_revenue += net_price
+        actual_net_revenue += act_net
+        expected_net_revenue += exp_net
         
         created_at = t.get("created_at")
         time_full, day = parse_fourvenues_time(created_at)
@@ -1143,9 +1145,11 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
             
         rate_name = t.get("rate_name", "Unknown Rate")
         if rate_name not in ticket_types:
-            ticket_types[rate_name] = {"sold": 0, "revenue": 0.0}
+            ticket_types[rate_name] = {"sold": 0, "revenue": 0.0, "actual_net_revenue": 0.0, "expected_net_revenue": 0.0}
         ticket_types[rate_name]["sold"] += 1
         ticket_types[rate_name]["revenue"] += price
+        ticket_types[rate_name]["actual_net_revenue"] += act_net
+        ticket_types[rate_name]["expected_net_revenue"] += exp_net
         
         referral_id = t.get("referral_id")
         promoter_id = referral_id or "unknown"
@@ -1162,9 +1166,16 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
     if total_tickets > 0:
         no_show_rate = round(((total_tickets - total_entered) / total_tickets) * 100, 1)
 
+    is_future = (total_entered == 0 and total_tickets > 0)
+    
     # Sort ticket types by revenue descending
     ticket_breakdown = [
-        {"name": k, "sold": v["sold"], "revenue": v["revenue"]}
+        {
+            "name": k, 
+            "sold": v["sold"], 
+            "revenue": v["revenue"],
+            "net_revenue": v["expected_net_revenue"] if is_future else v["actual_net_revenue"]
+        }
         for k, v in ticket_types.items()
     ]
     ticket_breakdown.sort(key=lambda x: x["revenue"], reverse=True)
@@ -1185,6 +1196,8 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
         {"hour": k, "sales": v["sales"], "revenue": v["revenue"]}
         for k, v in sorted(timeline_hour_dict.items())
     ]
+
+    total_net_revenue = expected_net_revenue if is_future else actual_net_revenue
 
     return {
         "event_name": event_name,

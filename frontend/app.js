@@ -564,7 +564,7 @@ async function openEventProfile(eventId, eventName, eventDate) {
     modalEventName.textContent = eventName || 'Loading...';
     modalEventDate.textContent = eventDate || '';
     
-    modalEventTicketsBody.innerHTML = '<tr><td colspan="3" style="text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</td></tr>';
+    modalEventTicketsBody.innerHTML = '<tr><td colspan="4" style="text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</td></tr>';
     modalEventPromotersBody.innerHTML = '<tr><td colspan="3" style="text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</td></tr>';
     
     try {
@@ -589,13 +589,14 @@ async function openEventProfile(eventId, eventName, eventDate) {
             
             // Render Tickets Table
             if (data.ticket_breakdown.length === 0) {
-                modalEventTicketsBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">No ticket data.</td></tr>';
+                modalEventTicketsBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary);">No ticket data.</td></tr>';
             } else {
                 modalEventTicketsBody.innerHTML = data.ticket_breakdown.map(t => `
                     <tr>
                         <td style="font-weight: 500;">${t.name}</td>
                         <td style="text-align: right;">${t.sold}</td>
                         <td style="text-align: right; color: var(--color-success);">${t.revenue.toFixed(2)}€</td>
+                        <td style="text-align: right; color: var(--color-warning);">${(t.net_revenue !== undefined ? t.net_revenue : 0).toFixed(2)}€</td>
                     </tr>
                 `).join('');
             }
@@ -613,11 +614,11 @@ async function openEventProfile(eventId, eventName, eventDate) {
                 `).join('');
             }
         } else {
-            modalEventTicketsBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--color-danger);">Error loading data.</td></tr>`;
+            modalEventTicketsBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--color-danger);">Error loading data.</td></tr>`;
             modalEventPromotersBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--color-danger);">Error loading data.</td></tr>`;
         }
     } catch (err) {
-        modalEventTicketsBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--color-danger);">Connection error.</td></tr>`;
+        modalEventTicketsBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--color-danger);">Connection error.</td></tr>`;
         modalEventPromotersBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--color-danger);">Connection error.</td></tr>`;
     }
 }
@@ -825,7 +826,8 @@ async function loadRatesData() {
                         <div class="action-amount-wrapper" style="display: inline-flex; align-items: center;">
                             <input type="number" step="0.5" min="0" 
                                 value="${rate.commission_cash}" 
-                                onchange="updateRateCommission('${rate.rate_slug}', this.value, 'cash')" 
+                                data-rateslug="${rate.rate_slug.replace(/"/g, '&quot;')}"
+                                onchange="updateRateCommission(this)" 
                                 class="amount-input cash-comm-input">
                             <span class="currency-symbol">€</span>
                         </div>
@@ -834,7 +836,7 @@ async function loadRatesData() {
                         <div class="action-amount-wrapper" style="display: inline-flex; align-items: center;">
                             <input type="number" step="0.5" min="0" 
                                 value="${rate.commission_online}" 
-                                onchange="updateRateCommission('${rate.rate_slug}', this.value, 'online')" 
+                                onchange="updateRateCommission(this)" 
                                 class="amount-input online-comm-input">
                             <span class="currency-symbol">€</span>
                         </div>
@@ -851,12 +853,13 @@ async function loadRatesData() {
 }
 
 // Save ticket rate commission configuration
-async function updateRateCommission(rateSlug, value, type) {
-    const cashInputs = Array.from(document.querySelectorAll('.cash-comm-input'));
-    const onlineInputs = Array.from(document.querySelectorAll('.online-comm-input'));
+async function updateRateCommission(element) {
+    const row = element.closest('tr');
+    const cashInput = row.querySelector('.cash-comm-input');
+    const onlineInput = row.querySelector('.online-comm-input');
     
-    const cashInput = cashInputs.find(i => i.getAttribute('onchange').includes(rateSlug));
-    const onlineInput = onlineInputs.find(i => i.getAttribute('onchange').includes(rateSlug));
+    // Read the rateSlug from the cashInput data attribute
+    const rateSlug = cashInput.getAttribute('data-rateslug');
     
     const cashVal = parseFloat(cashInput ? cashInput.value : 0.0);
     const onlineVal = parseFloat(onlineInput ? onlineInput.value : 0.0);
