@@ -1711,10 +1711,10 @@ async function loadSalesHistory(isBackgroundRefresh = false) {
                 
                 if (todayVal > yesterdayVal) {
                     const diffStr = isCurrency ? '+' + diff.toFixed(2) + '€' : '+' + diff;
-                    return ` <span style="font-size: 14px; margin-left: 5px; color: var(--success-color);" title="${titleStr}"><i class="fa-solid fa-arrow-trend-up"></i> ${diffStr}</span>`;
+                    return ` <span style="font-size: 14px; margin-left: 5px; color: var(--color-success);" title="${titleStr}"><i class="fa-solid fa-arrow-trend-up"></i> ${diffStr}</span>`;
                 } else if (todayVal < yesterdayVal) {
                     const diffStr = isCurrency ? diff.toFixed(2) + '€' : diff;
-                    return ` <span style="font-size: 14px; margin-left: 5px; color: var(--danger-color);" title="${titleStr}"><i class="fa-solid fa-arrow-trend-down"></i> ${diffStr}</span>`;
+                    return ` <span style="font-size: 14px; margin-left: 5px; color: var(--color-danger);" title="${titleStr}"><i class="fa-solid fa-arrow-trend-down"></i> ${diffStr}</span>`;
                 }
                 return ` <span style="font-size: 14px; margin-left: 5px; color: var(--text-secondary);" title="${titleStr}"><i class="fa-solid fa-minus"></i></span>`;
             };
