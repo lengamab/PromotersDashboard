@@ -1649,17 +1649,36 @@ async function loadSalesHistory(isBackgroundRefresh = false) {
         const today = new Date();
         const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
         
-        const [response, todayResponse] = await Promise.all([
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.getFullYear() + '-' + String(yesterday.getMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getDate()).padStart(2, '0');
+        
+        const [response, todayResponse, yesterdayResponse] = await Promise.all([
             fetch(`/api/sales${getDateQueryString()}`),
-            fetch(`/api/sales?start=${todayStr}&end=${todayStr}`)
+            fetch(`/api/sales?start=${todayStr}&end=${todayStr}`),
+            fetch(`/api/sales?start=${yesterdayStr}&end=${yesterdayStr}`)
         ]);
         
         const result = await response.json();
         const todayResult = await todayResponse.json();
+        const yesterdayResult = await yesterdayResponse.json();
         
         if (result.success && (todayResult.success || !todayResult.success)) { // todayResult might fail if no sales, but we handle it
             const sales = result.data || [];
             const todaySales = todayResult.data || [];
+            const yesterdaySales = yesterdayResult.data || [];
+            
+            // Filter yesterday's sales up to the current time
+            const currentHour = String(today.getHours()).padStart(2, '0');
+            const currentMinute = String(today.getMinutes()).padStart(2, '0');
+            const currentSecond = String(today.getSeconds()).padStart(2, '0');
+            const currentTimeStr = `${currentHour}:${currentMinute}:${currentSecond}`;
+            
+            const yesterdaySalesToTime = yesterdaySales.filter(s => {
+                if (!s.sale_date) return false;
+                const timePart = s.sale_date.split(' ')[1];
+                return timePart && timePart <= currentTimeStr;
+            });
             
             const calcStats = (arr) => {
                 let cash = 0, online = 0, count = 0;
@@ -1678,15 +1697,31 @@ async function loadSalesHistory(isBackgroundRefresh = false) {
             
             const periodStats = calcStats(sales);
             const todayStats = calcStats(todaySales);
+            const yesterdayStatsToTime = calcStats(yesterdaySalesToTime);
             
             // Update UI
             document.getElementById('sales-stat-period').innerText = periodStats.total.toFixed(2) + '€';
             document.getElementById('sales-stat-period-detail').innerText = `Cash: ${periodStats.cash.toFixed(2)}€ | Online: ${periodStats.online.toFixed(2)}€`;
             document.getElementById('sales-count-period').innerText = periodStats.count;
             
-            document.getElementById('sales-stat-today').innerText = todayStats.total.toFixed(2) + '€';
+            const getTrendHtml = (todayVal, yesterdayVal, isCurrency = false) => {
+                const formatVal = (val) => isCurrency ? val.toFixed(2) + '€' : val;
+                const diff = todayVal - yesterdayVal;
+                const titleStr = `vs yesterday same time (${formatVal(yesterdayVal)})`;
+                
+                if (todayVal > yesterdayVal) {
+                    const diffStr = isCurrency ? '+' + diff.toFixed(2) + '€' : '+' + diff;
+                    return ` <span style="font-size: 14px; margin-left: 5px; color: var(--success-color);" title="${titleStr}"><i class="fa-solid fa-arrow-trend-up"></i> ${diffStr}</span>`;
+                } else if (todayVal < yesterdayVal) {
+                    const diffStr = isCurrency ? diff.toFixed(2) + '€' : diff;
+                    return ` <span style="font-size: 14px; margin-left: 5px; color: var(--danger-color);" title="${titleStr}"><i class="fa-solid fa-arrow-trend-down"></i> ${diffStr}</span>`;
+                }
+                return ` <span style="font-size: 14px; margin-left: 5px; color: var(--text-secondary);" title="${titleStr}"><i class="fa-solid fa-minus"></i></span>`;
+            };
+
+            document.getElementById('sales-stat-today').innerHTML = todayStats.total.toFixed(2) + '€' + getTrendHtml(todayStats.total, yesterdayStatsToTime.total, true);
             document.getElementById('sales-stat-today-detail').innerText = `Cash: ${todayStats.cash.toFixed(2)}€ | Online: ${todayStats.online.toFixed(2)}€`;
-            document.getElementById('sales-count-today').innerText = todayStats.count;
+            document.getElementById('sales-count-today').innerHTML = todayStats.count + getTrendHtml(todayStats.count, yesterdayStatsToTime.count, false);
             
             // Highlight new sales during background refreshes
             if (isBackgroundRefresh && cachedSalesData.length > 0) {
