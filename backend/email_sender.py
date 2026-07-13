@@ -1113,13 +1113,14 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
         
         is_fanzone = ("FANZONE" in event_name.upper() or "FAN ZONE" in event_name.upper())
 
-        if price in (10.0, 7.0):
+        if price == 10.0:
             act_net = 3.0 if is_entered else price
             exp_net = (price * 0.15) + (3.0 * 0.85)
         elif price == 0.0 and is_fanzone:
             act_net = 3.0 if is_entered else 0.0
             exp_net = (0.0 * 0.15) + (3.0 * 0.85)
         else:
+            # For 7€ tickets, since we give 3€ and receive 3€, the net revenue is exactly 7€
             act_net = price
             exp_net = price
             
