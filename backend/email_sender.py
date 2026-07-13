@@ -1111,9 +1111,22 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
         price = float(t.get("price", 0))
         is_entered = (t.get("enter", 0) == 1)
         
-        is_fanzone = ("FANZONE" in event_name.upper() or "FAN ZONE" in event_name.upper())
+        rate_name = t.get("rate_name", "").upper()
+        is_fanzone = ("FANZONE" in event_name.upper() or "FAN ZONE" in event_name.upper() or "FAN ZONE" in rate_name)
+        is_france_espagne = is_fanzone and ("FRANC" in event_name.upper() or "ESPAG" in event_name.upper() or "FIRA" in event_name.upper() or "VILLARROEL" in event_name.upper() or "EURO" in event_name.upper())
 
-        if price == 10.0:
+        # Also fallback to rate_name checking in case event_name doesn't have the keywords
+        if is_fanzone and ("FRANC" in rate_name or "ESPAG" in rate_name):
+            is_france_espagne = True
+            
+        # The screenshots show 4 tickets yielding 32 euro net (so 8 euro per ticket)
+        if (is_france_espagne or is_fanzone) and price == 10.0:
+            act_net = 10.0
+            exp_net = 10.0
+        elif (is_france_espagne or is_fanzone) and price == 15.0:
+            act_net = 8.0
+            exp_net = 8.0
+        elif price == 10.0:
             act_net = 3.0 if is_entered else price
             exp_net = (price * 0.15) + (3.0 * 0.85)
         elif price == 0.0 and is_fanzone:
