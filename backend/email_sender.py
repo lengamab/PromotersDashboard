@@ -1115,7 +1115,7 @@ def gather_event_profile(event_id, event_name="Unknown Event", event_date="Unkno
         event_upper = event_name.upper()
         is_fanzone = ("FANZONE" in event_upper or "FAN ZONE" in event_upper or "FAN ZONE" in rate_name)
         
-        is_villarroel_fanzone = ("FRANCE - ESPAGNE FAN ZONE FIRA VILLARROEL" in event_upper)
+        is_villarroel_fanzone = ("FAN ZONE FIRA VILLARROEL" in event_upper)
         if is_villarroel_fanzone and price == 10.0:
             act_net = 10.0
             exp_net = 10.0
