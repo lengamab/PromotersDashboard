@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import ReactMarkdown from 'react-markdown';
-
+import remarkGfm from 'remark-gfm';
 // NOTE: Hardcoding the API key as it was previously hardcoded in the server.js
 // Since this is an internal dashboard, we keep it here to avoid .env complexities on the client.
 const API_KEY = 'AQ.Ab8RN6IgzUweVqfl0oB-C7TVuYVTm90clJZKEnYxblYv2trAqA';
@@ -337,6 +337,22 @@ const CopilotChatWidget = () => {
               animation: dots 1.5s steps(5, end) infinite;
             }
             @keyframes dots { 0%, 20% { color: rgba(0,0,0,0); text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0);} 40% { color: white; text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0);} 60% { text-shadow: .25em 0 0 white, .5em 0 0 rgba(0,0,0,0);} 80%, 100% { text-shadow: .25em 0 0 white, .5em 0 0 white;}}
+            
+            .ai-message-bubble table {
+              border-collapse: collapse;
+              width: 100%;
+              margin-bottom: 1rem;
+              font-size: 0.9em;
+            }
+            .ai-message-bubble th, .ai-message-bubble td {
+              border: 1px solid var(--border-color);
+              padding: 8px;
+              text-align: left;
+            }
+            .ai-message-bubble th {
+              background-color: rgba(255, 255, 255, 0.1);
+              font-weight: bold;
+            }
           `}</style>
           
           <div style={{ backgroundColor: 'var(--surface-color)', borderRadius: '16px', width: '90%', maxWidth: '750px', height: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
@@ -359,7 +375,7 @@ const CopilotChatWidget = () => {
                   {msg.role === 'user' ? (
                     msg.parts[0].text
                   ) : (
-                    <ReactMarkdown>{msg.parts[0].text || ''}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.parts[0].text || ''}</ReactMarkdown>
                   )}
                 </div>
               ))}
