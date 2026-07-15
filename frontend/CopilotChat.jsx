@@ -52,6 +52,79 @@ const CopilotContextHandler = ({ contextData }) => {
     }
   });
 
+  useCopilotAction({
+    name: "fetchActiveCampaigns",
+    description: "Fetch all active Meta Ads campaigns for the account.",
+    parameters: [],
+    handler: async () => {
+      try {
+        const token = window.META_ACCESS_TOKEN;
+        const accountId = window.META_ACCOUNT_ID;
+        if (!token || !accountId) return "Error: Meta API credentials not found.";
+        const res = await fetch(`https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=name,status,daily_budget,lifetime_budget&effective_status=['ACTIVE']&access_token=${token}`);
+        const data = await res.json();
+        if (data.error) return `Error: ${data.error.message}`;
+        return JSON.stringify(data.data.map(c => ({
+            id: c.id, name: c.name,
+            daily_budget: c.daily_budget ? (parseInt(c.daily_budget)/100) : null,
+            lifetime_budget: c.lifetime_budget ? (parseInt(c.lifetime_budget)/100) : null
+        })));
+      } catch (e) {
+        return `Failed to fetch campaigns: ${e.message}`;
+      }
+    }
+  });
+
+  useCopilotAction({
+    name: "fetchFourvenuesPerformance",
+    description: "Fetch overall promoter performance (PR lists, tickets sold, revenue) from Fourvenues.",
+    parameters: [],
+    handler: async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/performance');
+        const data = await res.json();
+        if (!data.success) return `Error: ${data.error}`;
+        return JSON.stringify(data.data);
+      } catch (e) {
+        return `Failed to fetch performance: ${e.message}`;
+      }
+    }
+  });
+
+  useCopilotAction({
+    name: "fetchFourvenuesWallet",
+    description: "Fetch the current wallet balance from Fourvenues.",
+    parameters: [],
+    handler: async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/wallet');
+        const data = await res.json();
+        if (!data.success) return `Error: ${data.error}`;
+        return JSON.stringify(data.data);
+      } catch (e) {
+        return `Failed to fetch wallet: ${e.message}`;
+      }
+    }
+  });
+
+  useCopilotAction({
+    name: "fetchPromoterProfile",
+    description: "Fetch specific data about a single promoter by their ID.",
+    parameters: [
+      { name: "promoterId", type: "string", description: "The ID of the promoter.", required: true }
+    ],
+    handler: async ({ promoterId }) => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/promoter/${promoterId}`);
+        const data = await res.json();
+        if (!data.success) return `Error: ${data.error}`;
+        return JSON.stringify(data.data);
+      } catch (e) {
+        return `Failed to fetch promoter profile: ${e.message}`;
+      }
+    }
+  });
+
   return null;
 };
 
