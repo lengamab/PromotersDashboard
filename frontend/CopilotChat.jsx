@@ -157,9 +157,10 @@ const CopilotController = ({ setContextData, setIsOpen }) => {
 const CopilotChatWidget = () => {
   const [contextData, setContextData] = useState("No data selected yet.");
   const [isOpen, setIsOpen] = useState(false);
+  const runtimeUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000/api/copilotkit' : '/api/copilotkit';
 
   return (
-    <CopilotKit runtimeUrl="http://localhost:4000/api/copilotkit">
+    <CopilotKit runtimeUrl={runtimeUrl}>
       <CopilotContextHandler contextData={contextData} />
       <CopilotController setContextData={setContextData} setIsOpen={setIsOpen} />
       {isOpen && (
