@@ -238,7 +238,7 @@ const CopilotChatWidget = () => {
           functionResponses.push({
             functionResponse: {
               name: call.name,
-              response: apiResponse,
+              response: { result: apiResponse },
               id: call.id
             }
           });
