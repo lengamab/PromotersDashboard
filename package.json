@@ -20,9 +20,9 @@
   },
   "homepage": "https://github.com/lengamab/PromotersDashboard#readme",
   "dependencies": {
-    "@copilotkit/backend": "^0.37.0",
     "@copilotkit/react-core": "^1.62.3",
     "@copilotkit/react-ui": "^1.62.3",
+    "@copilotkit/runtime": "^1.62.3",
     "@copilotkit/shared": "^1.62.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
