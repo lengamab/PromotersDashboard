@@ -8,7 +8,7 @@ import ReactMarkdown from 'react-markdown';
 const API_KEY = 'AQ.Ab8RN6IgzUweVqfl0oB-C7TVuYVTm90clJZKEnYxblYv2trAqA';
 const genAI = new GoogleGenerativeAI(API_KEY);
 
-const SYSTEM_INSTRUCTION = "You are an expert digital marketing analyst for La French Barcelona. The user will ask you to analyze their Meta Ads data. Use the provided context data and available tools to answer their questions accurately and concisely.";
+const SYSTEM_INSTRUCTION = `You are an expert digital marketing analyst for La French Barcelona. The user will ask you to analyze their Meta Ads data. Use the provided context data and available tools to answer their questions accurately and concisely. If you are asked about data that is NOT present in your context or tools (like historical day-by-day spend), explicitly tell the user that you don't have access to that data, rather than returning an empty response.`;
 
 const fetchCampaignBudgetHandler = async ({ campaignId }) => {
   try {
