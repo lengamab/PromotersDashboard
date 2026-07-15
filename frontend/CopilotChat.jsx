@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CopilotKit, useCopilotReadable, useCopilotAction } from "@copilotkit/react-core";
+import { CopilotKit, useCopilotReadable, useCopilotAction, useCopilotChat } from "@copilotkit/react-core";
 import { CopilotPopup, useChatContext } from "@copilotkit/react-ui";
+import { TextMessage } from "@copilotkit/runtime-client-gql";
 import "@copilotkit/react-ui/styles.css";
 
 const CopilotContextHandler = ({ contextData }) => {
@@ -57,14 +58,23 @@ const CopilotContextHandler = ({ contextData }) => {
 // Component that needs access to useChatContext
 const CopilotController = ({ setContextData }) => {
   const { setOpen } = useChatContext();
+  const { appendMessage } = useCopilotChat();
 
   useEffect(() => {
     window.updateCopilotContext = (data) => {
       setContextData(data);
       // Programmatically open the popup
       setOpen(true);
+      
+      // Auto-trigger analysis
+      setTimeout(() => {
+        appendMessage(new TextMessage({
+          content: "Please analyze this specific campaign based on the context data.",
+          role: "user"
+        }));
+      }, 500);
     };
-  }, [setContextData, setOpen]);
+  }, [setContextData, setOpen, appendMessage]);
 
   return null;
 };
