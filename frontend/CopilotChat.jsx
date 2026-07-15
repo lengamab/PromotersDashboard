@@ -188,10 +188,25 @@ const CopilotChatWidget = () => {
         result = await chatSessionRef.current.sendMessage(functionResponses);
       }
 
-      setMessages(prev => [...prev, { role: 'model', parts: [{ text: result.response.text() }] }]);
+      let finalResponseText = "";
+      try {
+        finalResponseText = result.response.text();
+      } catch (e) {
+        console.warn("Failed to get text from response, maybe blocked or empty?", e);
+        // Sometimes text() throws if the response was blocked by safety or had no text parts
+        const candidate = result.response.candidates?.[0];
+        if (candidate && candidate.finishReason !== 'STOP') {
+          finalResponseText = `*Notice: Response stopped due to ${candidate.finishReason}*`;
+        } else {
+          finalResponseText = "*Notice: The model returned an empty or invalid text response.*";
+        }
+      }
+
+      setMessages(prev => [...prev, { role: 'model', parts: [{ text: finalResponseText || "*Warning: Empty response received.*" }] }]);
     } catch (err) {
       console.error(err);
-      setMessages(prev => [...prev, { role: 'model', parts: [{ text: `*Error:* ${err.message}` }] }]);
+      const errorMsg = (err && err.message) ? err.message : String(err);
+      setMessages(prev => [...prev, { role: 'model', parts: [{ text: `*Error:* ${errorMsg}` }] }]);
     } finally {
       setIsLoading(false);
     }
