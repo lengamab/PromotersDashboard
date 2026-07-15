@@ -66,14 +66,14 @@ const CopilotController = ({ setContextData }) => {
       // Programmatically open the popup
       setOpen(true);
       
-      // Auto-trigger analysis
-      setTimeout(() => {
-        const promptText = customPrompt || "Please analyze this specific campaign based on the context data.";
-        appendMessage(new TextMessage({
-          content: promptText,
-          role: "user"
-        }));
-      }, 500);
+      // Auto-trigger analysis message if requested
+      if (customPrompt) {
+          setTimeout(() => {
+              appendMessage(new TextMessage({
+                  content: customPrompt
+              }));
+          }, 300);
+      }
     };
   }, [setContextData, setOpen, appendMessage]);
 
