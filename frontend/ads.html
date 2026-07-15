@@ -227,10 +227,49 @@
             </div>
         </section>
 
+        <!-- Secondary Stats Section -->
+        <section id="secondary-stats-grid" class="stats-grid" style="margin-top: 20px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+            <div class="stat-card">
+                <div class="stat-icon-wrapper" style="color: #6f42c1; background: rgba(111,66,193,0.1);">
+                    <i class="fa-solid fa-bullseye"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>CPC</h3>
+                    <p id="stat-cpc">0.00€</p>
+                </div>
+                <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(111,66,193,0.1) 0%, transparent 70%);"></div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon-wrapper" style="color: #e83e8c; background: rgba(232,62,140,0.1);">
+                    <i class="fa-solid fa-handshake-angle"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>CPA (Cost per Purchase)</h3>
+                    <p id="stat-cpa">0.00€</p>
+                </div>
+                <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(232,62,140,0.1) 0%, transparent 70%);"></div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon-wrapper" style="color: #fd7e14; background: rgba(253,126,20,0.1);">
+                    <i class="fa-solid fa-percent"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>CTR</h3>
+                    <p id="stat-ctr">0.00%</p>
+                </div>
+                <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(253,126,20,0.1) 0%, transparent 70%);"></div>
+            </div>
+        </section>
+
         <!-- Charts Section -->
         <section class="charts-section" style="margin-top: 20px;">
-            <div class="chart-container">
+            <div class="chart-container" style="margin-bottom: 20px;">
                 <canvas id="adsChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="hourlyChart"></canvas>
             </div>
         </section>
 

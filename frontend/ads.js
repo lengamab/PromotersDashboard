@@ -3,7 +3,9 @@ const META_ACCESS_TOKEN = 'EAAMlAfQc4LsBR18bIHU1HG9VaGgmHrcu9vXtRrlLnoqHYnJiuAjd
 let GEMINI_API_KEY = ''; // We will set this when the user provides it
 
 let adsChartInstance = null;
+let hourlyChartInstance = null;
 let currentAdsData = [];
+let currentHourlyData = [];
 let currentSummary = {};
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -67,8 +69,19 @@ async function fetchAdsData() {
     });
 
     try {
-        const res = await fetch(`${url}?${params.toString()}`);
+        const [res, hourlyRes] = await Promise.all([
+            fetch(`${url}?${params.toString()}`),
+            fetch(`${url}?${new URLSearchParams({
+                access_token: META_ACCESS_TOKEN,
+                level: 'account',
+                time_range: JSON.stringify({ since: new Date().toISOString().split('T')[0], until: new Date().toISOString().split('T')[0] }),
+                breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
+                fields: 'spend'
+            }).toString()}`)
+        ]);
+        
         const json = await res.json();
+        const hourlyJson = await hourlyRes.json();
         
         if (json.error) {
             console.error("Meta API Error:", json.error);
@@ -77,6 +90,8 @@ async function fetchAdsData() {
         }
 
         currentAdsData = json.data || [];
+        currentHourlyData = hourlyJson.data || [];
+        
         processAndRenderAds();
     } catch (e) {
         console.error("Failed to fetch ads", e);
@@ -95,8 +110,20 @@ function processAndRenderAds() {
     const clicksData = [];
     const purchasesData = [];
 
+    // Pad missing dates
+    const fromDateObj = new Date(document.getElementById('date-from').value);
+    const toDateObj = new Date(document.getElementById('date-to').value);
+    const dataByDate = {};
+    
     currentAdsData.forEach(day => {
-        labels.push(day.date_start);
+        dataByDate[day.date_start] = day;
+    });
+
+    for (let d = new Date(fromDateObj); d <= toDateObj; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        labels.push(dateStr);
+        
+        const day = dataByDate[dateStr] || { spend: 0, impressions: 0, clicks: 0, actions: [] };
         
         const spend = parseFloat(day.spend || 0);
         const imp = parseInt(day.impressions || 0);
@@ -118,7 +145,7 @@ function processAndRenderAds() {
         spendData.push(spend);
         clicksData.push(clicks);
         purchasesData.push(purchases);
-    });
+    }
 
     // Update Cards
     document.getElementById('stat-spend').textContent = totalSpend.toFixed(2) + '€';
@@ -126,16 +153,25 @@ function processAndRenderAds() {
     document.getElementById('stat-clicks').textContent = totalClicks.toLocaleString();
     document.getElementById('stat-purchases').textContent = totalPurchases.toLocaleString();
 
+    const cpc = totalClicks > 0 ? (totalSpend / totalClicks).toFixed(2) : 0;
+    const cpa = totalPurchases > 0 ? (totalSpend / totalPurchases).toFixed(2) : 0;
+    const ctr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : 0;
+    
+    // Check if elements exist before updating (some templates might not have them yet)
+    if(document.getElementById('stat-cpc')) document.getElementById('stat-cpc').textContent = cpc + '€';
+    if(document.getElementById('stat-cpa')) document.getElementById('stat-cpa').textContent = cpa + '€';
+    if(document.getElementById('stat-ctr')) document.getElementById('stat-ctr').textContent = ctr + '%';
+
     currentSummary = {
         spend: totalSpend,
         impressions: totalImpressions,
         clicks: totalClicks,
         purchases: totalPurchases,
-        cpc: totalClicks > 0 ? (totalSpend / totalClicks).toFixed(2) : 0,
-        ctr: totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : 0
+        cpc: cpc,
+        ctr: ctr
     };
 
-    // Render Chart
+    // Render Main Chart
     if (adsChartInstance) {
         adsChartInstance.destroy();
     }
@@ -200,6 +236,44 @@ function processAndRenderAds() {
                     grid: { drawOnChartArea: false },
                     ticks: { color: '#a0a0a0' }
                 }
+            }
+        }
+    });
+
+    // Render Hourly Chart
+    if (hourlyChartInstance) {
+        hourlyChartInstance.destroy();
+    }
+
+    const hourlyLabels = [];
+    const hourlySpendData = [];
+    
+    // Sort hourly data by hour
+    currentHourlyData.sort((a, b) => a.hourly_stats_aggregated_by_advertiser_time_zone.localeCompare(b.hourly_stats_aggregated_by_advertiser_time_zone));
+    
+    currentHourlyData.forEach(hour => {
+        hourlyLabels.push(hour.hourly_stats_aggregated_by_advertiser_time_zone.split(' - ')[0].substring(0, 5)); // "00:00:00 - 00:59:59" -> "00:00"
+        hourlySpendData.push(parseFloat(hour.spend || 0));
+    });
+
+    const hourlyCtx = document.getElementById('hourlyChart').getContext('2d');
+    hourlyChartInstance = new Chart(hourlyCtx, {
+        type: 'bar',
+        data: {
+            labels: hourlyLabels,
+            datasets: [{
+                label: 'Hourly Spend Today (€)',
+                data: hourlySpendData,
+                backgroundColor: 'rgba(23, 162, 184, 0.7)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#a0a0a0' } } },
+            scales: {
+                x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } },
+                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } }
             }
         }
     });
