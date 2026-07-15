@@ -11,12 +11,12 @@ const genAI = new GoogleGenerativeAI(API_KEY);
 const SYSTEM_INSTRUCTION = `You are an elite digital marketing analyst for La French Barcelona. 
 CRITICAL CONTEXT: 
 1. The Meta Pixel is unreliable and often fails to track real purchases. You must ALWAYS cross-reference Meta Ads spend with Fourvenues ticket sales (especially under the "La French Ads" promoter tag and "Direct Sales") to estimate true offline ROAS.
-2. Standard Ticket Pricing: Assume an average ticket price of 15€ and a profit margin of 10€ for ROAS calculations, unless the user specifies otherwise.
+2. Event Pricing: Do NOT base your analysis on assumed averages if you can avoid it. Use the fetchFourvenuesEvents tool to pull the actual revenue and tickets sold for specific events to calculate precise ROAS. Only assume an average ticket price of 15€ and a profit margin of 10€ if event data cannot be fetched.
 
 INSTRUCTIONS: 
 - Use the provided context data and available tools to answer questions accurately and concisely.
 - Do not trust Meta's "Purchases" metric alone; use Fourvenues revenue data to calculate real profitability.
-- Always be highly actionable (e.g., recommend bid caps based on the 10€ profit margin).`;
+- Always be highly actionable (e.g., recommend bid caps based on actual event margins).`;
 
 const fetchCampaignHistoricalDataHandler = async ({ campaignId, since, until }) => {
   try {
@@ -170,6 +170,19 @@ const fetchPromoterProfileHandler = async ({ promoterId }) => {
   }
 };
 
+const fetchFourvenuesEventsHandler = async ({ since, until }) => {
+  try {
+    const params = new URLSearchParams();
+    if (since) params.append('start', since);
+    if (until) params.append('end', until);
+    const res = await fetch(`/api/events/performance?${params.toString()}`);
+    const data = await res.json();
+    return data.success ? data.data : { error: data.error };
+  } catch (e) {
+    return { error: e.message };
+  }
+};
+
 const tools = [
   {
     functionDeclarations: [
@@ -213,6 +226,17 @@ const tools = [
         }
       },
       {
+        name: "fetchFourvenuesEvents",
+        description: "Fetch a list of all Fourvenues events within a time period, including their total tickets sold, revenue, and attendance.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            since: { type: "STRING", description: "Start date in YYYY-MM-DD format." },
+            until: { type: "STRING", description: "End date in YYYY-MM-DD format." }
+          }
+        }
+      },
+      {
         name: "fetchFourvenuesPerformance",
         description: "Fetch overall promoter performance (PR lists, tickets sold, revenue) from Fourvenues.",
       },
@@ -240,6 +264,7 @@ const dispatchToolCall = async (call) => {
   if (call.name === 'fetchCampaignHistoricalData') return await fetchCampaignHistoricalDataHandler(call.args);
   if (call.name === 'fetchAccountHistoricalData') return await fetchAccountHistoricalDataHandler(call.args);
   if (call.name === 'fetchActiveCampaigns') return await fetchActiveCampaignsHandler();
+  if (call.name === 'fetchFourvenuesEvents') return await fetchFourvenuesEventsHandler(call.args);
   if (call.name === 'fetchFourvenuesPerformance') return await fetchFourvenuesPerformanceHandler();
   if (call.name === 'fetchFourvenuesWallet') return await fetchFourvenuesWalletHandler();
   if (call.name === 'fetchPromoterProfile') return await fetchPromoterProfileHandler(call.args);
