@@ -106,6 +106,27 @@ async function apiFetch(endpoint) {
     return data.data || data;
 }
 
+async function apiFetchAll(baseEndpoint) {
+    let allData = [];
+    let offset = 0;
+    const limit = 100;
+    const sep = baseEndpoint.includes('?') ? '&' : '?';
+    
+    while (true) {
+        const url = `${baseEndpoint}${sep}limit=${limit}&offset=${offset}`;
+        const data = await apiFetch(url);
+        if (!data || data.length === 0) {
+            break;
+        }
+        allData = allData.concat(data);
+        if (data.length < limit) {
+            break;
+        }
+        offset += limit;
+    }
+    return allData;
+}
+
 async function initDashboard() {
     const syncStatus = document.getElementById('sync-status');
     syncStatus.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Fetching Partners...';
@@ -113,7 +134,13 @@ async function initDashboard() {
     // 1. Fetch Partners
     const authData = await apiFetch('/auth');
     if (authData && authData.channel && authData.channel.hosts) {
-        globalPartners = authData.channel.hosts;
+        globalPartners = [...authData.channel.hosts];
+        // The channel itself can also host events, so add it as a partner
+        globalPartners.push({
+            _id: authData.channel._id,
+            name: authData.channel.name + ' (Channel)',
+            logo_url: authData.channel.logo_url
+        });
     } else {
         throw new Error("Could not load hosts from auth data");
     }
@@ -122,16 +149,24 @@ async function initDashboard() {
     
     // 2. Fetch Events
     try {
-        globalEvents = await apiFetch('/events?limit=100');
+        globalEvents = await apiFetchAll('/events');
     } catch(e) {
         console.warn("Failed fetching events directly, trying fallback or empty", e);
     }
     
     // 3. Fetch Tickets
     syncStatus.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Fetching Tickets...';
+    // We only fetch tickets for events in the last ~3 months to avoid massive loading times on init.
+    // The user can filter later, but this speeds up initial boot.
+    const cutoffDate = new Date();
+    cutoffDate.setMonth(cutoffDate.getMonth() - 3);
+
     for (const event of globalEvents) {
+        const evDate = new Date(event.start_date || event.display_date);
+        if (evDate < cutoffDate) continue;
+
         try {
-            globalTicketsMap[event._id] = await apiFetch(`/tickets?event_id=${event._id}&limit=100`);
+            globalTicketsMap[event._id] = await apiFetchAll(`/tickets?event_id=${event._id}`);
         } catch(e) {
             console.warn("Failed fetching tickets for event", event.name);
             globalTicketsMap[event._id] = [];
