@@ -342,12 +342,20 @@
                     <h2 style="margin: 0; border: none; padding: 0;"><i class="fa-solid fa-wand-magic-sparkles" style="color: #845EC2;"></i> AI Performance Analysis</h2>
                     <button onclick="closeAiModal()" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer;">&times;</button>
                 </div>
-                <div id="ai-loading" style="display: none; text-align: center; padding: 40px; color: var(--text-secondary);">
-                    <i class="fa-solid fa-spinner fa-spin fa-3x" style="margin-bottom: 15px; color: #845EC2;"></i>
-                    <p>Gemini is analyzing your ads data...</p>
+                <div id="ai-chat-history" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px;">
+                    <!-- Chat bubbles will be rendered here -->
                 </div>
-                <div id="ai-result" class="markdown-body">
-                    <!-- AI response will be rendered here -->
+                <div id="ai-loading" style="display: none; text-align: center; padding: 20px; color: var(--text-secondary);">
+                    <i class="fa-solid fa-spinner fa-spin fa-2x" style="margin-bottom: 10px; color: #845EC2;"></i>
+                    <p style="margin: 0; font-size: 0.9em;">Gemini is thinking...</p>
+                </div>
+                <div id="ai-chat-input-container" style="display: none; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="ai-chat-input" placeholder="Ask a follow-up question..." style="flex: 1; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: #fff; border-radius: 8px; outline: none;">
+                        <button class="ai-btn" id="btn-send-chat" style="padding: 12px 20px;">
+                            <i class="fa-solid fa-paper-plane"></i> Send
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

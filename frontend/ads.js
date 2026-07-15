@@ -330,24 +330,133 @@ function closeAiModal() {
     document.getElementById('aiModal').style.display = 'none';
 }
 
-async function analyzeWithAI() {
+let currentChatHistory = [];
+
+async function sendChatMessage(promptText, isInitial = false) {
     if (!GEMINI_API_KEY) {
-        alert("Please provide your Gemini API Key first so I can add it to the code.");
+        alert("Please provide your Gemini API Key first.");
         return;
     }
 
+    const chatHistoryContainer = document.getElementById('ai-chat-history');
+    const loadingEl = document.getElementById('ai-loading');
+    const inputContainer = document.getElementById('ai-chat-input-container');
+    const chatInput = document.getElementById('ai-chat-input');
+
+    if (isInitial) {
+        currentChatHistory = [];
+        chatHistoryContainer.innerHTML = '';
+        inputContainer.style.display = 'none';
+        document.getElementById('aiModal').style.display = 'block';
+    } else {
+        appendChatBubble(promptText, 'user');
+        chatInput.value = '';
+    }
+
+    loadingEl.style.display = 'block';
+    inputContainer.style.display = 'none';
+
+    currentChatHistory.push({ role: 'user', parts: [{ text: promptText }] });
+
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: currentChatHistory })
+        });
+
+        const data = await response.json();
+        
+        loadingEl.style.display = 'none';
+        
+        if (data.error) {
+            appendChatBubble(`Error: ${data.error.message}`, 'error');
+            return;
+        }
+
+        const responseText = data.candidates[0].content.parts[0].text;
+        
+        currentChatHistory.push({ role: 'model', parts: [{ text: responseText }] });
+        appendChatBubble(responseText, 'model');
+
+        inputContainer.style.display = 'block';
+        chatInput.focus();
+
+    } catch (e) {
+        loadingEl.style.display = 'none';
+        appendChatBubble(`Request failed: ${e.message}`, 'error');
+        inputContainer.style.display = 'block';
+    }
+}
+
+function appendChatBubble(text, sender) {
+    const chatHistoryContainer = document.getElementById('ai-chat-history');
+    const wrapper = document.createElement('div');
+    wrapper.style.display = 'flex';
+    wrapper.style.flexDirection = 'column';
+    wrapper.style.alignItems = sender === 'user' ? 'flex-end' : 'flex-start';
+    
+    const bubble = document.createElement('div');
+    bubble.className = 'markdown-body';
+    bubble.style.padding = '15px';
+    bubble.style.borderRadius = '12px';
+    bubble.style.maxWidth = '85%';
+    
+    if (sender === 'user') {
+        bubble.style.background = '#845EC2';
+        bubble.style.color = 'white';
+        bubble.innerHTML = `<div style="white-space: pre-wrap; font-family: inherit;">${text}</div>`;
+    } else if (sender === 'model') {
+        bubble.style.background = 'rgba(255,255,255,0.05)';
+        bubble.style.border = '1px solid var(--border-color)';
+        bubble.innerHTML = marked.parse(text);
+    } else {
+        bubble.style.background = '#ff4444';
+        bubble.style.color = 'white';
+        bubble.textContent = text;
+    }
+    
+    wrapper.appendChild(bubble);
+    chatHistoryContainer.appendChild(wrapper);
+    
+    setTimeout(() => {
+        const modalContent = document.querySelector('#aiModal .modal-content');
+        if (modalContent) modalContent.scrollTop = modalContent.scrollHeight;
+    }, 100);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const btnSend = document.getElementById('btn-send-chat');
+    if (btnSend) {
+        btnSend.addEventListener('click', () => {
+            const input = document.getElementById('ai-chat-input');
+            if (input.value.trim()) {
+                sendChatMessage(input.value.trim(), false);
+            }
+        });
+    }
+
+    const inputEl = document.getElementById('ai-chat-input');
+    if (inputEl) {
+        inputEl.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && e.target.value.trim()) {
+                sendChatMessage(e.target.value.trim(), false);
+            }
+        });
+    }
+});
+
+async function analyzeWithAI() {
+    if (!GEMINI_API_KEY) {
+        alert("Please provide your Gemini API Key first.");
+        return;
+    }
     if (currentAdsData.length === 0) {
         alert("No ad data available to analyze. Please wait for data to load.");
         return;
     }
 
-    document.getElementById('aiModal').style.display = 'block';
-    document.getElementById('ai-loading').style.display = 'block';
-    document.getElementById('ai-result').style.display = 'none';
-    document.getElementById('ai-result').innerHTML = '';
-
-    const prompt = `
-You are an expert digital marketing analyst for a nightlife and event promotion company called "La French Barcelona".
+    const prompt = `You are an expert digital marketing analyst for a nightlife and event promotion company called "La French Barcelona".
 Please analyze the following Meta Ads performance data and provide a concise, actionable report in Markdown format.
 
 **Overall Summary for the selected period:**
@@ -358,42 +467,12 @@ Please analyze the following Meta Ads performance data and provide a concise, ac
 - CPC (Cost Per Click): ${currentSummary.cpc}€
 - CTR (Click-Through Rate): ${currentSummary.ctr}%
 
-**Daily Breakdown:**
-${currentAdsData.map(d => `- ${d.date_start}: Spend ${parseFloat(d.spend || 0).toFixed(2)}€, Clicks ${d.clicks || 0}`).join('\n')}
-
 **Please structure your response with:**
 1. **Performance Overview**: A quick summary of how the ads are doing.
 2. **Key Anomalies/Trends**: Notice any spikes or dips in spend vs. clicks?
-3. **Actionable Recommendations**: Give 2-3 specific recommendations on how to improve ROI/ROAS for event ticket sales based on this data. Keep it highly relevant to nightlife/club events.
-`;
+3. **Actionable Recommendations**: Give 2-3 specific recommendations.`;
 
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
-        });
-
-        const json = await response.json();
-        
-        if (json.error) {
-            throw new Error(json.error.message);
-        }
-
-        const aiText = json.candidates[0].content.parts[0].text;
-        
-        document.getElementById('ai-loading').style.display = 'none';
-        document.getElementById('ai-result').style.display = 'block';
-        document.getElementById('ai-result').innerHTML = marked.parse(aiText);
-
-    } catch (e) {
-        console.error(e);
-        document.getElementById('ai-loading').style.display = 'none';
-        document.getElementById('ai-result').style.display = 'block';
-        document.getElementById('ai-result').innerHTML = `<p style="color: red;">Request failed: ${e.message}</p>`;
-    }
+    sendChatMessage(prompt, true);
 }
 
 let currentSelectedCampaign = null;
@@ -431,64 +510,22 @@ async function analyzeCampaignWithAI(campData) {
     }
 
     closeCampaignModal();
-    document.getElementById('aiModal').style.display = 'block';
-    document.getElementById('ai-loading').style.display = 'block';
-    document.getElementById('ai-result').innerHTML = '';
 
-    const campStatsText = `
-Campaign Name: ${campData.camp.campaign_name}
+    const campStatsText = `Campaign Name: ${campData.camp.campaign_name}
 Spend: ${campData.spend.toFixed(2)}€
 Impressions: ${campData.imp}
 Clicks: ${campData.clicks}
 Purchases: ${campData.purchases}
 CPC: ${campData.clicks > 0 ? (campData.spend / campData.clicks).toFixed(2) : 0}€
 CPA: ${campData.purchases > 0 ? (campData.spend / campData.purchases).toFixed(2) : 0}€
-CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 0}%
-    `;
-
-    const accountStatsText = `
-Account Total Spend: ${currentSummary.spend.toFixed(2)}€
-Account Total Impressions: ${currentSummary.impressions}
-Account Total Clicks: ${currentSummary.clicks}
-Account Total Purchases: ${currentSummary.purchases}
-Account Average CPC: ${currentSummary.cpc}€
-Account Average CTR: ${currentSummary.ctr}%
-    `;
+CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 0}%`;
 
     const prompt = `You are an expert Meta Ads media buyer. The user has selected a specific ad campaign to analyze.
 Here are the stats for this specific campaign over the selected date range:
 ${campStatsText}
 
-And for comparison, here are the overall account averages over the same period:
-${accountStatsText}
+Analyze the performance of this specific campaign. 
+Tell the user what is working well, what is underperforming, and give 3 highly actionable pieces of advice to improve this specific campaign.`;
 
-Analyze the performance of this specific campaign compared to the account average. 
-Tell the user what is working well, what is underperforming, and give 3 highly actionable pieces of advice to improve this specific campaign. 
-Use Markdown to format your response beautifully. Do not output anything other than your analysis.`;
-
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
-        });
-
-        const data = await response.json();
-        
-        document.getElementById('ai-loading').style.display = 'none';
-
-        if (data.error) {
-            document.getElementById('ai-result').innerHTML = `<p style="color: red;">Error: ${data.error.message}</p>`;
-            return;
-        }
-
-        const text = data.candidates[0].content.parts[0].text;
-        document.getElementById('ai-result').innerHTML = marked.parse(text);
-
-    } catch (e) {
-        document.getElementById('ai-loading').style.display = 'none';
-        document.getElementById('ai-result').innerHTML = `<p style="color: red;">Request failed: ${e.message}</p>`;
-    }
+    sendChatMessage(prompt, true);
 }
