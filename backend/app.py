@@ -45,6 +45,34 @@ def save_db(data):
 def serve_index():
     return send_from_directory(app.static_folder, 'index.html')
 
+# Proxy CopilotKit requests to Node backend
+@app.route('/api/copilotkit', methods=['GET', 'POST', 'OPTIONS'])
+def proxy_copilotkit():
+    import requests
+    from flask import Response
+    
+    url = 'http://localhost:4000/api/copilotkit'
+    
+    # Forward the request to the Node server
+    try:
+        resp = requests.request(
+            method=request.method,
+            url=url,
+            headers={key: value for (key, value) in request.headers if key != 'Host'},
+            data=request.get_data(),
+            cookies=request.cookies,
+            allow_redirects=False,
+            stream=True
+        )
+        
+        excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
+        headers = [(name, value) for (name, value) in resp.raw.headers.items()
+                   if name.lower() not in excluded_headers]
+                   
+        return Response(resp.iter_content(chunk_size=10*1024), resp.status_code, headers)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # API: Get compiled promoter cash status
 @app.route('/api/data', methods=['GET'])
 def get_data():
