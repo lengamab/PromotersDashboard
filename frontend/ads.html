@@ -159,26 +159,26 @@
         </header>
 
         <!-- Filters Section -->
-        <div class="filter-bar" style="margin-top: 20px;">
-            <div class="quick-filters">
-                <button class="filter-btn" data-period="last7">Last 7 days</button>
-                <button class="filter-btn active" data-period="last30">Last 30 days</button>
-                <button class="filter-btn" data-period="thisMonth">This Month</button>
-                <button class="filter-btn" data-period="lastMonth">Last Month</button>
+        <section class="date-filter-bar" style="margin-top: 20px;">
+            <div class="date-presets">
+                <button class="date-preset-btn" data-period="last7">Last 7 days</button>
+                <button class="date-preset-btn active" data-period="last30">Last 30 days</button>
+                <button class="date-preset-btn" data-period="thisMonth">This Month</button>
+                <button class="date-preset-btn" data-period="lastMonth">Last Month</button>
             </div>
-            <div class="date-filters">
-                <div class="date-input-group">
-                    <i class="fa-regular fa-calendar"></i>
+            <div class="date-custom">
+                <div class="date-input-wrapper">
+                    <i class="fa-regular fa-calendar date-icon"></i>
                     <input type="date" id="date-from">
                 </div>
-                <span class="date-separator"><i class="fa-solid fa-arrow-right"></i></span>
-                <div class="date-input-group">
-                    <i class="fa-regular fa-calendar"></i>
+                <span class="date-separator">→</span>
+                <div class="date-input-wrapper">
+                    <i class="fa-regular fa-calendar date-icon"></i>
                     <input type="date" id="date-to">
                 </div>
-                <button id="apply-dates" class="apply-btn"><i class="fa-solid fa-filter"></i> Apply</button>
+                <button id="apply-dates" class="btn btn-secondary btn-sm"><i class="fa-solid fa-filter"></i> Apply</button>
             </div>
-        </div>
+        </section>
 
         <!-- Stats Section -->
         <section id="main-stats-grid" class="stats-grid" style="margin-top: 20px;">
@@ -229,8 +229,8 @@
 
         <!-- Charts Section -->
         <section class="charts-section" style="margin-top: 20px;">
-            <div class="chart-container" style="background: var(--surface-color); border-radius: 16px; padding: 20px; border: 1px solid var(--border-color);">
-                <canvas id="adsChart" height="100"></canvas>
+            <div class="chart-container">
+                <canvas id="adsChart"></canvas>
             </div>
         </section>
 

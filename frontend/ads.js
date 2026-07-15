@@ -16,9 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('date-to').value = today.toISOString().split('T')[0];
 
     // Filter Buttons
-    document.querySelectorAll('.filter-btn').forEach(btn => {
+    document.querySelectorAll('.date-preset-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.date-preset-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
             
             const period = e.target.dataset.period;
@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('apply-dates').addEventListener('click', () => {
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.date-preset-btn').forEach(b => b.classList.remove('active'));
         fetchAdsData();
     });
 
