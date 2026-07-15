@@ -156,7 +156,7 @@ const CopilotChatWidget = () => {
     try {
       // Re-initialize model session with latest context to ensure the AI has the most recent dashboard data
       const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
+        model: "gemini-3.5-flash",
         systemInstruction: `${SYSTEM_INSTRUCTION}\n\nCURRENT DASHBOARD CONTEXT DATA:\n${activeContext}`,
         tools: tools
       });
