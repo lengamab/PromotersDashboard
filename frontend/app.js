@@ -1653,20 +1653,38 @@ async function loadSalesHistory(isBackgroundRefresh = false) {
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.getFullYear() + '-' + String(yesterday.getMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getDate()).padStart(2, '0');
         
-        const [response, todayResponse, yesterdayResponse] = await Promise.all([
-            fetch(`/api/sales${getDateQueryString()}`),
-            fetch(`/api/sales?start=${todayStr}&end=${todayStr}`),
-            fetch(`/api/sales?start=${yesterdayStr}&end=${yesterdayStr}`)
-        ]);
-        
+        const response = await fetch(`/api/sales${getDateQueryString()}`);
         const result = await response.json();
-        const todayResult = await todayResponse.json();
-        const yesterdayResult = await yesterdayResponse.json();
         
-        if (result.success && (todayResult.success || !todayResult.success)) { // todayResult might fail if no sales, but we handle it
+        if (result.success) {
             const sales = result.data || [];
-            const todaySales = todayResult.data || [];
-            const yesterdaySales = yesterdayResult.data || [];
+            let todaySales = [];
+            let yesterdaySales = [];
+            
+            const isDateInRange = (dStr) => {
+                if (!dateStart || !dateEnd) return true;
+                return dStr >= dateStart && dStr <= dateEnd;
+            };
+            
+            if (isDateInRange(todayStr)) {
+                todaySales = sales.filter(s => s.sale_date && s.sale_date.startsWith(todayStr));
+            } else {
+                try {
+                    const tr = await fetch(`/api/sales?start=${todayStr}&end=${todayStr}`);
+                    const tres = await tr.json();
+                    todaySales = tres.data || [];
+                } catch(e) { console.error(e); }
+            }
+            
+            if (isDateInRange(yesterdayStr)) {
+                yesterdaySales = sales.filter(s => s.sale_date && s.sale_date.startsWith(yesterdayStr));
+            } else {
+                try {
+                    const yr = await fetch(`/api/sales?start=${yesterdayStr}&end=${yesterdayStr}`);
+                    const yres = await yr.json();
+                    yesterdaySales = yres.data || [];
+                } catch(e) { console.error(e); }
+            }
             
             // Filter yesterday's sales up to the current time
             const currentHour = String(today.getHours()).padStart(2, '0');

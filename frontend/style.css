@@ -1428,3 +1428,8 @@ body {
 .wallet-balance-display i {
     font-size: 1.1rem;
 }
+
+.skeleton-box { background: rgba(255, 255, 255, 0.05); border-radius: 4px; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 0.3; } 100% { opacity: 0.6; } }
+.stagger-in { animation: fadeIn 0.3s ease-out forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

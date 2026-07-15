@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>La French - Partners Dashboard</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar/Header -->
+        <header class="main-header">
+            <div class="header-logo">
+                <i class="fa-solid fa-handshake logo-icon"></i>
+                <div class="logo-text">
+                    <h1>LA FRENCH</h1>
+                    <span>PARTNERS DASHBOARD</span>
+                </div>
+            </div>
+            
+            <div class="header-nav">
+                <button class="nav-tab active" data-tab="overview" onclick="closePartnerProfile()">
+                    <i class="fa-solid fa-table"></i> Partners Overview
+                </button>
+                <button class="nav-tab" onclick="window.location.href='/'">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Main App
+                </button>
+            </div>
+            
+            <div class="header-actions">
+                <div class="wallet-balance-display">
+                    <i class="fa-solid fa-signal"></i>
+                    <span id="sync-status">Syncing...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Date Range Filter -->
+        <section class="date-filter-bar">
+            <div class="date-presets">
+                <button class="date-preset-btn" data-preset="7d">Last 7 days</button>
+                <button class="date-preset-btn" data-preset="30d">Last 30 days</button>
+                <button class="date-preset-btn" data-preset="this-month">This Month</button>
+                <button class="date-preset-btn" data-preset="last-month">Last Month</button>
+                <button class="date-preset-btn" data-preset="all">All Time</button>
+            </div>
+            <div class="date-custom">
+                <label>
+                    <i class="fa-solid fa-calendar-day"></i>
+                    <input type="date" id="date-start">
+                </label>
+                <span class="date-separator">→</span>
+                <label>
+                    <i class="fa-solid fa-calendar-day"></i>
+                    <input type="date" id="date-end">
+                </label>
+                <button id="btn-apply-dates" class="btn btn-secondary btn-sm">
+                    <i class="fa-solid fa-filter"></i> Apply
+                </button>
+            </div>
+        </section>
+
+        <!-- View Pane: Overview -->
+        <div id="view-overview" class="view-pane">
+            <!-- Stats Section -->
+            <section class="stats-grid" id="main-stats-grid">
+                <div class="stat-card total">
+                    <div class="stat-icon-wrapper">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Total Partners</h3>
+                        <p id="stat-total-partners">0</p>
+                    </div>
+                    <div class="card-glow"></div>
+                </div>
+                
+                <div class="stat-card pending">
+                    <div class="stat-icon-wrapper">
+                        <i class="fa-solid fa-calendar-days"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Total Events</h3>
+                        <p id="stat-total-events">0</p>
+                    </div>
+                    <div class="card-glow"></div>
+                </div>
+
+                <div class="stat-card returned">
+                    <div class="stat-icon-wrapper">
+                        <i class="fa-solid fa-ticket"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Total Tickets Sold</h3>
+                        <p id="stat-total-tickets">0</p>
+                        <small id="stat-tickets-detail" style="color: var(--text-secondary); font-size: 11px;">Paid: 0 | Free: 0</small>
+                    </div>
+                    <div class="card-glow"></div>
+                </div>
+
+                <div class="stat-card net-due">
+                    <div class="stat-icon-wrapper">
+                        <i class="fa-solid fa-euro-sign"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Total Revenue</h3>
+                        <p id="stat-total-revenue">0.00€</p>
+                    </div>
+                    <div class="card-glow"></div>
+                </div>
+
+                <div class="stat-card pending">
+                    <div class="stat-icon-wrapper" style="color: var(--color-danger); background: rgba(239, 68, 68, 0.1);">
+                        <i class="fa-solid fa-user-xmark"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Avg No-Show Rate</h3>
+                        <p id="stat-avg-noshow">0%</p>
+                    </div>
+                    <div class="card-glow"></div>
+                </div>
+            </section>
+
+            <!-- Main Chart Section -->
+            <main class="sheet-container" style="margin-bottom: 24px;">
+                <div style="padding: 20px; height: 350px;">
+                    <canvas id="overviewChart"></canvas>
+                </div>
+            </main>
+
+            <main class="sheet-container">
+                <div class="table-wrapper">
+                    <table class="tracking-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%">Partner Name</th>
+                                <th style="width: 10%; text-align: center;">Events</th>
+                                <th style="width: 15%; text-align: center;">Paid Tickets</th>
+                                <th style="width: 10%; text-align: center;">Free Tickets</th>
+                                <th style="width: 15%; text-align: center;">No-Show Rate</th>
+                                <th style="width: 10%; text-align: center;">Total Sold</th>
+                                <th style="width: 15%; text-align: right;">Revenue (€)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="partners-table-body">
+                            <tr>
+                                <td colspan="7" class="loading-state">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> Loading partners data from Channel Manager...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+
+        <!-- View Pane: Partner Profile -->
+        <div id="view-partner-profile" class="view-pane hidden">
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
+                <button class="btn btn-secondary btn-sm" onclick="closePartnerProfile()">
+                    <i class="fa-solid fa-arrow-left"></i> Back
+                </button>
+                <div id="profile-logo-container" style="width:48px;height:48px;border-radius:50%;background:#333;overflow:hidden;"></div>
+                <h2 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0;" id="profile-partner-name">Partner Profile</h2>
+            </div>
+            
+            <div class="stats-grid" style="margin-bottom: 24px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
+                <div class="stat-card stagger-in">
+                    <div class="stat-icon"><i class="fa-solid fa-ticket"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-label">Total Tickets</div>
+                        <div class="stat-value" id="profile-total-tickets">0</div>
+                    </div>
+                </div>
+                <div class="stat-card stagger-in">
+                    <div class="stat-icon" style="color: var(--color-success); background: rgba(16, 185, 129, 0.1);"><i class="fa-solid fa-chart-line"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-label">Total Revenue</div>
+                        <div class="stat-value" id="profile-total-revenue" style="color: var(--color-success);">0.00€</div>
+                    </div>
+                </div>
+                <div class="stat-card stagger-in">
+                    <div class="stat-icon" style="color: var(--color-warning); background: rgba(245, 158, 11, 0.1);"><i class="fa-solid fa-calendar-check"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-label">Events</div>
+                        <div class="stat-value" id="profile-total-events" style="color: var(--color-warning);">0</div>
+                    </div>
+                </div>
+                <div class="stat-card stagger-in">
+                    <div class="stat-icon" style="color: var(--color-danger); background: rgba(239, 68, 68, 0.1);"><i class="fa-solid fa-user-xmark"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-label">Avg No-Show Rate</div>
+                        <div class="stat-value" id="profile-avg-noshow" style="color: var(--color-danger);">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Partner Chart Section -->
+            <main class="sheet-container" style="margin-bottom: 24px;">
+                <div style="padding: 20px; height: 350px;">
+                    <canvas id="partnerChart"></canvas>
+                </div>
+            </main>
+
+            <!-- Partner Events Table -->
+            <main class="sheet-container">
+                <div class="table-wrapper">
+                    <table class="tracking-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%">Event Name</th>
+                                <th style="width: 15%; text-align: center;">Date</th>
+                                <th style="width: 15%; text-align: center;">Paid Tickets</th>
+                                <th style="width: 15%; text-align: center;">Free / List</th>
+                                <th style="width: 15%; text-align: center;">No-Show Rate</th>
+                                <th style="width: 15%; text-align: right;">Revenue (€)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="profile-events-body">
+                            <!-- Events injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+
+    </div>
+
+    <script src="partners.js"></script>
+</body>
+</html>
