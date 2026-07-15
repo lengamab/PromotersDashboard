@@ -22,5 +22,5 @@ RUN npm install
 # Set Python path so imports work correctly
 ENV PYTHONPATH="/app/backend:${PYTHONPATH}"
 
-# Run both Node server and Gunicorn
-CMD node server.js & exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 backend.app:app
+# Run Gunicorn
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 backend.app:app

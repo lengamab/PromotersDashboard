@@ -1,200 +1,326 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CopilotKit, useCopilotReadable, useCopilotAction, useCopilotChat } from "@copilotkit/react-core";
-import { CopilotChat } from "@copilotkit/react-ui";
-import { TextMessage } from "@copilotkit/runtime-client-gql";
-import "@copilotkit/react-ui/styles.css";
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import ReactMarkdown from 'react-markdown';
 
-const CopilotContextHandler = ({ contextData }) => {
-  useCopilotReadable({
-    description: "Current Meta Ads Campaign Data or Account Summary currently selected by the user",
-    value: contextData
-  });
+// NOTE: Hardcoding the API key as it was previously hardcoded in the server.js
+// Since this is an internal dashboard, we keep it here to avoid .env complexities on the client.
+const API_KEY = 'AQ.Ab8RN6IgzUweVqfl0oB-C7TVuYVTm90clJZKEnYxblYv2trAqA';
+const genAI = new GoogleGenerativeAI(API_KEY);
 
-  useCopilotAction({
-    name: "fetchCampaignBudget",
-    description: "Fetch the live daily and lifetime budget and scope for a specific Meta Ads campaign. Call this if the user asks for the budget of a campaign.",
-    parameters: [
-      {
-        name: "campaignId",
-        type: "string",
-        description: "The ID of the campaign to fetch the budget for.",
-        required: true,
-      }
-    ],
-    handler: async ({ campaignId }) => {
-      try {
-        const token = window.META_ACCESS_TOKEN;
-        if (!token) return "Error: Meta Access Token not found.";
-        
-        const response = await fetch(`https://graph.facebook.com/v20.0/${campaignId}?fields=name,daily_budget,lifetime_budget&access_token=${token}`);
-        const data = await response.json();
-        
-        if (data.error) {
-          return `Error fetching budget: ${data.error.message}`;
-        }
-        
-        let budgetStr = `Campaign ${data.name}:`;
-        if (data.daily_budget) {
-            budgetStr += ` Daily Budget is ${(parseInt(data.daily_budget)/100).toFixed(2)}€`;
-        }
-        if (data.lifetime_budget) {
-            budgetStr += ` Lifetime Budget is ${(parseInt(data.lifetime_budget)/100).toFixed(2)}€`;
-        }
-        if (!data.daily_budget && !data.lifetime_budget) {
-            budgetStr += ` No budget set on campaign level.`;
-        }
-        
-        return budgetStr;
-      } catch (e) {
-        return `Failed to fetch budget: ${e.message}`;
-      }
-    }
-  });
+const SYSTEM_INSTRUCTION = "You are an expert digital marketing analyst for La French Barcelona. The user will ask you to analyze their Meta Ads data. Use the provided context data and available tools to answer their questions accurately and concisely.";
 
-  useCopilotAction({
-    name: "fetchActiveCampaigns",
-    description: "Fetch all active Meta Ads campaigns for the account.",
-    parameters: [],
-    handler: async () => {
-      try {
-        const token = window.META_ACCESS_TOKEN;
-        const accountId = window.META_ACCOUNT_ID;
-        if (!token || !accountId) return "Error: Meta API credentials not found.";
-        const res = await fetch(`https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=name,status,daily_budget,lifetime_budget&effective_status=['ACTIVE']&access_token=${token}`);
-        const data = await res.json();
-        if (data.error) return `Error: ${data.error.message}`;
-        return JSON.stringify(data.data.map(c => ({
-            id: c.id, name: c.name,
-            daily_budget: c.daily_budget ? (parseInt(c.daily_budget)/100) : null,
-            lifetime_budget: c.lifetime_budget ? (parseInt(c.lifetime_budget)/100) : null
-        })));
-      } catch (e) {
-        return `Failed to fetch campaigns: ${e.message}`;
-      }
-    }
-  });
-
-  useCopilotAction({
-    name: "fetchFourvenuesPerformance",
-    description: "Fetch overall promoter performance (PR lists, tickets sold, revenue) from Fourvenues.",
-    parameters: [],
-    handler: async () => {
-      try {
-        const res = await fetch('http://localhost:5000/api/performance');
-        const data = await res.json();
-        if (!data.success) return `Error: ${data.error}`;
-        return JSON.stringify(data.data);
-      } catch (e) {
-        return `Failed to fetch performance: ${e.message}`;
-      }
-    }
-  });
-
-  useCopilotAction({
-    name: "fetchFourvenuesWallet",
-    description: "Fetch the current wallet balance from Fourvenues.",
-    parameters: [],
-    handler: async () => {
-      try {
-        const res = await fetch('http://localhost:5000/api/wallet');
-        const data = await res.json();
-        if (!data.success) return `Error: ${data.error}`;
-        return JSON.stringify(data.data);
-      } catch (e) {
-        return `Failed to fetch wallet: ${e.message}`;
-      }
-    }
-  });
-
-  useCopilotAction({
-    name: "fetchPromoterProfile",
-    description: "Fetch specific data about a single promoter by their ID.",
-    parameters: [
-      { name: "promoterId", type: "string", description: "The ID of the promoter.", required: true }
-    ],
-    handler: async ({ promoterId }) => {
-      try {
-        const res = await fetch(`http://localhost:5000/api/promoter/${promoterId}`);
-        const data = await res.json();
-        if (!data.success) return `Error: ${data.error}`;
-        return JSON.stringify(data.data);
-      } catch (e) {
-        return `Failed to fetch promoter profile: ${e.message}`;
-      }
-    }
-  });
-
-  return null;
+const fetchCampaignBudgetHandler = async ({ campaignId }) => {
+  try {
+    const token = window.META_ACCESS_TOKEN;
+    if (!token) return { error: "Meta Access Token not found." };
+    const response = await fetch(`https://graph.facebook.com/v20.0/${campaignId}?fields=name,daily_budget,lifetime_budget&access_token=${token}`);
+    const data = await response.json();
+    if (data.error) return { error: data.error.message };
+    return data;
+  } catch (e) {
+    return { error: e.message };
+  }
 };
 
-// Component that needs access to useChatContext
-const CopilotController = ({ setContextData, setIsOpen }) => {
-  const { appendMessage, runChatCompletion } = useCopilotChat();
+const fetchActiveCampaignsHandler = async () => {
+  try {
+    const token = window.META_ACCESS_TOKEN;
+    const accountId = window.META_ACCOUNT_ID;
+    if (!token || !accountId) return { error: "Meta API credentials not found." };
+    const res = await fetch(`https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=name,status,daily_budget,lifetime_budget&effective_status=['ACTIVE']&access_token=${token}`);
+    const data = await res.json();
+    if (data.error) return { error: data.error.message };
+    return data.data.map(c => ({
+        id: c.id, name: c.name,
+        daily_budget: c.daily_budget ? (parseInt(c.daily_budget)/100) : null,
+        lifetime_budget: c.lifetime_budget ? (parseInt(c.lifetime_budget)/100) : null
+    }));
+  } catch (e) {
+    return { error: e.message };
+  }
+};
 
-  useEffect(() => {
-    window.updateCopilotContext = (data, customPrompt) => {
-      setContextData(data);
-      // Programmatically open the popup
-      setIsOpen(true);
-      
-      // Auto-trigger analysis message if requested
-      if (customPrompt) {
-          setTimeout(async () => {
-              await appendMessage(new TextMessage({
-                  content: customPrompt,
-                  role: 'user'
-              }));
-              runChatCompletion();
-          }, 300);
+const fetchFourvenuesPerformanceHandler = async () => {
+  try {
+    const res = await fetch('/api/performance');
+    const data = await res.json();
+    return data.success ? data.data : { error: data.error };
+  } catch (e) {
+    return { error: e.message };
+  }
+};
+
+const fetchFourvenuesWalletHandler = async () => {
+  try {
+    const res = await fetch('/api/wallet');
+    const data = await res.json();
+    return data.success ? data : { error: data.error };
+  } catch (e) {
+    return { error: e.message };
+  }
+};
+
+const fetchPromoterProfileHandler = async ({ promoterId }) => {
+  try {
+    const res = await fetch(`/api/promoter/${promoterId}`);
+    const data = await res.json();
+    return data.success ? data.data : { error: data.error };
+  } catch (e) {
+    return { error: e.message };
+  }
+};
+
+const tools = [
+  {
+    functionDeclarations: [
+      {
+        name: "fetchCampaignBudget",
+        description: "Fetch the live daily and lifetime budget for a specific Meta Ads campaign.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            campaignId: { type: "STRING", description: "The ID of the campaign to fetch the budget for." }
+          },
+          required: ["campaignId"]
+        }
+      },
+      {
+        name: "fetchActiveCampaigns",
+        description: "Fetch all active Meta Ads campaigns for the account.",
+      },
+      {
+        name: "fetchFourvenuesPerformance",
+        description: "Fetch overall promoter performance (PR lists, tickets sold, revenue) from Fourvenues.",
+      },
+      {
+        name: "fetchFourvenuesWallet",
+        description: "Fetch the current wallet balance from Fourvenues.",
+      },
+      {
+        name: "fetchPromoterProfile",
+        description: "Fetch specific data about a single promoter by their ID.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            promoterId: { type: "STRING", description: "The ID of the promoter." }
+          },
+          required: ["promoterId"]
+        }
       }
-    };
-  }, [setContextData, setIsOpen, appendMessage, runChatCompletion]);
+    ]
+  }
+];
 
-  return null;
+const dispatchToolCall = async (call) => {
+  if (call.name === 'fetchCampaignBudget') return await fetchCampaignBudgetHandler(call.args);
+  if (call.name === 'fetchActiveCampaigns') return await fetchActiveCampaignsHandler();
+  if (call.name === 'fetchFourvenuesPerformance') return await fetchFourvenuesPerformanceHandler();
+  if (call.name === 'fetchFourvenuesWallet') return await fetchFourvenuesWalletHandler();
+  if (call.name === 'fetchPromoterProfile') return await fetchPromoterProfileHandler(call.args);
+  return { error: `Unknown tool: ${call.name}` };
 };
 
 const CopilotChatWidget = () => {
   const [contextData, setContextData] = useState("No data selected yet.");
   const [isOpen, setIsOpen] = useState(false);
-  const runtimeUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000/api/copilotkit' : '/api/copilotkit';
+  const [messages, setMessages] = useState([{ role: 'model', parts: [{ text: "Hello! Click 'Analyze Campaign' or ask me a question about your ads." }] }]);
+  const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const chatSessionRef = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    window.updateCopilotContext = (data, customPrompt) => {
+      setContextData(data);
+      setIsOpen(true);
+      if (customPrompt) {
+        setTimeout(() => sendMessage(customPrompt, data), 300);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const sendMessage = async (text, activeContext = contextData) => {
+    if (!text.trim()) return;
+    
+    // Add user message to UI
+    setMessages(prev => [...prev, { role: 'user', parts: [{ text }] }]);
+    setInputValue("");
+    setIsLoading(true);
+
+    try {
+      // Re-initialize model session with latest context to ensure the AI has the most recent dashboard data
+      const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        systemInstruction: `${SYSTEM_INSTRUCTION}\n\nCURRENT DASHBOARD CONTEXT DATA:\n${activeContext}`,
+        tools: tools
+      });
+      // We manually construct history from our state to allow fresh system instruction overrides
+      const history = messages.slice(1).map(m => ({
+          role: m.role,
+          parts: m.parts
+      }));
+      chatSessionRef.current = model.startChat({ history });
+
+      let result = await chatSessionRef.current.sendMessage(text);
+      
+      // Handle tool calls recursively
+      while (result.response.functionCalls && result.response.functionCalls.length > 0) {
+        const calls = result.response.functionCalls;
+        const functionResponses = [];
+        
+        for (const call of calls) {
+          const apiResponse = await dispatchToolCall(call);
+          functionResponses.push({
+            functionResponse: {
+              name: call.name,
+              response: apiResponse
+            }
+          });
+        }
+        
+        // Send tool results back
+        result = await chatSessionRef.current.sendMessage(functionResponses);
+      }
+
+      setMessages(prev => [...prev, { role: 'model', parts: [{ text: result.response.text() }] }]);
+    } catch (err) {
+      console.error(err);
+      setMessages(prev => [...prev, { role: 'model', parts: [{ text: `*Error:* ${err.message}` }] }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <CopilotKit runtimeUrl={runtimeUrl}>
-      <CopilotContextHandler contextData={contextData} />
-      <CopilotController setContextData={setContextData} setIsOpen={setIsOpen} />
+    <>
       {isOpen && (
         <div style={{ position: 'fixed', zIndex: 999999, left: 0, top: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-           <style>{`
-             .copilot-chat-container > div {
-                 height: 100% !important;
-                 display: flex !important;
-                 flex-direction: column !important;
-             }
-           `}</style>
-           <div style={{ backgroundColor: 'var(--surface-color)', borderRadius: '16px', width: '90%', maxWidth: '700px', height: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
-             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 30px', background: 'var(--background-color)', borderBottom: '1px solid var(--border-color)' }}>
-                <h2 style={{ margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                   <i className="fa-solid fa-wand-magic-sparkles" style={{color: 'var(--color-primary)'}}></i>
-                   La French AI Analysis
-                </h2>
-                <button onClick={() => setIsOpen(false)} style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', border: 'none', padding: '8px 16px', cursor: 'pointer', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.2s' }} onMouseOver={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'} onMouseOut={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}>
-                   <i className="fa-solid fa-xmark"></i> Close
+          <style>{`
+            .ai-message-bubble {
+              background: #1a1b26;
+              border: 1px solid var(--border-color);
+              border-radius: 12px;
+              padding: 12px 16px;
+              margin-bottom: 16px;
+              color: var(--text-color);
+            }
+            .ai-message-bubble p { margin-top: 0; margin-bottom: 10px; }
+            .ai-message-bubble p:last-child { margin-bottom: 0; }
+            .ai-message-bubble h1, .ai-message-bubble h2, .ai-message-bubble h3 { color: var(--color-primary); margin-top: 15px; margin-bottom: 10px; font-size: 1.1em;}
+            .ai-message-bubble h1 { font-size: 1.3em; }
+            .ai-message-bubble strong { color: #fff; }
+            .user-message-bubble {
+              background: var(--color-primary);
+              color: white;
+              border-radius: 12px;
+              padding: 10px 16px;
+              margin-bottom: 16px;
+              align-self: flex-end;
+              max-width: 85%;
+            }
+            .chat-input {
+              width: 100%;
+              background: #1a1b26;
+              border: 1px solid var(--border-color);
+              border-radius: 20px;
+              padding: 12px 20px;
+              color: white;
+              outline: none;
+              font-family: inherit;
+              font-size: 1rem;
+            }
+            .chat-input:focus {
+              border-color: var(--color-primary);
+            }
+            .send-btn {
+              position: absolute;
+              right: 10px;
+              top: 50%;
+              transform: translateY(-50%);
+              background: var(--color-primary);
+              color: white;
+              border: none;
+              border-radius: 50%;
+              width: 36px;
+              height: 36px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+            }
+            .send-btn:hover { background: #6b43d1; }
+            .send-btn:disabled { background: #333; cursor: not-allowed; }
+            .loading-dots:after {
+              content: '.';
+              animation: dots 1.5s steps(5, end) infinite;
+            }
+            @keyframes dots { 0%, 20% { color: rgba(0,0,0,0); text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0);} 40% { color: white; text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0);} 60% { text-shadow: .25em 0 0 white, .5em 0 0 rgba(0,0,0,0);} 80%, 100% { text-shadow: .25em 0 0 white, .5em 0 0 white;}}
+          `}</style>
+          
+          <div style={{ backgroundColor: 'var(--surface-color)', borderRadius: '16px', width: '90%', maxWidth: '750px', height: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+            
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 25px', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid var(--border-color)' }}>
+              <h2 style={{ margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <i className="fa-solid fa-wand-magic-sparkles" style={{color: 'var(--color-primary)'}}></i>
+                La French AI Analysis
+              </h2>
+              <button onClick={() => setIsOpen(false)} style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', border: 'none', padding: '8px 16px', cursor: 'pointer', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.2s' }} onMouseOver={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'} onMouseOut={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}>
+                <i className="fa-solid fa-xmark"></i> Close
+              </button>
+            </div>
+
+            {/* Chat History */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 25px', display: 'flex', flexDirection: 'column' }}>
+              {messages.map((msg, idx) => (
+                <div key={idx} className={msg.role === 'user' ? 'user-message-bubble' : 'ai-message-bubble'}>
+                  {msg.role === 'user' ? (
+                    msg.parts[0].text
+                  ) : (
+                    <ReactMarkdown>{msg.parts[0].text || ''}</ReactMarkdown>
+                  )}
+                </div>
+              ))}
+              {isLoading && (
+                <div className="ai-message-bubble" style={{ width: 'fit-content', padding: '10px 20px' }}>
+                  <span style={{ fontWeight: 'bold' }}>Analyzing<span className="loading-dots"></span></span>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Box */}
+            <div style={{ padding: '20px 25px', borderTop: '1px solid var(--border-color)', background: 'rgba(0,0,0,0.2)' }}>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="text" 
+                  className="chat-input" 
+                  placeholder="Ask a question about your performance..." 
+                  value={inputValue}
+                  onChange={e => setInputValue(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') sendMessage(inputValue); }}
+                  disabled={isLoading}
+                />
+                <button 
+                  className="send-btn" 
+                  onClick={() => sendMessage(inputValue)} 
+                  disabled={isLoading || !inputValue.trim()}
+                >
+                  <i className="fa-solid fa-arrow-up"></i>
                 </button>
-             </div>
-             <div className="copilot-chat-container" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-               <CopilotChat 
-                 instructions="You are an expert digital marketing analyst for La French Barcelona. The user will ask you to analyze their Meta Ads data. Use the provided context data to answer their questions."
-                 labels={{
-                   title: "AI Performance Analysis",
-                   initial: "Hello! Click 'Analyze Campaign' or ask me a question about your ads."
-                 }}
-               />
-             </div>
-           </div>
+              </div>
+            </div>
+
+          </div>
         </div>
       )}
-    </CopilotKit>
+    </>
   );
 };
 
