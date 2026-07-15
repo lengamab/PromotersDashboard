@@ -69,7 +69,12 @@ def proxy_copilotkit():
         headers = [(name, value) for (name, value) in resp.raw.headers.items()
                    if name.lower() not in excluded_headers]
                    
-        return Response(resp.iter_content(chunk_size=10*1024), resp.status_code, headers)
+        def generate():
+            for chunk in resp.iter_content(chunk_size=None):
+                if chunk:
+                    yield chunk
+
+        return Response(generate(), resp.status_code, headers)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
