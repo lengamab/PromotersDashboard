@@ -229,8 +229,8 @@ const CopilotChatWidget = () => {
       let result = await chatSessionRef.current.sendMessage(text);
       
       // Handle tool calls recursively
-      while (result.response.functionCalls && result.response.functionCalls.length > 0) {
-        const calls = result.response.functionCalls;
+      let calls = typeof result.response.functionCalls === 'function' ? result.response.functionCalls() : result.response.functionCalls;
+      while (calls && calls.length > 0) {
         const functionResponses = [];
         
         for (const call of calls) {
@@ -238,13 +238,15 @@ const CopilotChatWidget = () => {
           functionResponses.push({
             functionResponse: {
               name: call.name,
-              response: apiResponse
+              response: apiResponse,
+              id: call.id
             }
           });
         }
         
         // Send tool results back
         result = await chatSessionRef.current.sendMessage(functionResponses);
+        calls = typeof result.response.functionCalls === 'function' ? result.response.functionCalls() : result.response.functionCalls;
       }
 
       let finalResponseText = "";
