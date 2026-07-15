@@ -348,7 +348,8 @@ async function analyzeWithAI() {
 `;
 
     if (window.updateCopilotContext) {
-        window.updateCopilotContext(contextData);
+        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze my overall account performance based on the context data. Identify top-performing trends, pinpoint areas of inefficient spend, and provide 3 concrete, data-backed recommendations to optimize my budget.";
+        window.updateCopilotContext(contextData, customPrompt);
     }
 }
 
@@ -396,6 +397,7 @@ CPA: ${campData.purchases > 0 ? (campData.spend / campData.purchases).toFixed(2)
 CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 0}%`;
 
     if (window.updateCopilotContext) {
-        window.updateCopilotContext(campStatsText);
+        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze the performance of this specific campaign based on the context data provided. Tell me what is working well, what is underperforming, and give 3 highly actionable pieces of advice to improve this specific campaign based on its CPC, CPA, and CTR.";
+        window.updateCopilotContext(campStatsText, customPrompt);
     }
 }

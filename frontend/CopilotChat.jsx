@@ -61,15 +61,16 @@ const CopilotController = ({ setContextData }) => {
   const { appendMessage } = useCopilotChat();
 
   useEffect(() => {
-    window.updateCopilotContext = (data) => {
+    window.updateCopilotContext = (data, customPrompt) => {
       setContextData(data);
       // Programmatically open the popup
       setOpen(true);
       
       // Auto-trigger analysis
       setTimeout(() => {
+        const promptText = customPrompt || "Please analyze this specific campaign based on the context data.";
         appendMessage(new TextMessage({
-          content: "Please analyze this specific campaign based on the context data.",
+          content: promptText,
           role: "user"
         }));
       }, 500);
