@@ -272,8 +272,68 @@
                 <canvas id="hourlyChart"></canvas>
             </div>
         </section>
+        <!-- Campaigns Table Section -->
+        <section class="campaigns-section" style="margin-top: 30px;">
+            <h2 style="margin-bottom: 20px; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid fa-list" style="color: var(--color-primary);"></i> Campaigns Breakdown
+            </h2>
+            <div class="table-container" style="background: var(--surface-color); border-radius: 16px; border: 1px solid var(--border-color); overflow: hidden;">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-color); text-align: left;">
+                            <th style="padding: 15px 20px; color: var(--text-secondary); font-weight: 500;">Campaign Name</th>
+                            <th style="padding: 15px 20px; color: var(--text-secondary); font-weight: 500;">Spend</th>
+                            <th style="padding: 15px 20px; color: var(--text-secondary); font-weight: 500;">Impressions</th>
+                            <th style="padding: 15px 20px; color: var(--text-secondary); font-weight: 500;">Clicks</th>
+                            <th style="padding: 15px 20px; color: var(--text-secondary); font-weight: 500;">Purchases</th>
+                        </tr>
+                    </thead>
+                    <tbody id="campaigns-table-body">
+                        <!-- Rows will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
 
+        <!-- Campaign Details Modal -->
+        <div id="campaignModal" class="modal">
+            <div class="modal-content" style="max-width: 800px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px;">
+                    <h2 id="modal-campaign-name" style="margin: 0; font-size: 1.3rem;">Campaign Details</h2>
+                    <button onclick="closeCampaignModal()" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer;">&times;</button>
+                </div>
+                
+                <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px;">
+                    <div class="stat-card" style="padding: 15px;">
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Spend</h4>
+                        <p id="modal-camp-spend" style="font-size: 1.4em; font-weight: 700; margin: 0;">0€</p>
+                    </div>
+                    <div class="stat-card" style="padding: 15px;">
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Purchases</h4>
+                        <p id="modal-camp-purchases" style="font-size: 1.4em; font-weight: 700; margin: 0;">0</p>
+                    </div>
+                    <div class="stat-card" style="padding: 15px;">
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">CPA</h4>
+                        <p id="modal-camp-cpa" style="font-size: 1.4em; font-weight: 700; margin: 0;">0€</p>
+                    </div>
+                    <div class="stat-card" style="padding: 15px;">
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">CPC</h4>
+                        <p id="modal-camp-cpc" style="font-size: 1.4em; font-weight: 700; margin: 0;">0€</p>
+                    </div>
+                    <div class="stat-card" style="padding: 15px;">
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">CTR</h4>
+                        <p id="modal-camp-ctr" style="font-size: 1.4em; font-weight: 700; margin: 0;">0%</p>
+                    </div>
+                </div>
+
+                <div style="text-align: right;">
+                    <button class="ai-btn" id="btn-analyze-campaign">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Analyze this Campaign with AI
+                    </button>
+                </div>
+            </div>
+        </div>
 
         <!-- AI Analysis Modal -->
         <div id="aiModal" class="modal">

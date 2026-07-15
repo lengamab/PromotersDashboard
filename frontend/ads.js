@@ -1,11 +1,12 @@
 const META_ACCOUNT_ID = 'act_911535275086772';
 const META_ACCESS_TOKEN = 'EAAMlAfQc4LsBR18bIHU1HG9VaGgmHrcu9vXtRrlLnoqHYnJiuAjdgyGTJ89q37NvYu4XjZAVjiz47WPUVOjJpYF58HtvOXJZCHLI4wk1c5ViRTzFZANZCNFoWnCZBdM0ZBwcTFqlS5IBWPwZCJcZBQPw2IqAfmgROp93elmCe9CZAEj4KXbqmOLf6MckZBONfOZA5AZD';
-let GEMINI_API_KEY = ''; // We will set this when the user provides it
+let GEMINI_API_KEY = 'AQ.Ab8RN6IgzUweVqfl0oB-C7TVuYVTm90clJZKEnYxblYv2trAqA';
 
 let adsChartInstance = null;
 let hourlyChartInstance = null;
 let currentAdsData = [];
 let currentHourlyData = [];
+let currentCampaignsData = [];
 let currentSummary = {};
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -70,7 +71,7 @@ async function fetchAdsData() {
     });
 
     try {
-        const [res, hourlyRes] = await Promise.all([
+        const [res, hourlyRes, campRes] = await Promise.all([
             fetch(`${url}?${params.toString()}`),
             fetch(`${url}?${new URLSearchParams({
                 access_token: META_ACCESS_TOKEN,
@@ -79,11 +80,19 @@ async function fetchAdsData() {
                 breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
                 limit: 100,
                 fields: 'spend'
+            }).toString()}`),
+            fetch(`${url}?${new URLSearchParams({
+                access_token: META_ACCESS_TOKEN,
+                level: 'campaign',
+                time_range: JSON.stringify({ since: fromDate, until: toDate }),
+                limit: 500,
+                fields: 'campaign_name,campaign_id,spend,impressions,clicks,actions'
             }).toString()}`)
         ]);
         
         const json = await res.json();
         const hourlyJson = await hourlyRes.json();
+        const campJson = await campRes.json();
         
         if (json.error) {
             console.error("Meta API Error:", json.error);
@@ -93,6 +102,7 @@ async function fetchAdsData() {
 
         currentAdsData = json.data || [];
         currentHourlyData = hourlyJson.data || [];
+        currentCampaignsData = campJson.data || [];
         
         processAndRenderAds();
     } catch (e) {
@@ -278,7 +288,43 @@ function processAndRenderAds() {
                 y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } }
             }
         }
+        }
     });
+
+    // Render Campaigns Table
+    const tbody = document.getElementById('campaigns-table-body');
+    if (tbody) {
+        tbody.innerHTML = '';
+        currentCampaignsData.forEach(camp => {
+            const spend = parseFloat(camp.spend || 0);
+            const imp = parseInt(camp.impressions || 0);
+            const clicks = parseInt(camp.clicks || 0);
+            let purchases = 0;
+            if (camp.actions) {
+                const purchaseAction = camp.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+                if (purchaseAction) {
+                    purchases = parseInt(purchaseAction.value);
+                }
+            }
+
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid var(--border-color)';
+            tr.style.cursor = 'pointer';
+            tr.onmouseover = () => tr.style.background = 'rgba(255,255,255,0.05)';
+            tr.onmouseout = () => tr.style.background = 'transparent';
+            
+            tr.innerHTML = `
+                <td style="padding: 15px 20px; font-weight: 500;">${camp.campaign_name}</td>
+                <td style="padding: 15px 20px; color: var(--text-secondary);">${spend.toFixed(2)}€</td>
+                <td style="padding: 15px 20px; color: var(--text-secondary);">${imp.toLocaleString()}</td>
+                <td style="padding: 15px 20px; color: var(--text-secondary);">${clicks.toLocaleString()}</td>
+                <td style="padding: 15px 20px; color: var(--text-secondary);">${purchases.toLocaleString()}</td>
+            `;
+
+            tr.onclick = () => openCampaignModal(camp, spend, imp, clicks, purchases);
+            tbody.appendChild(tr);
+        });
+    }
 }
 
 function closeAiModal() {
@@ -347,6 +393,103 @@ ${currentAdsData.map(d => `- ${d.date_start}: Spend ${parseFloat(d.spend || 0).t
         console.error(e);
         document.getElementById('ai-loading').style.display = 'none';
         document.getElementById('ai-result').style.display = 'block';
-        document.getElementById('ai-result').innerHTML = `<div style="color: #FF6B6B;"><strong>Error analyzing data:</strong> ${e.message}</div>`;
+        document.getElementById('ai-result').innerHTML = `<p style="color: red;">Request failed: ${e.message}</p>`;
+    }
+}
+
+let currentSelectedCampaign = null;
+
+function openCampaignModal(camp, spend, imp, clicks, purchases) {
+    currentSelectedCampaign = { camp, spend, imp, clicks, purchases };
+    document.getElementById('modal-campaign-name').textContent = camp.campaign_name;
+    document.getElementById('modal-camp-spend').textContent = spend.toFixed(2) + '€';
+    document.getElementById('modal-camp-purchases').textContent = purchases.toLocaleString();
+    
+    const cpa = purchases > 0 ? (spend / purchases).toFixed(2) : 0;
+    const cpc = clicks > 0 ? (spend / clicks).toFixed(2) : 0;
+    const ctr = imp > 0 ? ((clicks / imp) * 100).toFixed(2) : 0;
+    
+    document.getElementById('modal-camp-cpa').textContent = cpa + '€';
+    document.getElementById('modal-camp-cpc').textContent = cpc + '€';
+    document.getElementById('modal-camp-ctr').textContent = ctr + '%';
+    
+    document.getElementById('campaignModal').style.display = 'block';
+}
+
+function closeCampaignModal() {
+    document.getElementById('campaignModal').style.display = 'none';
+}
+
+document.getElementById('btn-analyze-campaign').addEventListener('click', () => {
+    if (!currentSelectedCampaign) return;
+    analyzeCampaignWithAI(currentSelectedCampaign);
+});
+
+async function analyzeCampaignWithAI(campData) {
+    if (!GEMINI_API_KEY) {
+        alert("Please provide your Gemini API Key first.");
+        return;
+    }
+
+    closeCampaignModal();
+    document.getElementById('aiModal').style.display = 'block';
+    document.getElementById('ai-loading').style.display = 'block';
+    document.getElementById('ai-result').innerHTML = '';
+
+    const campStatsText = `
+Campaign Name: ${campData.camp.campaign_name}
+Spend: ${campData.spend.toFixed(2)}€
+Impressions: ${campData.imp}
+Clicks: ${campData.clicks}
+Purchases: ${campData.purchases}
+CPC: ${campData.clicks > 0 ? (campData.spend / campData.clicks).toFixed(2) : 0}€
+CPA: ${campData.purchases > 0 ? (campData.spend / campData.purchases).toFixed(2) : 0}€
+CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 0}%
+    `;
+
+    const accountStatsText = `
+Account Total Spend: ${currentSummary.spend.toFixed(2)}€
+Account Total Impressions: ${currentSummary.impressions}
+Account Total Clicks: ${currentSummary.clicks}
+Account Total Purchases: ${currentSummary.purchases}
+Account Average CPC: ${currentSummary.cpc}€
+Account Average CTR: ${currentSummary.ctr}%
+    `;
+
+    const prompt = `You are an expert Meta Ads media buyer. The user has selected a specific ad campaign to analyze.
+Here are the stats for this specific campaign over the selected date range:
+${campStatsText}
+
+And for comparison, here are the overall account averages over the same period:
+${accountStatsText}
+
+Analyze the performance of this specific campaign compared to the account average. 
+Tell the user what is working well, what is underperforming, and give 3 highly actionable pieces of advice to improve this specific campaign. 
+Use Markdown to format your response beautifully. Do not output anything other than your analysis.`;
+
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
+
+        const data = await response.json();
+        
+        document.getElementById('ai-loading').style.display = 'none';
+
+        if (data.error) {
+            document.getElementById('ai-result').innerHTML = `<p style="color: red;">Error: ${data.error.message}</p>`;
+            return;
+        }
+
+        const text = data.candidates[0].content.parts[0].text;
+        document.getElementById('ai-result').innerHTML = marked.parse(text);
+
+    } catch (e) {
+        document.getElementById('ai-loading').style.display = 'none';
+        document.getElementById('ai-result').innerHTML = `<p style="color: red;">Request failed: ${e.message}</p>`;
     }
 }
