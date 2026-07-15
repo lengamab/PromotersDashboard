@@ -154,9 +154,9 @@ async function initDashboard() {
         console.warn("Failed fetching events directly, trying fallback or empty", e);
     }
     
-    // 3. Fetch Tickets
-    syncStatus.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Fetching Tickets...';
-    // We only fetch tickets for events in the last ~3 months to avoid massive loading times on init.
+    // 3. Fetch Tickets, Lists, and Bookings
+    syncStatus.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Fetching Sales Data...';
+    // We only fetch data for events in the last ~3 months to avoid massive loading times on init.
     // The user can filter later, but this speeds up initial boot.
     const cutoffDate = new Date();
     cutoffDate.setMonth(cutoffDate.getMonth() - 3);
@@ -165,12 +165,47 @@ async function initDashboard() {
         const evDate = new Date(event.start_date || event.display_date);
         if (evDate < cutoffDate) continue;
 
+        let allItems = [];
         try {
-            globalTicketsMap[event._id] = await apiFetchAll(`/tickets?event_id=${event._id}`);
+            const tickets = await apiFetchAll(`/tickets?event_id=${event._id}`);
+            allItems = allItems.concat(tickets);
         } catch(e) {
             console.warn("Failed fetching tickets for event", event.name);
-            globalTicketsMap[event._id] = [];
         }
+
+        try {
+            const lists = await apiFetchAll(`/lists?event_id=${event._id}`);
+            // Map lists to look like tickets
+            const mappedLists = lists.map(l => ({
+                price: { price: l.raised || 0 },
+                for: l.for || 0,
+                enter: l.enter || 0
+            }));
+            allItems = allItems.concat(mappedLists);
+        } catch(e) {
+            console.warn("Failed fetching lists for event", event.name);
+        }
+
+        try {
+            const bookings = await apiFetchAll(`/bookings?event_id=${event._id}`);
+            // Map bookings to look like tickets
+            const mappedBookings = bookings.map(b => {
+                let entered = 0;
+                if (['arrived', 'arrived-partial', 'seated', 'seated-partial'].includes(b.status)) {
+                    entered = b.quantity; // approximation for partials
+                }
+                return {
+                    price: { price: b.deposit || 0 },
+                    for: b.quantity || 0,
+                    enter: entered
+                };
+            });
+            allItems = allItems.concat(mappedBookings);
+        } catch(e) {
+            console.warn("Failed fetching bookings for event", event.name);
+        }
+
+        globalTicketsMap[event._id] = allItems;
     }
     
     syncStatus.innerHTML = '<i class="fa-solid fa-check"></i> Synced';
