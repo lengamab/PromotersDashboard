@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CopilotKit, useCopilotReadable, useCopilotAction } from "@copilotkit/react-core";
-import { CopilotPopup } from "@copilotkit/react-ui";
+import { CopilotPopup, useChatContext } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 
 const CopilotContextHandler = ({ contextData }) => {
@@ -54,19 +54,23 @@ const CopilotContextHandler = ({ contextData }) => {
   return null;
 };
 
-const CopilotChatWidget = () => {
-  const [contextData, setContextData] = useState("No data selected yet.");
+// Component that needs access to useChatContext
+const CopilotController = ({ setContextData }) => {
+  const { setOpen } = useChatContext();
 
   useEffect(() => {
     window.updateCopilotContext = (data) => {
       setContextData(data);
-      // Automatically open the popup when context is updated
-      const toggleButton = document.querySelector('.copilot-kit-popup-button');
-      if (toggleButton && !document.querySelector('.copilot-kit-popup-window')) {
-          toggleButton.click();
-      }
+      // Programmatically open the popup
+      setOpen(true);
     };
-  }, []);
+  }, [setContextData, setOpen]);
+
+  return null;
+};
+
+const CopilotChatWidget = () => {
+  const [contextData, setContextData] = useState("No data selected yet.");
 
   return (
     <CopilotKit runtimeUrl="http://localhost:4000/api/copilotkit">
@@ -78,7 +82,9 @@ const CopilotChatWidget = () => {
           title: "AI Performance Analysis",
           initial: "Hello! Click 'Analyze Campaign' or ask me a question about your ads."
         }}
-      />
+      >
+        <CopilotController setContextData={setContextData} />
+      </CopilotPopup>
     </CopilotKit>
   );
 };
