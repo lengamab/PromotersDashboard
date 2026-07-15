@@ -1,3 +1,7 @@
+const META_ACCOUNT_ID = 'act_911535275086772';
+const META_ACCESS_TOKEN = 'EAAMlAfQc4LsBR18bIHU1HG9VaGgmHrcu9vXtRrlLnoqHYnJiuAjdgyGTJ89q37NvYu4XjZAVjiz47WPUVOjJpYF58HtvOXJZCHLI4wk1c5ViRTzFZANZCNFoWnCZBdM0ZBwcTFqlS5IBWPwZCJcZBQPw2IqAfmgROp93elmCe9CZAEj4KXbqmOLf6MckZBONfOZA5AZD';
+let GEMINI_API_KEY = ''; // We will set this when the user provides it
+
 let adsChartInstance = null;
 let currentAdsData = [];
 let currentSummary = {};
@@ -10,15 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById('date-from').value = last30.toISOString().split('T')[0];
     document.getElementById('date-to').value = today.toISOString().split('T')[0];
-
-    // Load API Keys
-    const accountId = localStorage.getItem('meta_account_id');
-    const token = localStorage.getItem('meta_access_token');
-    const gemini = localStorage.getItem('gemini_api_key');
-
-    if (accountId) document.getElementById('meta-account-id').value = accountId;
-    if (token) document.getElementById('meta-access-token').value = token;
-    if (gemini) document.getElementById('gemini-api-key').value = gemini;
 
     // Filter Buttons
     document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -53,49 +48,18 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchAdsData();
     });
 
-    if (!accountId || !token) {
-        openSettings();
-    } else {
-        fetchAdsData();
-    }
+    fetchAdsData();
 });
 
-function openSettings() {
-    document.getElementById('settingsModal').style.display = 'block';
-}
-
-function closeSettings() {
-    document.getElementById('settingsModal').style.display = 'none';
-}
-
-function saveSettings() {
-    const actId = document.getElementById('meta-account-id').value.trim();
-    const token = document.getElementById('meta-access-token').value.trim();
-    const gemini = document.getElementById('gemini-api-key').value.trim();
-
-    // Make sure it starts with act_
-    const finalActId = actId.startsWith('act_') ? actId : 'act_' + actId;
-
-    localStorage.setItem('meta_account_id', finalActId);
-    localStorage.setItem('meta_access_token', token);
-    localStorage.setItem('gemini_api_key', gemini);
-
-    closeSettings();
-    fetchAdsData();
-}
-
 async function fetchAdsData() {
-    const actId = localStorage.getItem('meta_account_id');
-    const token = localStorage.getItem('meta_access_token');
-
-    if (!actId || !token) return;
+    if (!META_ACCOUNT_ID || !META_ACCESS_TOKEN) return;
 
     const fromDate = document.getElementById('date-from').value;
     const toDate = document.getElementById('date-to').value;
 
-    const url = `https://graph.facebook.com/v19.0/${actId}/insights`;
+    const url = `https://graph.facebook.com/v19.0/${META_ACCOUNT_ID}/insights`;
     const params = new URLSearchParams({
-        access_token: token,
+        access_token: META_ACCESS_TOKEN,
         level: 'account',
         time_range: JSON.stringify({ since: fromDate, until: toDate }),
         time_increment: 1, // Daily
@@ -246,10 +210,8 @@ function closeAiModal() {
 }
 
 async function analyzeWithAI() {
-    const geminiKey = localStorage.getItem('gemini_api_key');
-    if (!geminiKey) {
-        alert("Please set your Gemini API Key in the settings (Setup APIs) first.");
-        openSettings();
+    if (!GEMINI_API_KEY) {
+        alert("Please provide your Gemini API Key first so I can add it to the code.");
         return;
     }
 
@@ -285,7 +247,7 @@ ${currentAdsData.map(d => `- ${d.date_start}: Spend ${parseFloat(d.spend || 0).t
 `;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${geminiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GEMINI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
