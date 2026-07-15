@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CopilotKit, useCopilotReadable, useCopilotAction, useCopilotChat } from "@copilotkit/react-core";
-import { CopilotPopup, useChatContext } from "@copilotkit/react-ui";
+import { CopilotChat } from "@copilotkit/react-ui";
 import { TextMessage } from "@copilotkit/runtime-client-gql";
 import "@copilotkit/react-ui/styles.css";
 
@@ -129,15 +129,14 @@ const CopilotContextHandler = ({ contextData }) => {
 };
 
 // Component that needs access to useChatContext
-const CopilotController = ({ setContextData }) => {
-  const { setOpen } = useChatContext();
+const CopilotController = ({ setContextData, setIsOpen }) => {
   const { appendMessage, runChatCompletion } = useCopilotChat();
 
   useEffect(() => {
     window.updateCopilotContext = (data, customPrompt) => {
       setContextData(data);
       // Programmatically open the popup
-      setOpen(true);
+      setIsOpen(true);
       
       // Auto-trigger analysis message if requested
       if (customPrompt) {
@@ -150,28 +149,41 @@ const CopilotController = ({ setContextData }) => {
           }, 300);
       }
     };
-  }, [setContextData, setOpen, appendMessage, runChatCompletion]);
+  }, [setContextData, setIsOpen, appendMessage, runChatCompletion]);
 
   return null;
 };
 
 const CopilotChatWidget = () => {
   const [contextData, setContextData] = useState("No data selected yet.");
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <CopilotKit runtimeUrl="http://localhost:4000/api/copilotkit">
       <CopilotContextHandler contextData={contextData} />
-      <CopilotPopup 
-        className="copilot-fullscreen"
-        instructions="You are an expert digital marketing analyst for La French Barcelona. The user will ask you to analyze their Meta Ads data. Use the provided context data to answer their questions."
-        defaultOpen={false}
-        labels={{
-          title: "AI Performance Analysis",
-          initial: "Hello! Click 'Analyze Campaign' or ask me a question about your ads."
-        }}
-      >
-        <CopilotController setContextData={setContextData} />
-      </CopilotPopup>
+      <CopilotController setContextData={setContextData} setIsOpen={setIsOpen} />
+      {isOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 999999, background: 'var(--surface-color)', display: 'flex', flexDirection: 'column' }}>
+           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 30px', background: 'var(--background-color)', borderBottom: '1px solid var(--border-color)' }}>
+              <h2 style={{ margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                 <i className="fa-solid fa-wand-magic-sparkles" style={{color: 'var(--color-primary)'}}></i>
+                 La French AI Analysis
+              </h2>
+              <button onClick={() => setIsOpen(false)} style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', border: 'none', padding: '8px 16px', cursor: 'pointer', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.2s' }} onMouseOver={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'} onMouseOut={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}>
+                 <i className="fa-solid fa-xmark"></i> Close Fullscreen AI
+              </button>
+           </div>
+           <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+             <CopilotChat 
+               instructions="You are an expert digital marketing analyst for La French Barcelona. The user will ask you to analyze their Meta Ads data. Use the provided context data to answer their questions."
+               labels={{
+                 title: "AI Performance Analysis",
+                 initial: "Hello! Click 'Analyze Campaign' or ask me a question about your ads."
+               }}
+             />
+           </div>
+        </div>
+      )}
     </CopilotKit>
   );
 };

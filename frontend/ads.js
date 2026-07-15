@@ -139,7 +139,7 @@ async function fetchAdsData() {
         currentAdsData = json.data || [];
         currentHourlyData = hourlyJson.data || [];
         currentCampaignsData = campJson.data || [];
-        currentAdsData = adJson.data || [];
+        currentAdsList = adJson.data || [];
         
         currentAdCreativesMap = {};
         if (adCreativeJson.data) {
@@ -463,7 +463,7 @@ CPA: ${campData.purchases > 0 ? (campData.spend / campData.purchases).toFixed(2)
 CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 0}%`;
 
     let adsText = '\n\n**Ad Sets & Ads Details:**\n';
-    const campaignAds = currentAdsData.filter(ad => ad.campaign_id === campData.camp.campaign_id);
+    const campaignAds = currentAdsList.filter(ad => ad.campaign_id === campData.camp.campaign_id);
     
     if (campaignAds.length === 0) {
         adsText += 'No granular ads data available for this campaign.\n';
