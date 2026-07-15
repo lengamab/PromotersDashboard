@@ -203,6 +203,17 @@
                 </div>
                 <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(0,123,255,0.1) 0%, transparent 70%);"></div>
             </div>
+
+            <div class="stat-card">
+                <div class="stat-icon-wrapper" style="color: #20c997; background: rgba(32,201,151,0.1);">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Total Daily Budget</h3>
+                    <p id="stat-daily-budget">0.00€</p>
+                </div>
+                <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(32,201,151,0.1) 0%, transparent 70%);"></div>
+            </div>
             
             <div class="stat-card">
                 <div class="stat-icon-wrapper" style="color: #17a2b8; background: rgba(23,162,184,0.1);">
@@ -309,26 +320,28 @@
 
         <!-- Campaign Details Modal -->
         <div id="campaignModal" class="modal">
-            <div class="modal-content" style="max-width: 800px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px;">
+            <div class="modal-content">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
                     <h2 id="modal-campaign-name" style="margin: 0; font-size: 1.3rem;">Campaign Details</h2>
                     <button onclick="closeCampaignModal()" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer;">&times;</button>
                 </div>
-                
-                <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px;">
-                    <div class="stat-card" style="padding: 15px;">
-                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Budget</h4>
-                        <p id="modal-camp-budget" style="font-size: 1.4em; font-weight: 700; margin: 0;">0€</p>
+                <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <p style="color: var(--text-secondary); margin: 0 0 5px 0;">Spend</p>
+                        <p id="modal-spend" style="font-size: 1.2rem; font-weight: 600; margin: 0; color: white;">0.00€</p>
                     </div>
-                    <div class="stat-card" style="padding: 15px;">
-                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Spend</h4>
-                        <p id="modal-camp-spend" style="font-size: 1.4em; font-weight: 700; margin: 0;">0€</p>
+                    <div>
+                        <p style="color: var(--text-secondary); margin: 0 0 5px 0;">Daily Budget</p>
+                        <p id="modal-daily-budget" style="font-size: 1.2rem; font-weight: 600; margin: 0; color: #20c997;">0.00€</p>
+                    </div>
+                    <div>
+                        <p style="color: var(--text-secondary); margin: 0 0 5px 0;">Impressions</p>
+                        <p id="modal-imp" style="font-size: 1.2rem; font-weight: 600; margin: 0; color: white;">0</p>
                     </div>
                     <div class="stat-card" style="padding: 15px;">
                         <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Purchases</h4>
                         <p id="modal-camp-purchases" style="font-size: 1.4em; font-weight: 700; margin: 0;">0</p>
                     </div>
-                    <div class="stat-card" style="padding: 15px;">
                         <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">CPA</h4>
                         <p id="modal-camp-cpa" style="font-size: 1.4em; font-weight: 700; margin: 0;">0€</p>
                     </div>

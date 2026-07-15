@@ -131,7 +131,7 @@ const CopilotContextHandler = ({ contextData }) => {
 // Component that needs access to useChatContext
 const CopilotController = ({ setContextData }) => {
   const { setOpen } = useChatContext();
-  const { appendMessage } = useCopilotChat();
+  const { appendMessage, runChatCompletion } = useCopilotChat();
 
   useEffect(() => {
     window.updateCopilotContext = (data, customPrompt) => {
@@ -141,14 +141,16 @@ const CopilotController = ({ setContextData }) => {
       
       // Auto-trigger analysis message if requested
       if (customPrompt) {
-          setTimeout(() => {
-              appendMessage(new TextMessage({
-                  content: customPrompt
+          setTimeout(async () => {
+              await appendMessage(new TextMessage({
+                  content: customPrompt,
+                  role: 'user'
               }));
+              runChatCompletion();
           }, 300);
       }
     };
-  }, [setContextData, setOpen, appendMessage]);
+  }, [setContextData, setOpen, appendMessage, runChatCompletion]);
 
   return null;
 };

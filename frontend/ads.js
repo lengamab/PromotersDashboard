@@ -395,7 +395,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
             budgetText = (parseInt(camp.budget_info.lifetime_budget)/100).toFixed(2) + '€ (life)';
         }
     }
-    const budgetEl = document.getElementById('modal-camp-budget');
+    const budgetEl = document.getElementById('modal-daily-budget');
     if (budgetEl) budgetEl.textContent = budgetText;
     
     const cpa = purchases > 0 ? (spend / purchases).toFixed(2) : 0;
@@ -421,7 +421,7 @@ document.getElementById('btn-analyze-campaign').addEventListener('click', () => 
 async function analyzeCampaignWithAI(campData) {
     closeCampaignModal();
 
-    const budgetEl = document.getElementById('modal-camp-budget');
+    const budgetEl = document.getElementById('modal-daily-budget');
     const budgetText = budgetEl ? budgetEl.textContent : 'N/A';
 
     const campStatsText = `
