@@ -159,7 +159,7 @@ const CopilotChatWidget = () => {
   const [contextData, setContextData] = useState("No data selected yet.");
 
   return (
-    <CopilotKit runtimeUrl="/api/copilotkit">
+    <CopilotKit runtimeUrl="http://localhost:4000/api/copilotkit">
       <CopilotContextHandler contextData={contextData} />
       <CopilotPopup 
         instructions="You are an expert digital marketing analyst for La French Barcelona. The user will ask you to analyze their Meta Ads data. Use the provided context data to answer their questions."

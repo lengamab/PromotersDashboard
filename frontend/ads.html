@@ -325,23 +325,20 @@
                     <h2 id="modal-campaign-name" style="margin: 0; font-size: 1.3rem;">Campaign Details</h2>
                     <button onclick="closeCampaignModal()" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer;">&times;</button>
                 </div>
-                <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                    <div>
-                        <p style="color: var(--text-secondary); margin: 0 0 5px 0;">Spend</p>
-                        <p id="modal-spend" style="font-size: 1.2rem; font-weight: 600; margin: 0; color: white;">0.00€</p>
+                <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px;">
+                    <div class="stat-card" style="padding: 15px;">
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Daily Budget</h4>
+                        <p id="modal-daily-budget" style="font-size: 1.4em; font-weight: 700; margin: 0; color: #20c997;">0€</p>
                     </div>
-                    <div>
-                        <p style="color: var(--text-secondary); margin: 0 0 5px 0;">Daily Budget</p>
-                        <p id="modal-daily-budget" style="font-size: 1.2rem; font-weight: 600; margin: 0; color: #20c997;">0.00€</p>
-                    </div>
-                    <div>
-                        <p style="color: var(--text-secondary); margin: 0 0 5px 0;">Impressions</p>
-                        <p id="modal-imp" style="font-size: 1.2rem; font-weight: 600; margin: 0; color: white;">0</p>
+                    <div class="stat-card" style="padding: 15px;">
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Spend</h4>
+                        <p id="modal-camp-spend" style="font-size: 1.4em; font-weight: 700; margin: 0;">0€</p>
                     </div>
                     <div class="stat-card" style="padding: 15px;">
                         <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Purchases</h4>
                         <p id="modal-camp-purchases" style="font-size: 1.4em; font-weight: 700; margin: 0;">0</p>
                     </div>
+                    <div class="stat-card" style="padding: 15px;">
                         <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">CPA</h4>
                         <p id="modal-camp-cpa" style="font-size: 1.4em; font-weight: 700; margin: 0;">0€</p>
                     </div>
