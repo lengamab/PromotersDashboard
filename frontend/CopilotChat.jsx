@@ -164,7 +164,7 @@ const CopilotChatWidget = () => {
       <CopilotContextHandler contextData={contextData} />
       <CopilotController setContextData={setContextData} setIsOpen={setIsOpen} />
       {isOpen && (
-        <div style={{ position: 'fixed', zIndex: 999999, left: 0, top: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ position: 'fixed', zIndex: 999999, left: 0, top: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
            <style>{`
              .copilot-chat-container > div {
                  height: 100% !important;

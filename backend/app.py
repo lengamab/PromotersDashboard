@@ -51,7 +51,7 @@ def proxy_copilotkit():
     import requests
     from flask import Response
     
-    url = 'http://localhost:4000/api/copilotkit'
+    url = 'http://127.0.0.1:4000/api/copilotkit'
     
     # Forward the request to the Node server
     try:

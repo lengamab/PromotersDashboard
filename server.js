@@ -27,6 +27,6 @@ app.use('/api/copilotkit', (req, res, next) => {
 });
 
 const PORT = 4000;
-app.listen(PORT, () => {
-  console.log(`CopilotKit backend listening on port ${PORT}`);
+app.listen(PORT, '127.0.0.1', () => {
+  console.log(`CopilotKit backend listening on 127.0.0.1:${PORT}`);
 });
