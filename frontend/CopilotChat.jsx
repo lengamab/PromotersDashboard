@@ -163,24 +163,33 @@ const CopilotChatWidget = () => {
       <CopilotContextHandler contextData={contextData} />
       <CopilotController setContextData={setContextData} setIsOpen={setIsOpen} />
       {isOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 999999, background: 'var(--surface-color)', display: 'flex', flexDirection: 'column' }}>
-           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 30px', background: 'var(--background-color)', borderBottom: '1px solid var(--border-color)' }}>
-              <h2 style={{ margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                 <i className="fa-solid fa-wand-magic-sparkles" style={{color: 'var(--color-primary)'}}></i>
-                 La French AI Analysis
-              </h2>
-              <button onClick={() => setIsOpen(false)} style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', border: 'none', padding: '8px 16px', cursor: 'pointer', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.2s' }} onMouseOver={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'} onMouseOut={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}>
-                 <i className="fa-solid fa-xmark"></i> Close Fullscreen AI
-              </button>
-           </div>
-           <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-             <CopilotChat 
-               instructions="You are an expert digital marketing analyst for La French Barcelona. The user will ask you to analyze their Meta Ads data. Use the provided context data to answer their questions."
-               labels={{
-                 title: "AI Performance Analysis",
-                 initial: "Hello! Click 'Analyze Campaign' or ask me a question about your ads."
-               }}
-             />
+        <div style={{ position: 'fixed', zIndex: 999999, left: 0, top: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+           <style>{`
+             .copilot-chat-container > div {
+                 height: 100% !important;
+                 display: flex !important;
+                 flex-direction: column !important;
+             }
+           `}</style>
+           <div style={{ backgroundColor: 'var(--surface-color)', borderRadius: '16px', width: '90%', maxWidth: '700px', height: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 30px', background: 'var(--background-color)', borderBottom: '1px solid var(--border-color)' }}>
+                <h2 style={{ margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                   <i className="fa-solid fa-wand-magic-sparkles" style={{color: 'var(--color-primary)'}}></i>
+                   La French AI Analysis
+                </h2>
+                <button onClick={() => setIsOpen(false)} style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', border: 'none', padding: '8px 16px', cursor: 'pointer', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.2s' }} onMouseOver={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'} onMouseOut={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}>
+                   <i className="fa-solid fa-xmark"></i> Close
+                </button>
+             </div>
+             <div className="copilot-chat-container" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+               <CopilotChat 
+                 instructions="You are an expert digital marketing analyst for La French Barcelona. The user will ask you to analyze their Meta Ads data. Use the provided context data to answer their questions."
+                 labels={{
+                   title: "AI Performance Analysis",
+                   initial: "Hello! Click 'Analyze Campaign' or ask me a question about your ads."
+                 }}
+               />
+             </div>
            </div>
         </div>
       )}
