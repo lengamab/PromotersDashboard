@@ -8,7 +8,15 @@ import remarkGfm from 'remark-gfm';
 const API_KEY = 'AQ.Ab8RN6IgzUweVqfl0oB-C7TVuYVTm90clJZKEnYxblYv2trAqA';
 const genAI = new GoogleGenerativeAI(API_KEY);
 
-const SYSTEM_INSTRUCTION = `You are an expert digital marketing analyst for La French Barcelona. The user will ask you to analyze their Meta Ads data. Use the provided context data and available tools to answer their questions accurately and concisely. If you are asked about data that is NOT present in your context or tools (like historical day-by-day spend), explicitly tell the user that you don't have access to that data, rather than returning an empty response.`;
+const SYSTEM_INSTRUCTION = `You are an elite digital marketing analyst for La French Barcelona. 
+CRITICAL CONTEXT: 
+1. The Meta Pixel is unreliable and often fails to track real purchases. You must ALWAYS cross-reference Meta Ads spend with Fourvenues ticket sales (especially under the "La French Ads" promoter tag and "Direct Sales") to estimate true offline ROAS.
+2. Standard Ticket Pricing: Assume an average ticket price of 15€ and a profit margin of 10€ for ROAS calculations, unless the user specifies otherwise.
+
+INSTRUCTIONS: 
+- Use the provided context data and available tools to answer questions accurately and concisely.
+- Do not trust Meta's "Purchases" metric alone; use Fourvenues revenue data to calculate real profitability.
+- Always be highly actionable (e.g., recommend bid caps based on the 10€ profit margin).`;
 
 const fetchCampaignHistoricalDataHandler = async ({ campaignId, since, until }) => {
   try {
@@ -36,6 +44,52 @@ const fetchCampaignHistoricalDataHandler = async ({ campaignId, since, until }) 
     });
 
     const response = await fetch(`https://graph.facebook.com/v20.0/${campaignId}/insights?${params.toString()}`);
+    const data = await response.json();
+    if (data.error) return { error: data.error.message };
+    
+    // Clean up response for the LLM to save tokens
+    if (data.data) {
+      return data.data.map(d => ({
+        date: d.date_start,
+        spend: d.spend,
+        impressions: d.impressions,
+        clicks: d.clicks,
+        purchases: d.actions ? d.actions.filter(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase').map(a => a.value).join(',') : 0
+      }));
+    }
+    return data;
+  } catch (e) {
+    return { error: e.message };
+  }
+};
+
+const fetchAccountHistoricalDataHandler = async ({ since, until }) => {
+  try {
+    const token = window.META_ACCESS_TOKEN;
+    const accountId = window.META_ACCOUNT_ID;
+    if (!token || !accountId) return { error: "Meta API credentials not found." };
+    
+    // Default to last 30 days if no dates provided
+    let fromDate = since;
+    let toDate = until;
+    if (!fromDate || !toDate) {
+      const today = new Date();
+      const last30 = new Date();
+      last30.setDate(today.getDate() - 30);
+      fromDate = fromDate || last30.toISOString().split('T')[0];
+      toDate = toDate || today.toISOString().split('T')[0];
+    }
+
+    const params = new URLSearchParams({
+        access_token: token,
+        level: 'account',
+        time_range: JSON.stringify({ since: fromDate, until: toDate }),
+        time_increment: 1,
+        limit: 100,
+        fields: 'spend,impressions,clicks,actions'
+    });
+
+    const response = await fetch(`https://graph.facebook.com/v20.0/${accountId}/insights?${params.toString()}`);
     const data = await response.json();
     if (data.error) return { error: data.error.message };
     
@@ -148,6 +202,17 @@ const tools = [
         }
       },
       {
+        name: "fetchAccountHistoricalData",
+        description: "Fetch day-by-day historical insights (spend, impressions, clicks, purchases) for the ENTIRE Meta Ads account over a time period.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            since: { type: "STRING", description: "Start date in YYYY-MM-DD format (optional, defaults to last 30 days)." },
+            until: { type: "STRING", description: "End date in YYYY-MM-DD format (optional, defaults to today)." }
+          }
+        }
+      },
+      {
         name: "fetchFourvenuesPerformance",
         description: "Fetch overall promoter performance (PR lists, tickets sold, revenue) from Fourvenues.",
       },
@@ -173,6 +238,7 @@ const tools = [
 const dispatchToolCall = async (call) => {
   if (call.name === 'fetchCampaignBudget') return await fetchCampaignBudgetHandler(call.args);
   if (call.name === 'fetchCampaignHistoricalData') return await fetchCampaignHistoricalDataHandler(call.args);
+  if (call.name === 'fetchAccountHistoricalData') return await fetchAccountHistoricalDataHandler(call.args);
   if (call.name === 'fetchActiveCampaigns') return await fetchActiveCampaignsHandler();
   if (call.name === 'fetchFourvenuesPerformance') return await fetchFourvenuesPerformanceHandler();
   if (call.name === 'fetchFourvenuesWallet') return await fetchFourvenuesWalletHandler();
