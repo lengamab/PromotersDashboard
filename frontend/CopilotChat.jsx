@@ -162,6 +162,7 @@ const CopilotChatWidget = () => {
     <CopilotKit runtimeUrl="http://localhost:4000/api/copilotkit">
       <CopilotContextHandler contextData={contextData} />
       <CopilotPopup 
+        className="copilot-fullscreen"
         instructions="You are an expert digital marketing analyst for La French Barcelona. The user will ask you to analyze their Meta Ads data. Use the provided context data to answer their questions."
         defaultOpen={false}
         labels={{

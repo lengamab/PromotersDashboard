@@ -8,6 +8,8 @@ let hourlyChartInstance = null;
 let currentAdsData = [];
 let currentHourlyData = [];
 let currentCampaignsData = [];
+let currentAdsList = [];
+let currentAdCreativesMap = {};
 let currentSummary = {};
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -72,7 +74,7 @@ async function fetchAdsData() {
     });
 
     try {
-        const [res, hourlyRes, campRes, budgetRes] = await Promise.all([
+        const [res, hourlyRes, campRes, budgetRes, adRes, adCreativeRes] = await Promise.all([
             fetch(`${url}?${params.toString()}`),
             fetch(`${url}?${new URLSearchParams({
                 access_token: META_ACCESS_TOKEN,
@@ -93,6 +95,18 @@ async function fetchAdsData() {
                 access_token: META_ACCESS_TOKEN,
                 limit: 500,
                 fields: 'id,name,daily_budget,lifetime_budget,status'
+            }).toString()}`),
+            fetch(`${url}?${new URLSearchParams({
+                access_token: META_ACCESS_TOKEN,
+                level: 'ad',
+                time_range: JSON.stringify({ since: fromDate, until: toDate }),
+                limit: 1000,
+                fields: 'campaign_id,adset_id,adset_name,ad_id,ad_name,spend,impressions,clicks,actions'
+            }).toString()}`),
+            fetch(`https://graph.facebook.com/v19.0/${META_ACCOUNT_ID}/ads?${new URLSearchParams({
+                access_token: META_ACCESS_TOKEN,
+                limit: 1000,
+                fields: 'id,name,creative{body,title,object_story_spec,asset_feed_spec}'
             }).toString()}`)
         ]);
         
@@ -100,6 +114,8 @@ async function fetchAdsData() {
         const hourlyJson = await hourlyRes.json();
         const campJson = await campRes.json();
         const budgetJson = await budgetRes.json();
+        const adJson = await adRes.json();
+        const adCreativeJson = await adCreativeRes.json();
         
         if (json.error) {
             console.error("Meta API Error:", json.error);
@@ -123,6 +139,14 @@ async function fetchAdsData() {
         currentAdsData = json.data || [];
         currentHourlyData = hourlyJson.data || [];
         currentCampaignsData = campJson.data || [];
+        currentAdsData = adJson.data || [];
+        
+        currentAdCreativesMap = {};
+        if (adCreativeJson.data) {
+            adCreativeJson.data.forEach(ad => {
+                currentAdCreativesMap[ad.id] = ad.creative;
+            });
+        }
         
         currentCampaignsData.forEach(c => {
             if (budgetMap[c.campaign_id]) {
@@ -419,7 +443,8 @@ document.getElementById('btn-analyze-campaign').addEventListener('click', () => 
 });
 
 async function analyzeCampaignWithAI(campData) {
-    closeCampaignModal();
+    // We purposefully do NOT close the campaign modal here based on user request.
+
 
     const budgetEl = document.getElementById('modal-daily-budget');
     const budgetText = budgetEl ? budgetEl.textContent : 'N/A';
@@ -437,8 +462,34 @@ CPC: ${campData.clicks > 0 ? (campData.spend / campData.clicks).toFixed(2) : 0}�
 CPA: ${campData.purchases > 0 ? (campData.spend / campData.purchases).toFixed(2) : 0}€
 CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 0}%`;
 
+    let adsText = '\n\n**Ad Sets & Ads Details:**\n';
+    const campaignAds = currentAdsData.filter(ad => ad.campaign_id === campData.camp.campaign_id);
+    
+    if (campaignAds.length === 0) {
+        adsText += 'No granular ads data available for this campaign.\n';
+    } else {
+        const adSetMap = {};
+        campaignAds.forEach(ad => {
+            if (!adSetMap[ad.adset_id]) adSetMap[ad.adset_id] = { name: ad.adset_name, ads: [] };
+            adSetMap[ad.adset_id].ads.push(ad);
+        });
+        
+        for (const [adsetId, adset] of Object.entries(adSetMap)) {
+            adsText += `\nAd Set: ${adset.name || adsetId}\n`;
+            adset.ads.forEach(ad => {
+                const creative = currentAdCreativesMap[ad.ad_id] || {};
+                const copyText = creative.body ? `\n   Ad Copy: "${creative.body}"` : '';
+                const titleText = creative.title ? `\n   Ad Title: "${creative.title}"` : '';
+                
+                adsText += ` - Ad: ${ad.ad_name || ad.ad_id} | Spend: ${ad.spend || 0}€ | Imp: ${ad.impressions || 0} | Clicks: ${ad.clicks || 0}${titleText}${copyText}\n`;
+            });
+        }
+    }
+
+    const fullContext = campStatsText + adsText;
+
     if (window.updateCopilotContext) {
-        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze the performance of this specific campaign based on the context data provided. Tell me what is working well, what is underperforming, and give 3 highly actionable pieces of advice to improve this specific campaign based on its CPC, CPA, and CTR.";
-        window.updateCopilotContext(campStatsText, customPrompt);
+        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze the performance of this specific campaign AND its individual Ad Sets and Ads (including Ad Copy/Title performance) based on the context data provided. Tell me what is working well, what is underperforming, and give 3 highly actionable pieces of advice to improve the creatives and targeting based on CPC, CPA, and CTR.";
+        window.updateCopilotContext(fullContext, customPrompt);
     }
 }
