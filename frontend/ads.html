@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>La French - Meta Ads Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .meta-btn {
+            background: rgba(0, 123, 255, 0.1);
+            color: #007bff;
+            border: 1px solid rgba(0, 123, 255, 0.3);
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+        .meta-btn:hover {
+            background: rgba(0, 123, 255, 0.2);
+            border-color: #007bff;
+        }
+        .ai-btn {
+            background: linear-gradient(135deg, #FF6B6B 0%, #845EC2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(132, 94, 194, 0.3);
+        }
+        .ai-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(132, 94, 194, 0.5);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background-color: var(--surface-color);
+            margin: 5% auto;
+            padding: 30px;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            width: 80%;
+            max-width: 600px;
+            color: var(--text-color);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .modal-content h2 {
+            margin-top: 0;
+            font-family: 'Outfit', sans-serif;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: rgba(0,0,0,0.2);
+            color: white;
+            font-family: 'Inter', monospace;
+        }
+        .markdown-body {
+            line-height: 1.6;
+            color: #d1d5db;
+        }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+            color: #fff;
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+        .markdown-body p {
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+        .markdown-body ul {
+            padding-left: 2em;
+            margin-bottom: 16px;
+        }
+        .markdown-body li {
+            margin-bottom: 0.25em;
+        }
+        .markdown-body strong {
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar/Header -->
+        <header class="main-header">
+            <div class="header-logo">
+                <i class="fa-brands fa-meta logo-icon" style="color: #007bff;"></i>
+                <div class="logo-text">
+                    <h1>LA FRENCH</h1>
+                    <span>META ADS DASHBOARD</span>
+                </div>
+            </div>
+            
+            <div class="header-nav">
+                <button class="nav-tab active">
+                    <i class="fa-solid fa-bullseye"></i> Ads Overview
+                </button>
+                <button class="nav-tab" onclick="window.location.href='partners.html'" style="background: var(--surface-color); color: var(--color-primary); border: 1px solid var(--color-primary);">
+                    <i class="fa-solid fa-handshake"></i> Partners
+                </button>
+                <button class="nav-tab" onclick="window.location.href='/'">
+                    <i class="fa-solid fa-arrow-left"></i> Main App
+                </button>
+            </div>
+            
+            <div class="header-actions">
+                <button class="meta-btn" onclick="openSettings()">
+                    <i class="fa-solid fa-gear"></i> Setup APIs
+                </button>
+                <button class="ai-btn" onclick="analyzeWithAI()">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> AI Analysis
+                </button>
+            </div>
+        </header>
+
+        <!-- Filters Section -->
+        <div class="filter-bar" style="margin-top: 20px;">
+            <div class="quick-filters">
+                <button class="filter-btn" data-period="last7">Last 7 days</button>
+                <button class="filter-btn active" data-period="last30">Last 30 days</button>
+                <button class="filter-btn" data-period="thisMonth">This Month</button>
+                <button class="filter-btn" data-period="lastMonth">Last Month</button>
+            </div>
+            <div class="date-filters">
+                <div class="date-input-group">
+                    <i class="fa-regular fa-calendar"></i>
+                    <input type="date" id="date-from">
+                </div>
+                <span class="date-separator"><i class="fa-solid fa-arrow-right"></i></span>
+                <div class="date-input-group">
+                    <i class="fa-regular fa-calendar"></i>
+                    <input type="date" id="date-to">
+                </div>
+                <button id="apply-dates" class="apply-btn"><i class="fa-solid fa-filter"></i> Apply</button>
+            </div>
+        </div>
+
+        <!-- Stats Section -->
+        <section id="main-stats-grid" class="stats-grid" style="margin-top: 20px;">
+            <div class="stat-card">
+                <div class="stat-icon-wrapper" style="color: #007bff; background: rgba(0,123,255,0.1);">
+                    <i class="fa-solid fa-money-bill-wave"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Total Spend</h3>
+                    <p id="stat-spend">0.00€</p>
+                </div>
+                <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(0,123,255,0.1) 0%, transparent 70%);"></div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon-wrapper" style="color: #17a2b8; background: rgba(23,162,184,0.1);">
+                    <i class="fa-solid fa-eye"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Impressions</h3>
+                    <p id="stat-impressions">0</p>
+                </div>
+                <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(23,162,184,0.1) 0%, transparent 70%);"></div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon-wrapper" style="color: #ffc107; background: rgba(255,193,7,0.1);">
+                    <i class="fa-solid fa-hand-pointer"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Link Clicks</h3>
+                    <p id="stat-clicks">0</p>
+                </div>
+                <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(255,193,7,0.1) 0%, transparent 70%);"></div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon-wrapper" style="color: #28a745; background: rgba(40,167,69,0.1);">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Purchases</h3>
+                    <p id="stat-purchases">0</p>
+                </div>
+                <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(40,167,69,0.1) 0%, transparent 70%);"></div>
+            </div>
+        </section>
+
+        <!-- Charts Section -->
+        <section class="charts-section" style="margin-top: 20px;">
+            <div class="chart-container" style="background: var(--surface-color); border-radius: 16px; padding: 20px; border: 1px solid var(--border-color);">
+                <canvas id="adsChart" height="100"></canvas>
+            </div>
+        </section>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal">
+            <div class="modal-content">
+                <h2><i class="fa-solid fa-gear"></i> API Setup</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9em;">
+                    These keys are stored securely in your browser's local storage and are never sent to our servers.
+                </p>
+                
+                <div class="form-group">
+                    <label>Meta Ad Account ID (e.g., act_123456789)</label>
+                    <input type="text" id="meta-account-id" placeholder="act_...">
+                </div>
+                <div class="form-group">
+                    <label>Meta Access Token</label>
+                    <input type="password" id="meta-access-token" placeholder="EAAB...">
+                </div>
+                <div class="form-group">
+                    <label>Gemini API Key (for AI Analysis)</label>
+                    <input type="password" id="gemini-api-key" placeholder="AIza...">
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button class="meta-btn" style="background: transparent; color: var(--text-secondary); border-color: var(--border-color);" onclick="closeSettings()">Cancel</button>
+                    <button class="meta-btn" onclick="saveSettings()">Save & Sync</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Analysis Modal -->
+        <div id="aiModal" class="modal">
+            <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px;">
+                    <h2 style="margin: 0; border: none; padding: 0;"><i class="fa-solid fa-wand-magic-sparkles" style="color: #845EC2;"></i> AI Performance Analysis</h2>
+                    <button onclick="closeAiModal()" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer;">&times;</button>
+                </div>
+                <div id="ai-loading" style="display: none; text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <i class="fa-solid fa-spinner fa-spin fa-3x" style="margin-bottom: 15px; color: #845EC2;"></i>
+                    <p>Gemini is analyzing your ads data...</p>
+                </div>
+                <div id="ai-result" class="markdown-body">
+                    <!-- AI response will be rendered here -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="ads.js"></script>
+</body>
+</html>
