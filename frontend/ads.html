@@ -364,8 +364,8 @@
         <div id="copilot-root"></div>
     </div>
 
-    <!-- Load AI Widget -->
-    <script src="dist/copilot-chat.umd.cjs"></script>
+    <!-- Load AI Widget with cache busting -->
+    <script src="dist/copilot-chat.umd.cjs?v=2"></script>
     <script>
         if (window.mountCopilotChat) {
             window.mountCopilotChat('copilot-root');
