@@ -1,0 +1,1 @@
+{"version":3,"file":"ids.mjs","names":[],"sources":["../../../../src/web-components/catalog/basic/ids.ts"],"sourcesContent":["let idCounter = 0;\n\nexport function uniqueId(prefix: string): string {\n  idCounter += 1;\n  return `cpk-a2ui-${prefix}-${idCounter}`;\n}\n"],"mappings":";AAAA,IAAI,YAAY;AAEhB,SAAgB,SAAS,QAAwB;AAC/C,cAAa;AACb,QAAO,YAAY,OAAO,GAAG"}
