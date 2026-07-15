@@ -288,7 +288,6 @@ function processAndRenderAds() {
                 y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } }
             }
         }
-        }
     });
 
     // Render Campaigns Table
