@@ -65,6 +65,7 @@ async function fetchAdsData() {
         level: 'account',
         time_range: JSON.stringify({ since: fromDate, until: toDate }),
         time_increment: 1, // Daily
+        limit: 100, // Important to prevent pagination truncating 30 days
         fields: 'spend,impressions,clicks,actions'
     });
 
@@ -76,6 +77,7 @@ async function fetchAdsData() {
                 level: 'account',
                 time_range: JSON.stringify({ since: new Date().toISOString().split('T')[0], until: new Date().toISOString().split('T')[0] }),
                 breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
+                limit: 100,
                 fields: 'spend'
             }).toString()}`)
         ]);
