@@ -134,13 +134,9 @@ async function initDashboard() {
     // 1. Fetch Partners
     const authData = await apiFetch('/auth');
     if (authData && authData.channel && authData.channel.hosts) {
-        globalPartners = [...authData.channel.hosts];
-        // The channel itself can also host events, so add it as a partner
-        globalPartners.push({
-            _id: authData.channel._id,
-            name: authData.channel.name + ' (Channel)',
-            logo_url: authData.channel.logo_url
-        });
+        // Exclude the channel itself if it's in the list
+        globalPartners = authData.channel.hosts.filter(h => h._id !== authData.channel._id && !h.name.includes('(Channel)'));
+
     } else {
         throw new Error("Could not load hosts from auth data");
     }
