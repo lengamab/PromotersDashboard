@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CopilotKit, useCopilotReadable } from "@copilotkit/react-core";
+import { CopilotKit, useCopilotReadable, useCopilotAction } from "@copilotkit/react-core";
 import { CopilotPopup } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 
@@ -9,6 +9,48 @@ const CopilotContextHandler = ({ contextData }) => {
     description: "Current Meta Ads Campaign Data or Account Summary currently selected by the user",
     value: contextData
   });
+
+  useCopilotAction({
+    name: "fetchCampaignBudget",
+    description: "Fetch the live daily and lifetime budget and scope for a specific Meta Ads campaign. Call this if the user asks for the budget of a campaign.",
+    parameters: [
+      {
+        name: "campaignId",
+        type: "string",
+        description: "The ID of the campaign to fetch the budget for.",
+        required: true,
+      }
+    ],
+    handler: async ({ campaignId }) => {
+      try {
+        const token = window.META_ACCESS_TOKEN;
+        if (!token) return "Error: Meta Access Token not found.";
+        
+        const response = await fetch(`https://graph.facebook.com/v20.0/${campaignId}?fields=name,daily_budget,lifetime_budget&access_token=${token}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          return `Error fetching budget: ${data.error.message}`;
+        }
+        
+        let budgetStr = `Campaign ${data.name}:`;
+        if (data.daily_budget) {
+            budgetStr += ` Daily Budget is ${(parseInt(data.daily_budget)/100).toFixed(2)}€`;
+        }
+        if (data.lifetime_budget) {
+            budgetStr += ` Lifetime Budget is ${(parseInt(data.lifetime_budget)/100).toFixed(2)}€`;
+        }
+        if (!data.daily_budget && !data.lifetime_budget) {
+            budgetStr += ` No budget set on campaign level.`;
+        }
+        
+        return budgetStr;
+      } catch (e) {
+        return `Failed to fetch budget: ${e.message}`;
+      }
+    }
+  });
+
   return null;
 };
 

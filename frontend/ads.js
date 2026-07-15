@@ -1,6 +1,7 @@
 const META_ACCOUNT_ID = 'act_911535275086772';
 const META_ACCESS_TOKEN = 'EAAMlAfQc4LsBR18bIHU1HG9VaGgmHrcu9vXtRrlLnoqHYnJiuAjdgyGTJ89q37NvYu4XjZAVjiz47WPUVOjJpYF58HtvOXJZCHLI4wk1c5ViRTzFZANZCNFoWnCZBdM0ZBwcTFqlS5IBWPwZCJcZBQPw2IqAfmgROp93elmCe9CZAEj4KXbqmOLf6MckZBONfOZA5AZD';
 let GEMINI_API_KEY = 'AQ.Ab8RN6IgzUweVqfl0oB-C7TVuYVTm90clJZKEnYxblYv2trAqA';
+window.META_ACCESS_TOKEN = META_ACCESS_TOKEN;
 
 let adsChartInstance = null;
 let hourlyChartInstance = null;
@@ -385,6 +386,7 @@ async function analyzeCampaignWithAI(campData) {
     const campStatsText = `
 **Currently Selected Campaign Stats:**
 Campaign Name: ${campData.camp.campaign_name}
+Campaign ID: ${campData.camp.campaign_id}
 Spend: ${campData.spend.toFixed(2)}€
 Impressions: ${campData.imp}
 Clicks: ${campData.clicks}
