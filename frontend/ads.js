@@ -72,7 +72,7 @@ async function fetchAdsData() {
     });
 
     try {
-        const [res, hourlyRes, campRes] = await Promise.all([
+        const [res, hourlyRes, campRes, budgetRes] = await Promise.all([
             fetch(`${url}?${params.toString()}`),
             fetch(`${url}?${new URLSearchParams({
                 access_token: META_ACCESS_TOKEN,
