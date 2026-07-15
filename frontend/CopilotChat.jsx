@@ -10,6 +10,51 @@ const genAI = new GoogleGenerativeAI(API_KEY);
 
 const SYSTEM_INSTRUCTION = `You are an expert digital marketing analyst for La French Barcelona. The user will ask you to analyze their Meta Ads data. Use the provided context data and available tools to answer their questions accurately and concisely. If you are asked about data that is NOT present in your context or tools (like historical day-by-day spend), explicitly tell the user that you don't have access to that data, rather than returning an empty response.`;
 
+const fetchCampaignHistoricalDataHandler = async ({ campaignId, since, until }) => {
+  try {
+    const token = window.META_ACCESS_TOKEN;
+    if (!token) return { error: "Meta Access Token not found." };
+    
+    // Default to last 30 days if no dates provided
+    let fromDate = since;
+    let toDate = until;
+    if (!fromDate || !toDate) {
+      const today = new Date();
+      const last30 = new Date();
+      last30.setDate(today.getDate() - 30);
+      fromDate = fromDate || last30.toISOString().split('T')[0];
+      toDate = toDate || today.toISOString().split('T')[0];
+    }
+
+    const params = new URLSearchParams({
+        access_token: token,
+        level: 'campaign',
+        time_range: JSON.stringify({ since: fromDate, until: toDate }),
+        time_increment: 1,
+        limit: 100,
+        fields: 'spend,impressions,clicks,actions'
+    });
+
+    const response = await fetch(`https://graph.facebook.com/v20.0/${campaignId}/insights?${params.toString()}`);
+    const data = await response.json();
+    if (data.error) return { error: data.error.message };
+    
+    // Clean up response for the LLM to save tokens
+    if (data.data) {
+      return data.data.map(d => ({
+        date: d.date_start,
+        spend: d.spend,
+        impressions: d.impressions,
+        clicks: d.clicks,
+        purchases: d.actions ? d.actions.filter(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase').map(a => a.value).join(',') : 0
+      }));
+    }
+    return data;
+  } catch (e) {
+    return { error: e.message };
+  }
+};
+
 const fetchCampaignBudgetHandler = async ({ campaignId }) => {
   try {
     const token = window.META_ACCESS_TOKEN;
@@ -90,6 +135,19 @@ const tools = [
         description: "Fetch all active Meta Ads campaigns for the account.",
       },
       {
+        name: "fetchCampaignHistoricalData",
+        description: "Fetch daily historical insights (spend, impressions, clicks, purchases) for a specific campaign over a time period.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            campaignId: { type: "STRING", description: "The ID of the campaign." },
+            since: { type: "STRING", description: "Start date in YYYY-MM-DD format (optional, defaults to last 30 days)." },
+            until: { type: "STRING", description: "End date in YYYY-MM-DD format (optional, defaults to today)." }
+          },
+          required: ["campaignId"]
+        }
+      },
+      {
         name: "fetchFourvenuesPerformance",
         description: "Fetch overall promoter performance (PR lists, tickets sold, revenue) from Fourvenues.",
       },
@@ -114,6 +172,7 @@ const tools = [
 
 const dispatchToolCall = async (call) => {
   if (call.name === 'fetchCampaignBudget') return await fetchCampaignBudgetHandler(call.args);
+  if (call.name === 'fetchCampaignHistoricalData') return await fetchCampaignHistoricalDataHandler(call.args);
   if (call.name === 'fetchActiveCampaigns') return await fetchActiveCampaignsHandler();
   if (call.name === 'fetchFourvenuesPerformance') return await fetchFourvenuesPerformanceHandler();
   if (call.name === 'fetchFourvenuesWallet') return await fetchFourvenuesWalletHandler();
