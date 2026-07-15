@@ -183,6 +183,17 @@
         <!-- Stats Section -->
         <section id="main-stats-grid" class="stats-grid" style="margin-top: 20px;">
             <div class="stat-card">
+                <div class="stat-icon-wrapper" style="color: #20c997; background: rgba(32, 201, 151, 0.1);">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Total Daily Budget</h3>
+                    <p id="stat-daily-budget">0.00€</p>
+                </div>
+                <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(32, 201, 151, 0.1) 0%, transparent 70%);"></div>
+            </div>
+
+            <div class="stat-card">
                 <div class="stat-icon-wrapper" style="color: #007bff; background: rgba(0,123,255,0.1);">
                     <i class="fa-solid fa-money-bill-wave"></i>
                 </div>
@@ -305,6 +316,10 @@
                 </div>
                 
                 <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px;">
+                    <div class="stat-card" style="padding: 15px;">
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Budget</h4>
+                        <p id="modal-camp-budget" style="font-size: 1.4em; font-weight: 700; margin: 0;">0€</p>
+                    </div>
                     <div class="stat-card" style="padding: 15px;">
                         <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Spend</h4>
                         <p id="modal-camp-spend" style="font-size: 1.4em; font-weight: 700; margin: 0;">0€</p>

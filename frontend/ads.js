@@ -88,12 +88,18 @@ async function fetchAdsData() {
                 time_range: JSON.stringify({ since: fromDate, until: toDate }),
                 limit: 500,
                 fields: 'campaign_name,campaign_id,spend,impressions,clicks,actions'
+            }).toString()}`),
+            fetch(`https://graph.facebook.com/v19.0/${META_ACCOUNT_ID}/campaigns?${new URLSearchParams({
+                access_token: META_ACCESS_TOKEN,
+                limit: 500,
+                fields: 'id,name,daily_budget,lifetime_budget,status'
             }).toString()}`)
         ]);
         
         const json = await res.json();
         const hourlyJson = await hourlyRes.json();
         const campJson = await campRes.json();
+        const budgetJson = await budgetRes.json();
         
         if (json.error) {
             console.error("Meta API Error:", json.error);
@@ -101,9 +107,28 @@ async function fetchAdsData() {
             return;
         }
 
+        const budgetMap = {};
+        let totalDailyBudget = 0;
+        if (budgetJson.data) {
+            budgetJson.data.forEach(c => {
+                budgetMap[c.id] = c;
+                if (c.status === 'ACTIVE' && c.daily_budget) {
+                    totalDailyBudget += parseInt(c.daily_budget, 10);
+                }
+            });
+            const budgetEl = document.getElementById('stat-daily-budget');
+            if (budgetEl) budgetEl.textContent = (totalDailyBudget / 100).toFixed(2) + '€';
+        }
+
         currentAdsData = json.data || [];
         currentHourlyData = hourlyJson.data || [];
         currentCampaignsData = campJson.data || [];
+        
+        currentCampaignsData.forEach(c => {
+            if (budgetMap[c.campaign_id]) {
+                c.budget_info = budgetMap[c.campaign_id];
+            }
+        });
         
         processAndRenderAds();
     } catch (e) {
@@ -339,6 +364,7 @@ async function analyzeWithAI() {
 
     const contextData = `
 **Overall Account Summary for the selected period:**
+- Total Daily Budget (Active Campaigns): ${document.getElementById('stat-daily-budget') ? document.getElementById('stat-daily-budget').textContent : 'N/A'}
 - Total Spend: ${currentSummary.spend.toFixed(2)}€
 - Impressions: ${currentSummary.impressions}
 - Link Clicks: ${currentSummary.clicks}
@@ -360,6 +386,17 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
     document.getElementById('modal-campaign-name').textContent = camp.campaign_name;
     document.getElementById('modal-camp-spend').textContent = spend.toFixed(2) + '€';
     document.getElementById('modal-camp-purchases').textContent = purchases.toLocaleString();
+    
+    let budgetText = "N/A";
+    if (camp.budget_info) {
+        if (camp.budget_info.daily_budget) {
+            budgetText = (parseInt(camp.budget_info.daily_budget)/100).toFixed(2) + '€/day';
+        } else if (camp.budget_info.lifetime_budget) {
+            budgetText = (parseInt(camp.budget_info.lifetime_budget)/100).toFixed(2) + '€ (life)';
+        }
+    }
+    const budgetEl = document.getElementById('modal-camp-budget');
+    if (budgetEl) budgetEl.textContent = budgetText;
     
     const cpa = purchases > 0 ? (spend / purchases).toFixed(2) : 0;
     const cpc = clicks > 0 ? (spend / clicks).toFixed(2) : 0;
@@ -384,10 +421,14 @@ document.getElementById('btn-analyze-campaign').addEventListener('click', () => 
 async function analyzeCampaignWithAI(campData) {
     closeCampaignModal();
 
+    const budgetEl = document.getElementById('modal-camp-budget');
+    const budgetText = budgetEl ? budgetEl.textContent : 'N/A';
+
     const campStatsText = `
 **Currently Selected Campaign Stats:**
 Campaign Name: ${campData.camp.campaign_name}
 Campaign ID: ${campData.camp.campaign_id}
+Budget: ${budgetText}
 Spend: ${campData.spend.toFixed(2)}€
 Impressions: ${campData.imp}
 Clicks: ${campData.clicks}
