@@ -304,6 +304,7 @@
                     <thead>
                         <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-color); text-align: left;">
                             <th style="padding: 15px 20px; color: var(--text-secondary); font-weight: 500;">Campaign Name</th>
+                            <th style="padding: 15px 20px; color: var(--text-secondary); font-weight: 500;">Status</th>
                             <th style="padding: 15px 20px; color: var(--text-secondary); font-weight: 500;">Spend</th>
                             <th style="padding: 15px 20px; color: var(--text-secondary); font-weight: 500;">Impressions</th>
                             <th style="padding: 15px 20px; color: var(--text-secondary); font-weight: 500;">Clicks</th>
@@ -321,9 +322,13 @@
         <!-- Campaign Details Modal -->
         <div id="campaignModal" class="modal">
             <div class="modal-content">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                     <h2 id="modal-campaign-name" style="margin: 0; font-size: 1.3rem;">Campaign Details</h2>
                     <button onclick="closeCampaignModal()" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer;">&times;</button>
+                </div>
+                <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 20px;">
+                    Status: <span id="modal-camp-status" style="font-weight: bold; color: white;"></span> &nbsp;|&nbsp; 
+                    Dates: <span id="modal-camp-dates" style="color: white;"></span>
                 </div>
                 <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px;">
                     <div class="stat-card" style="padding: 15px;">

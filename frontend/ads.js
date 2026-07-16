@@ -94,7 +94,7 @@ async function fetchAdsData() {
             fetch(`https://graph.facebook.com/v19.0/${META_ACCOUNT_ID}/campaigns?${new URLSearchParams({
                 access_token: META_ACCESS_TOKEN,
                 limit: 500,
-                fields: 'id,name,daily_budget,lifetime_budget,status'
+                fields: 'id,name,daily_budget,lifetime_budget,status,start_time,stop_time'
             }).toString()}`),
             fetch(`${url}?${new URLSearchParams({
                 access_token: META_ACCESS_TOKEN,
@@ -356,6 +356,10 @@ function processAndRenderAds() {
                 }
             }
 
+            const statusColors = { ACTIVE: '#28a745', PAUSED: '#ffc107', ARCHIVED: '#6c757d' };
+            const statusText = camp.budget_info && camp.budget_info.status ? camp.budget_info.status : 'UNKNOWN';
+            const statusColor = statusColors[statusText] || '#6c757d';
+
             const tr = document.createElement('tr');
             tr.style.borderBottom = '1px solid var(--border-color)';
             tr.style.cursor = 'pointer';
@@ -364,6 +368,7 @@ function processAndRenderAds() {
             
             tr.innerHTML = `
                 <td style="padding: 15px 20px; font-weight: 500;">${camp.campaign_name}</td>
+                <td style="padding: 15px 20px;"><span style="color: ${statusColor}; font-size: 0.85em; border: 1px solid ${statusColor}; padding: 2px 8px; border-radius: 12px; font-weight: 600;">${statusText}</span></td>
                 <td style="padding: 15px 20px; color: var(--text-secondary);">${spend.toFixed(2)}€</td>
                 <td style="padding: 15px 20px; color: var(--text-secondary);">${imp.toLocaleString()}</td>
                 <td style="padding: 15px 20px; color: var(--text-secondary);">${clicks.toLocaleString()}</td>
@@ -411,6 +416,25 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
     document.getElementById('modal-camp-spend').textContent = spend.toFixed(2) + '€';
     document.getElementById('modal-camp-purchases').textContent = purchases.toLocaleString();
     
+    const statusColors = { ACTIVE: '#28a745', PAUSED: '#ffc107', ARCHIVED: '#6c757d' };
+    const statusText = camp.budget_info && camp.budget_info.status ? camp.budget_info.status : 'UNKNOWN';
+    const statusColor = statusColors[statusText] || '#6c757d';
+    
+    const statusEl = document.getElementById('modal-camp-status');
+    if (statusEl) {
+        statusEl.textContent = statusText;
+        statusEl.style.color = statusColor;
+    }
+
+    let datesText = 'Ongoing';
+    if (camp.budget_info && camp.budget_info.start_time) {
+        const start = new Date(camp.budget_info.start_time).toLocaleDateString();
+        const end = camp.budget_info.stop_time ? new Date(camp.budget_info.stop_time).toLocaleDateString() : 'Ongoing';
+        datesText = `${start} - ${end}`;
+    }
+    const datesEl = document.getElementById('modal-camp-dates');
+    if (datesEl) datesEl.textContent = datesText;
+    
     let budgetText = "N/A";
     if (camp.budget_info) {
         if (camp.budget_info.daily_budget) {
@@ -449,10 +473,20 @@ async function analyzeCampaignWithAI(campData) {
     const budgetEl = document.getElementById('modal-daily-budget');
     const budgetText = budgetEl ? budgetEl.textContent : 'N/A';
 
+    const status = campData.camp.budget_info ? campData.camp.budget_info.status : 'UNKNOWN';
+    let datesText = 'Ongoing';
+    if (campData.camp.budget_info && campData.camp.budget_info.start_time) {
+        const start = new Date(campData.camp.budget_info.start_time).toLocaleDateString();
+        const end = campData.camp.budget_info.stop_time ? new Date(campData.camp.budget_info.stop_time).toLocaleDateString() : 'Ongoing';
+        datesText = `${start} to ${end}`;
+    }
+
     const campStatsText = `
 **Currently Selected Campaign Stats:**
 Campaign Name: ${campData.camp.campaign_name}
 Campaign ID: ${campData.camp.campaign_id}
+Status: ${status}
+Duration: ${datesText}
 Budget: ${budgetText}
 Spend: ${campData.spend.toFixed(2)}€
 Impressions: ${campData.imp}
@@ -481,7 +515,15 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
                 const copyText = creative.body ? `\n   Ad Copy: "${creative.body}"` : '';
                 const titleText = creative.title ? `\n   Ad Title: "${creative.title}"` : '';
                 
-                adsText += ` - Ad: ${ad.ad_name || ad.ad_id} | Spend: ${ad.spend || 0}€ | Imp: ${ad.impressions || 0} | Clicks: ${ad.clicks || 0}${titleText}${copyText}\n`;
+                let link = '';
+                if (creative.object_story_spec && creative.object_story_spec.link_data && creative.object_story_spec.link_data.link) {
+                    link = creative.object_story_spec.link_data.link;
+                } else if (creative.asset_feed_spec && creative.asset_feed_spec.link_urls && creative.asset_feed_spec.link_urls.length > 0) {
+                    link = creative.asset_feed_spec.link_urls[0].website_url;
+                }
+                const destLinkText = link ? `\n   Dest Link: ${link}` : '';
+                
+                adsText += ` - Ad: ${ad.ad_name || ad.ad_id} | Spend: ${ad.spend || 0}€ | Imp: ${ad.impressions || 0} | Clicks: ${ad.clicks || 0}${titleText}${copyText}${destLinkText}\n`;
             });
         }
     }
