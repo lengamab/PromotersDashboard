@@ -105,19 +105,19 @@ async function fetchAdsData() {
                 level: 'campaign',
                 time_range: JSON.stringify({ since: fromDate, until: toDate }),
                 limit: 500,
-                fields: 'campaign_name,campaign_id,spend,impressions,clicks,actions'
+                fields: 'campaign_name,campaign_id,spend,impressions,clicks,actions,reach,frequency'
             }).toString()}`),
             fetch(`https://graph.facebook.com/v19.0/${META_ACCOUNT_ID}/campaigns?${new URLSearchParams({
                 access_token: META_ACCESS_TOKEN,
                 limit: 500,
-                fields: 'id,name,daily_budget,lifetime_budget,status,start_time,stop_time,updated_time'
+                fields: 'id,name,daily_budget,lifetime_budget,status,start_time,stop_time,updated_time,objective'
             }).toString()}`),
             fetch(`${url}?${new URLSearchParams({
                 access_token: META_ACCESS_TOKEN,
                 level: 'ad',
                 time_range: JSON.stringify({ since: fromDate, until: toDate }),
                 limit: 1000,
-                fields: 'campaign_id,adset_id,adset_name,ad_id,ad_name,spend,impressions,clicks,actions'
+                fields: 'campaign_id,adset_id,adset_name,ad_id,ad_name,spend,impressions,clicks,actions,reach,frequency,inline_link_clicks'
             }).toString()}`),
             fetch(`https://graph.facebook.com/v19.0/${META_ACCOUNT_ID}/ads?${new URLSearchParams({
                 access_token: META_ACCESS_TOKEN,
@@ -127,7 +127,7 @@ async function fetchAdsData() {
             fetch(`https://graph.facebook.com/v19.0/${META_ACCOUNT_ID}/adsets?${new URLSearchParams({
                 access_token: META_ACCESS_TOKEN,
                 limit: 500,
-                fields: 'id,name,targeting,campaign_id'
+                fields: 'id,name,targeting,campaign_id,optimization_goal,billing_event'
             }).toString()}`)
         ]);
         
@@ -173,7 +173,7 @@ async function fetchAdsData() {
         currentAdSetsTargetingMap = {};
         if (adsetsTargetingJson.data) {
             adsetsTargetingJson.data.forEach(adset => {
-                currentAdSetsTargetingMap[adset.id] = adset.targeting;
+                currentAdSetsTargetingMap[adset.id] = adset;
             });
         }
         
@@ -625,6 +625,7 @@ async function analyzeCampaignWithAI(campData) {
     const budgetText = budgetEl ? budgetEl.textContent : 'N/A';
 
     const status = campData.camp.budget_info ? campData.camp.budget_info.status : 'UNKNOWN';
+    const objective = campData.camp.budget_info ? campData.camp.budget_info.objective : 'UNKNOWN';
     let datesText = 'Ongoing';
     let daysActiveText = 'Unknown';
     const now = new Date();
@@ -656,11 +657,14 @@ Current Time: ${currentTimeStr}
 Campaign Name: ${campData.camp.campaign_name}
 Campaign ID: ${campData.camp.campaign_id}
 Status: ${status}
+Objective: ${objective}
 Duration: ${datesText} (Active for: ${daysActiveText})
 Last Significant Change: ${lastChangeText}
 Budget: ${budgetText}
 Spend: ${campData.spend.toFixed(2)}€
 Impressions: ${campData.imp}
+Reach: ${campData.camp.reach || 'N/A'}
+Frequency: ${campData.camp.frequency || 'N/A'}
 Clicks: ${campData.clicks}
 Purchases: ${campData.purchases}
 CPC: ${campData.clicks > 0 ? (campData.spend / campData.clicks).toFixed(2) : 0}€
@@ -681,11 +685,15 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
         
         for (const [adsetId, adset] of Object.entries(adSetMap)) {
             let targetingDataStr = "No targeting data available";
+            let optGoal = 'UNKNOWN';
+            let billEvent = 'UNKNOWN';
             if (currentAdSetsTargetingMap[adsetId]) {
-                const targetingData = currentAdSetsTargetingMap[adsetId];
-                targetingDataStr = JSON.stringify(targetingData, null, 2);
+                const adsetData = currentAdSetsTargetingMap[adsetId];
+                targetingDataStr = JSON.stringify(adsetData.targeting || {}, null, 2);
+                optGoal = adsetData.optimization_goal || 'UNKNOWN';
+                billEvent = adsetData.billing_event || 'UNKNOWN';
             }
-            adsText += `\nAd Set: ${adset.name || adsetId}\nTargeting: ${targetingDataStr}\n`;
+            adsText += `\nAd Set: ${adset.name || adsetId} (Optimization: ${optGoal}, Billing: ${billEvent})\nTargeting: ${targetingDataStr}\n`;
             adset.ads.forEach(ad => {
                 const creative = currentAdCreativesMap[ad.ad_id] || {};
                 const copyText = creative.body ? `\n   Ad Copy: "${creative.body}"` : '';
@@ -701,7 +709,15 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
                 }
                 const destLinkText = link ? `\n   Dest Link: ${link}` : '';
                 
-                adsText += ` - Ad: ${ad.ad_name || ad.ad_id} | Spend: ${ad.spend || 0}€ | Imp: ${ad.impressions || 0} | Clicks: ${ad.clicks || 0}${titleText}${copyText}${destLinkText}\n`;
+                const adReach = ad.reach || 0;
+                const adFreq = ad.frequency || 0;
+                let linkClicks = 0;
+                if (ad.actions) {
+                    const lca = ad.actions.find(a => a.action_type === 'link_click');
+                    if (lca) linkClicks = parseInt(lca.value);
+                }
+                
+                adsText += ` - Ad: ${ad.ad_name || ad.ad_id} | Spend: ${ad.spend || 0}€ | Imp: ${ad.impressions || 0} | Reach: ${adReach} | Freq: ${adFreq} | Clicks: ${ad.clicks || 0} | Link Clicks: ${linkClicks}${titleText}${copyText}${destLinkText}\n`;
             });
         }
     }
