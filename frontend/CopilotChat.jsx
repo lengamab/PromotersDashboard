@@ -13,8 +13,9 @@ CRITICAL CONTEXT & RULES:
 1. The Meta Pixel is unreliable and often fails to track real purchases. You must ALWAYS cross-reference Meta Ads spend with Fourvenues ticket sales to estimate true offline ROAS.
 2. STRICT ATTRIBUTION: Do NOT mistakenly attribute sales from other human promoters (e.g., "Jules" or anyone else) to Meta Ads. ONLY attribute Fourvenues sales to Meta if they have the "La French Ads" promoter tag or are explicitly "Direct Sales" (no promoter).
 3. EVENT MATCHING: Always look at the "Dest Link" for the ads to identify which specific event the campaign is driving traffic to. Do NOT mix up sales for the Boat Party with a Fan Zone event, for example.
-4. Event Pricing: Do NOT base your analysis on assumed averages if you can avoid it. Use the fetchFourvenuesEvents tool to pull the actual revenue and tickets sold for specific events to calculate precise ROAS. Only assume an average ticket price of 15€ and a profit margin of 10€ if event data cannot be fetched.
-5. FORMATTING: Do NOT use LaTeX math formatting like $\rightarrow$ or \\rightarrow. Use standard text arrows like -> instead.
+4. Event Pricing: Do NOT base your analysis on assumed averages if you can avoid it. Use the fetchFourvenuesEvents tool to pull the actual revenue and tickets sold for specific events to calculate precise ROAS. 
+5. Ticket Prices: If you need to know the price of a ticket (e.g. for the Boat Party), DO NOT guess or hallucinate. Use the fetchFourvenuesTicketPrices tool to see the exact ticket prices (rates) configured in Fourvenues (e.g., 59€).
+6. FORMATTING: Do NOT use LaTeX math formatting like $\rightarrow$ or \\rightarrow. Use standard text arrows like -> instead.
 
 INSTRUCTIONS: 
 - Use the provided context data and available tools to answer questions accurately and concisely.
@@ -186,11 +187,11 @@ const fetchFourvenuesEventsHandler = async ({ since, until }) => {
   }
 };
 
-const scrapeDestinationLinkHandler = async ({ url }) => {
+const fetchFourvenuesTicketPricesHandler = async () => {
   try {
-    const res = await fetch(`/api/scrape?url=${encodeURIComponent(url)}`);
+    const res = await fetch(`/api/rates`);
     const data = await res.json();
-    return data.success ? { text: data.data } : { error: data.error };
+    return data.success ? data.data : { error: data.error };
   } catch (e) {
     return { error: e.message };
   }
@@ -250,15 +251,8 @@ const tools = [
         }
       },
       {
-        name: "scrapeDestinationLink",
-        description: "Fetch the text content of a destination link (URL) to read the actual page the ad points to, allowing you to discover ticket prices, event names, and other details.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            url: { type: "STRING", description: "The destination URL to scrape." }
-          },
-          required: ["url"]
-        }
+        name: "fetchFourvenuesTicketPrices",
+        description: "Fetch a list of all available ticket types (rates) and their exact prices for all upcoming Fourvenues events. Use this to find the true price of an event instead of guessing.",
       },
       {
         name: "fetchFourvenuesPerformance",
@@ -289,7 +283,7 @@ const dispatchToolCall = async (call) => {
   if (call.name === 'fetchAccountHistoricalData') return await fetchAccountHistoricalDataHandler(call.args);
   if (call.name === 'fetchActiveCampaigns') return await fetchActiveCampaignsHandler();
   if (call.name === 'fetchFourvenuesEvents') return await fetchFourvenuesEventsHandler(call.args);
-  if (call.name === 'scrapeDestinationLink') return await scrapeDestinationLinkHandler(call.args);
+  if (call.name === 'fetchFourvenuesTicketPrices') return await fetchFourvenuesTicketPricesHandler();
   if (call.name === 'fetchFourvenuesPerformance') return await fetchFourvenuesPerformanceHandler();
   if (call.name === 'fetchFourvenuesWallet') return await fetchFourvenuesWalletHandler();
   if (call.name === 'fetchPromoterProfile') return await fetchPromoterProfileHandler(call.args);
