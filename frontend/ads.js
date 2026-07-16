@@ -247,6 +247,8 @@ function processAndRenderAds() {
         dataByDate[day.date_start] = day;
     });
 
+    const todayStr = new Date().toISOString().split('T')[0];
+
     for (let d = new Date(fromDateObj); d <= toDateObj; d.setDate(d.getDate() + 1)) {
         const dateStr = d.toISOString().split('T')[0];
         labels.push(dateStr);
