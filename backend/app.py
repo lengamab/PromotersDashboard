@@ -385,6 +385,23 @@ def save_rate_commissions():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route('/api/meta-proxy/<path:endpoint>', methods=['GET'])
+def meta_proxy(endpoint):
+    import requests
+    token = os.getenv("META_ACCESS_TOKEN")
+    if not token:
+        return jsonify({"error": {"message": "META_ACCESS_TOKEN not configured in backend"}}), 500
+        
+    url = f"https://graph.facebook.com/v19.0/{endpoint}"
+    params = request.args.to_dict()
+    params['access_token'] = token
+    
+    try:
+        resp = requests.get(url, params=params)
+        return jsonify(resp.json()), resp.status_code
+    except Exception as e:
+        return jsonify({"error": {"message": str(e)}}), 500
+
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 5000))
     print(f"Starting La French cash tracking server on http://localhost:{port}...")

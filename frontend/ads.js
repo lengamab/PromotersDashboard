@@ -1,7 +1,5 @@
 const META_ACCOUNT_ID = 'act_911535275086772';
-const META_ACCESS_TOKEN = 'EAAMlAfQc4LsBR18bIHU1HG9VaGgmHrcu9vXtRrlLnoqHYnJiuAjdgyGTJ89q37NvYu4XjZAVjiz47WPUVOjJpYF58HtvOXJZCHLI4wk1c5ViRTzFZANZCNFoWnCZBdM0ZBwcTFqlS5IBWPwZCJcZBQPw2IqAfmgROp93elmCe9CZAEj4KXbqmOLf6MckZBONfOZA5AZD';
 let GEMINI_API_KEY = 'AQ.Ab8RN6IgzUweVqfl0oB-C7TVuYVTm90clJZKEnYxblYv2trAqA';
-window.META_ACCESS_TOKEN = META_ACCESS_TOKEN;
 
 let adsChartInstance = null;
 let hourlyChartInstance = null;
@@ -74,14 +72,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function fetchAdsData() {
-    if (!META_ACCOUNT_ID || !META_ACCESS_TOKEN) return;
+    if (!META_ACCOUNT_ID) return;
 
     const fromDate = document.getElementById('date-from').value;
     const toDate = document.getElementById('date-to').value;
 
-    const url = `https://graph.facebook.com/v19.0/${META_ACCOUNT_ID}/insights`;
+    const url = `/api/meta-proxy/${META_ACCOUNT_ID}/insights`;
     const params = new URLSearchParams({
-        access_token: META_ACCESS_TOKEN,
         level: 'account',
         time_range: JSON.stringify({ since: fromDate, until: toDate }),
         time_increment: 1, // Daily
@@ -93,7 +90,6 @@ async function fetchAdsData() {
         const [res, hourlyRes, campRes, budgetRes, adRes, adCreativeRes, adsetsTargetingRes] = await Promise.all([
             fetch(`${url}?${params.toString()}`),
             fetch(`${url}?${new URLSearchParams({
-                access_token: META_ACCESS_TOKEN,
                 level: 'account',
                 time_range: JSON.stringify({ since: new Date().toISOString().split('T')[0], until: new Date().toISOString().split('T')[0] }),
                 breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
@@ -101,31 +97,26 @@ async function fetchAdsData() {
                 fields: 'spend,clicks'
             }).toString()}`),
             fetch(`${url}?${new URLSearchParams({
-                access_token: META_ACCESS_TOKEN,
                 level: 'campaign',
                 time_range: JSON.stringify({ since: fromDate, until: toDate }),
                 limit: 500,
                 fields: 'campaign_name,campaign_id,spend,impressions,clicks,actions,reach,frequency'
             }).toString()}`),
-            fetch(`https://graph.facebook.com/v19.0/${META_ACCOUNT_ID}/campaigns?${new URLSearchParams({
-                access_token: META_ACCESS_TOKEN,
+            fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/campaigns?${new URLSearchParams({
                 limit: 500,
                 fields: 'id,name,daily_budget,lifetime_budget,status,start_time,stop_time,updated_time,objective'
             }).toString()}`),
             fetch(`${url}?${new URLSearchParams({
-                access_token: META_ACCESS_TOKEN,
                 level: 'ad',
                 time_range: JSON.stringify({ since: fromDate, until: toDate }),
                 limit: 1000,
                 fields: 'campaign_id,adset_id,adset_name,ad_id,ad_name,spend,impressions,clicks,actions,reach,frequency,inline_link_clicks'
             }).toString()}`),
-            fetch(`https://graph.facebook.com/v19.0/${META_ACCOUNT_ID}/ads?${new URLSearchParams({
-                access_token: META_ACCESS_TOKEN,
+            fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/ads?${new URLSearchParams({
                 limit: 1000,
                 fields: 'id,name,creative{body,title,object_story_spec,asset_feed_spec}'
             }).toString()}`),
-            fetch(`https://graph.facebook.com/v19.0/${META_ACCOUNT_ID}/adsets?${new URLSearchParams({
-                access_token: META_ACCESS_TOKEN,
+            fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/adsets?${new URLSearchParams({
                 limit: 500,
                 fields: 'id,name,targeting,campaign_id,optimization_goal,billing_event'
             }).toString()}`)
