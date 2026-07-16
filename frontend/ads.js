@@ -157,7 +157,7 @@ async function fetchAdsData() {
             }).toString()}`),
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/adsets?${new URLSearchParams({
                 limit: 500,
-                fields: 'id,name,status,effective_status,end_time,targeting,campaign_id,optimization_goal,billing_event'
+                fields: 'id,name,status,effective_status,end_time,targeting,campaign_id,optimization_goal,billing_event,daily_budget,lifetime_budget'
             }).toString()}`)
         ]);
         
@@ -567,6 +567,8 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
             budgetText = (parseInt(camp.budget_info.daily_budget)/100).toFixed(2) + '€/day';
         } else if (camp.budget_info.lifetime_budget) {
             budgetText = (parseInt(camp.budget_info.lifetime_budget)/100).toFixed(2) + '€ (life)';
+        } else {
+            budgetText = "ABO (Ad Sets)";
         }
     }
     const budgetEl = document.getElementById('modal-daily-budget');
@@ -640,6 +642,13 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                 const asStatus = asStatusObj.text;
                 const asStatusColor = asStatusObj.color;
                 
+                let asBudgetText = '';
+                if (adsetTargeting.daily_budget) {
+                    asBudgetText = `<span>Budget: ${(parseInt(adsetTargeting.daily_budget)/100).toFixed(2)}€/day</span>`;
+                } else if (adsetTargeting.lifetime_budget) {
+                    asBudgetText = `<span>Budget: ${(parseInt(adsetTargeting.lifetime_budget)/100).toFixed(2)}€ (life)</span>`;
+                }
+                
                 const adsetEl = document.createElement('div');
                 adsetEl.className = 'adset-item';
                 
@@ -652,6 +661,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                             ${adset.name || 'Unknown Ad Set'}
                         </div>
                         <div class="adset-stats">
+                            ${asBudgetText}
                             <span>Spend: ${adset.spend.toFixed(2)}€</span>
                             <span>CPA: ${asCpa}€</span>
                             <span>CPC: ${asCpc}€</span>
@@ -926,18 +936,21 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
             let optGoal = 'UNKNOWN';
             let billEvent = 'UNKNOWN';
             let asStatus = 'UNKNOWN';
+            let asBudgetStr = 'N/A';
             if (currentAdSetsTargetingMap[adsetId]) {
                 const adsetData = currentAdSetsTargetingMap[adsetId];
                 targetingDataStr = JSON.stringify(adsetData.targeting || {}, null, 2);
                 optGoal = adsetData.optimization_goal || 'UNKNOWN';
                 billEvent = adsetData.billing_event || 'UNKNOWN';
+                if (adsetData.daily_budget) asBudgetStr = (parseInt(adsetData.daily_budget)/100).toFixed(2) + '€/day';
+                else if (adsetData.lifetime_budget) asBudgetStr = (parseInt(adsetData.lifetime_budget)/100).toFixed(2) + '€ (life)';
                 asStatus = window.getMetaStatusDetails(
                     adsetData.status,
                     adsetData.effective_status,
                     adsetData.end_time || campData.camp.budget_info?.stop_time
                 ).text;
             }
-            adsText += `\nAd Set: ${adset.name || adsetId} (Status: ${asStatus}, Optimization: ${optGoal}, Billing: ${billEvent})\nTargeting: ${targetingDataStr}\n`;
+            adsText += `\nAd Set: ${adset.name || adsetId} (Status: ${asStatus}, Budget: ${asBudgetStr}, Optimization: ${optGoal}, Billing: ${billEvent})\nTargeting: ${targetingDataStr}\n`;
             
             if (adset.ads.length === 0) {
                 adsText += `   No ads data available for this ad set in the selected period.\n`;
