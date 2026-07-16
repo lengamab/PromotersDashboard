@@ -592,18 +592,27 @@ async function analyzeCampaignWithAI(campData) {
 
     const status = campData.camp.budget_info ? campData.camp.budget_info.status : 'UNKNOWN';
     let datesText = 'Ongoing';
+    let daysActiveText = 'Unknown';
+    const now = new Date();
+    const currentTimeStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+
     if (campData.camp.budget_info && campData.camp.budget_info.start_time) {
-        const start = new Date(campData.camp.budget_info.start_time).toLocaleDateString();
+        const start = new Date(campData.camp.budget_info.start_time);
         const end = campData.camp.budget_info.stop_time ? new Date(campData.camp.budget_info.stop_time).toLocaleDateString() : 'Ongoing';
-        datesText = `${start} to ${end}`;
+        datesText = `${start.toLocaleDateString()} to ${end}`;
+        
+        const diffTime = Math.abs(now - start);
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
+        daysActiveText = `${diffDays} days`;
     }
 
     const campStatsText = `
 **Currently Selected Campaign Stats:**
+Current Time: ${currentTimeStr}
 Campaign Name: ${campData.camp.campaign_name}
 Campaign ID: ${campData.camp.campaign_id}
 Status: ${status}
-Duration: ${datesText}
+Duration: ${datesText} (Active for: ${daysActiveText})
 Budget: ${budgetText}
 Spend: ${campData.spend.toFixed(2)}€
 Impressions: ${campData.imp}
