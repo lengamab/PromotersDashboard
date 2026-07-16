@@ -350,6 +350,9 @@ function processAndRenderAds() {
         hourlyLandingPageViewsData.push(landingPageViews);
     });
 
+    const totalSpendToday = hourlySpendData.reduce((a, b) => a + b, 0);
+    document.getElementById('stat-spend-today').textContent = totalSpendToday.toFixed(2) + '€';
+
     const hourlyCtx = document.getElementById('hourlyChart').getContext('2d');
     hourlyChartInstance = new Chart(hourlyCtx, {
         type: 'bar',
