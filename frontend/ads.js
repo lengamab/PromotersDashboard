@@ -98,7 +98,7 @@ async function fetchAdsData() {
                 time_range: JSON.stringify({ since: new Date().toISOString().split('T')[0], until: new Date().toISOString().split('T')[0] }),
                 breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
                 limit: 100,
-                fields: 'spend'
+                fields: 'spend,clicks'
             }).toString()}`),
             fetch(`${url}?${new URLSearchParams({
                 access_token: META_ACCESS_TOKEN,
@@ -338,6 +338,7 @@ function processAndRenderAds() {
 
     const hourlyLabels = [];
     const hourlySpendData = [];
+    const hourlyClicksData = [];
     
     // Sort hourly data by hour
     currentHourlyData.sort((a, b) => a.hourly_stats_aggregated_by_advertiser_time_zone.localeCompare(b.hourly_stats_aggregated_by_advertiser_time_zone));
@@ -345,6 +346,7 @@ function processAndRenderAds() {
     currentHourlyData.forEach(hour => {
         hourlyLabels.push(hour.hourly_stats_aggregated_by_advertiser_time_zone.split(' - ')[0].substring(0, 5)); // "00:00:00 - 00:59:59" -> "00:00"
         hourlySpendData.push(parseFloat(hour.spend || 0));
+        hourlyClicksData.push(parseInt(hour.clicks || 0));
     });
 
     const hourlyCtx = document.getElementById('hourlyChart').getContext('2d');
@@ -352,19 +354,47 @@ function processAndRenderAds() {
         type: 'bar',
         data: {
             labels: hourlyLabels,
-            datasets: [{
-                label: 'Hourly Spend Today (€)',
-                data: hourlySpendData,
-                backgroundColor: 'rgba(23, 162, 184, 0.7)'
-            }]
+            datasets: [
+                {
+                    label: 'Hourly Spend Today (€)',
+                    data: hourlySpendData,
+                    backgroundColor: 'rgba(23, 162, 184, 0.7)',
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Hourly Clicks',
+                    data: hourlyClicksData,
+                    type: 'line',
+                    borderColor: '#ffc107',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    yAxisID: 'y1'
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
             plugins: { legend: { labels: { color: '#a0a0a0' } } },
             scales: {
                 x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } },
-                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } }
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#a0a0a0' },
+                    title: { display: true, text: 'Spend (€)', color: '#a0a0a0' }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    grid: { drawOnChartArea: false },
+                    ticks: { color: '#a0a0a0' },
+                    title: { display: true, text: 'Clicks', color: '#a0a0a0' }
+                }
             }
         }
     });
