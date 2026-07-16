@@ -518,6 +518,8 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
                 let link = '';
                 if (creative.object_story_spec && creative.object_story_spec.link_data && creative.object_story_spec.link_data.link) {
                     link = creative.object_story_spec.link_data.link;
+                } else if (creative.object_story_spec && creative.object_story_spec.video_data && creative.object_story_spec.video_data.call_to_action && creative.object_story_spec.video_data.call_to_action.value) {
+                    link = creative.object_story_spec.video_data.call_to_action.value.link;
                 } else if (creative.asset_feed_spec && creative.asset_feed_spec.link_urls && creative.asset_feed_spec.link_urls.length > 0) {
                     link = creative.asset_feed_spec.link_urls[0].website_url;
                 }
