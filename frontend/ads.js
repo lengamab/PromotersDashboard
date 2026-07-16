@@ -454,6 +454,123 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
     document.getElementById('modal-camp-cpc').textContent = cpc + '€';
     document.getElementById('modal-camp-ctr').textContent = ctr + '%';
     
+    const adsetsContainer = document.getElementById('modal-adsets-container');
+    if (adsetsContainer) {
+        adsetsContainer.innerHTML = '';
+        const campaignAds = currentAdsList.filter(ad => ad.campaign_id === camp.campaign_id);
+        
+        if (campaignAds.length > 0) {
+            const adSetMap = {};
+            campaignAds.forEach(ad => {
+                if (!adSetMap[ad.adset_id]) {
+                    adSetMap[ad.adset_id] = { name: ad.adset_name, spend: 0, imp: 0, clicks: 0, purchases: 0, ads: [] };
+                }
+                adSetMap[ad.adset_id].ads.push(ad);
+                adSetMap[ad.adset_id].spend += parseFloat(ad.spend || 0);
+                adSetMap[ad.adset_id].imp += parseInt(ad.impressions || 0);
+                adSetMap[ad.adset_id].clicks += parseInt(ad.clicks || 0);
+                
+                let p = 0;
+                if (ad.actions) {
+                    const pa = ad.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+                    if (pa) p = parseInt(pa.value);
+                }
+                adSetMap[ad.adset_id].purchases += p;
+            });
+
+            for (const [adsetId, adset] of Object.entries(adSetMap)) {
+                const asCpa = adset.purchases > 0 ? (adset.spend / adset.purchases).toFixed(2) : 0;
+                const asCpc = adset.clicks > 0 ? (adset.spend / adset.clicks).toFixed(2) : 0;
+                const asCtr = adset.imp > 0 ? ((adset.clicks / adset.imp) * 100).toFixed(2) : 0;
+                
+                const adsetEl = document.createElement('div');
+                adsetEl.className = 'adset-item';
+                
+                const header = document.createElement('div');
+                header.className = 'adset-header';
+                header.innerHTML = `
+                    <div>
+                        <div style="margin-bottom: 5px; font-size: 1.05em; color: white;">${adset.name || 'Unknown Ad Set'}</div>
+                        <div class="adset-stats">
+                            <span>Spend: ${adset.spend.toFixed(2)}€</span>
+                            <span>CPA: ${asCpa}€</span>
+                            <span>CPC: ${asCpc}€</span>
+                            <span>CTR: ${asCtr}%</span>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-down"></i>
+                `;
+                
+                const body = document.createElement('div');
+                body.className = 'adset-body';
+                
+                adset.ads.forEach(ad => {
+                    const creative = currentAdCreativesMap[ad.ad_id] || {};
+                    const copyText = creative.body || 'No description';
+                    const titleText = creative.title || 'No title';
+                    
+                    let link = '';
+                    if (creative.object_story_spec && creative.object_story_spec.link_data && creative.object_story_spec.link_data.link) {
+                        link = creative.object_story_spec.link_data.link;
+                    } else if (creative.object_story_spec && creative.object_story_spec.video_data && creative.object_story_spec.video_data.call_to_action && creative.object_story_spec.video_data.call_to_action.value) {
+                        link = creative.object_story_spec.video_data.call_to_action.value.link;
+                    } else if (creative.asset_feed_spec && creative.asset_feed_spec.link_urls && creative.asset_feed_spec.link_urls.length > 0) {
+                        link = creative.asset_feed_spec.link_urls[0].website_url;
+                    }
+                    
+                    const adSpend = parseFloat(ad.spend || 0);
+                    const adImp = parseInt(ad.impressions || 0);
+                    const adClicks = parseInt(ad.clicks || 0);
+                    let adPurchases = 0;
+                    if (ad.actions) {
+                        const pa = ad.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+                        if (pa) adPurchases = parseInt(pa.value);
+                    }
+                    const adCpa = adPurchases > 0 ? (adSpend / adPurchases).toFixed(2) : 0;
+                    const adCpc = adClicks > 0 ? (adSpend / adClicks).toFixed(2) : 0;
+                    const adCtr = adImp > 0 ? ((adClicks / adImp) * 100).toFixed(2) : 0;
+                    
+                    const adEl = document.createElement('div');
+                    adEl.className = 'ad-item';
+                    adEl.innerHTML = \`
+                        <div class="ad-header">${ad.ad_name || ad.ad_id}</div>
+                        <div class="ad-stats">
+                            <span>Spend: ${adSpend.toFixed(2)}€</span>
+                            <span>Imp: ${adImp}</span>
+                            <span>Clicks: ${adClicks}</span>
+                            <span>Purchases: ${adPurchases}</span>
+                            <span>CPA: ${adCpa}€</span>
+                            <span>CPC: ${adCpc}€</span>
+                            <span>CTR: ${adCtr}%</span>
+                        </div>
+                        <div class="ad-details">
+                            <p><strong>Title:</strong> ${titleText}</p>
+                            <p><strong>Description:</strong> ${copyText.substring(0, 150)}${copyText.length > 150 ? '...' : ''}</p>
+                            \${link ? \`<p><strong>Link:</strong> <a href="\${link}" target="_blank" class="ad-link">\${link}</a></p>\` : ''}
+                        </div>
+                    \`;
+                    body.appendChild(adEl);
+                });
+                
+                header.onclick = () => {
+                    const isExpanded = body.style.display === 'block';
+                    body.style.display = isExpanded ? 'none' : 'block';
+                    if (isExpanded) {
+                        header.classList.remove('active');
+                    } else {
+                        header.classList.add('active');
+                    }
+                };
+                
+                adsetEl.appendChild(header);
+                adsetEl.appendChild(body);
+                adsetsContainer.appendChild(adsetEl);
+            }
+        } else {
+            adsetsContainer.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9em; padding: 10px;">No ad sets data available for this campaign in the selected period.</div>';
+        }
+    }
+
     document.getElementById('campaignModal').style.display = 'block';
 }
 

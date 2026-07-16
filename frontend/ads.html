@@ -125,6 +125,98 @@
         .markdown-body strong {
             color: #fff;
         }
+        .adsets-container {
+            margin-top: 25px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+        .adset-item {
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .adset-header {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .adset-header:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .adset-header i {
+            transition: transform 0.3s;
+        }
+        .adset-header.active i {
+            transform: rotate(180deg);
+        }
+        .adset-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+        .adset-body {
+            display: none;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid var(--border-color);
+        }
+        .ad-item {
+            background: var(--surface-color);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .ad-item:last-child {
+            margin-bottom: 0;
+        }
+        .ad-header {
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .ad-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .ad-details {
+            font-size: 0.9em;
+            color: #d1d5db;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px;
+            border-radius: 6px;
+        }
+        .ad-details p {
+            margin: 0 0 8px 0;
+        }
+        .ad-details p:last-child {
+            margin: 0;
+        }
+        .ad-details strong {
+            color: var(--text-secondary);
+        }
+        .ad-link {
+            color: #007bff;
+            text-decoration: none;
+            word-break: break-all;
+        }
+        .ad-link:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -356,8 +448,10 @@
                         <p id="modal-camp-ctr" style="font-size: 1.4em; font-weight: 700; margin: 0;">0%</p>
                     </div>
                 </div>
+                
+                <div id="modal-adsets-container" class="adsets-container"></div>
 
-                <div style="text-align: right;">
+                <div style="text-align: right; margin-top: 20px;">
                     <button class="ai-btn" id="btn-analyze-campaign">
                         <i class="fa-solid fa-wand-magic-sparkles"></i> Analyze this Campaign with AI
                     </button>
