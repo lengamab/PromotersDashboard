@@ -153,7 +153,7 @@ async function fetchAdsData() {
             }).toString()}`),
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/ads?${new URLSearchParams({
                 limit: 1000,
-                fields: 'id,name,status,effective_status,creative{body,title,object_story_spec,asset_feed_spec}'
+                fields: 'id,name,status,effective_status,adset_id,campaign_id,creative{body,title,object_story_spec,asset_feed_spec}'
             }).toString()}`),
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/adsets?${new URLSearchParams({
                 limit: 500,
@@ -592,23 +592,37 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
             }
         });
         
-        // 2. Add insights data
-        const campaignAds = currentAdsList.filter(ad => ad.campaign_id === camp.campaign_id);
-        campaignAds.forEach(ad => {
-            if (!adSetMap[ad.adset_id]) {
-                adSetMap[ad.adset_id] = { name: ad.adset_name, spend: 0, imp: 0, clicks: 0, purchases: 0, ads: [] };
+        // 2. Add ALL ads from currentAdCreativesMap
+        Object.values(currentAdCreativesMap).forEach(adData => {
+            const adsetId = adData.adset_id;
+            if (adSetMap[adsetId]) {
+                const insightAd = currentAdsList.find(a => a.ad_id === adData.id) || {};
+                
+                const combinedAd = {
+                    ad_id: adData.id,
+                    ad_name: adData.name,
+                    status: adData.status,
+                    effective_status: adData.effective_status,
+                    spend: parseFloat(insightAd.spend || 0),
+                    impressions: parseInt(insightAd.impressions || 0),
+                    clicks: parseInt(insightAd.clicks || 0),
+                    actions: insightAd.actions || [],
+                    reach: insightAd.reach || 0,
+                    frequency: insightAd.frequency || 0
+                };
+                
+                adSetMap[adsetId].ads.push(combinedAd);
+                adSetMap[adsetId].spend += combinedAd.spend;
+                adSetMap[adsetId].imp += combinedAd.impressions;
+                adSetMap[adsetId].clicks += combinedAd.clicks;
+                
+                let p = 0;
+                if (combinedAd.actions) {
+                    const pa = combinedAd.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+                    if (pa) p = parseInt(pa.value);
+                }
+                adSetMap[adsetId].purchases += p;
             }
-            adSetMap[ad.adset_id].ads.push(ad);
-            adSetMap[ad.adset_id].spend += parseFloat(ad.spend || 0);
-            adSetMap[ad.adset_id].imp += parseInt(ad.impressions || 0);
-            adSetMap[ad.adset_id].clicks += parseInt(ad.clicks || 0);
-            
-            let p = 0;
-            if (ad.actions) {
-                const pa = ad.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
-                if (pa) p = parseInt(pa.value);
-            }
-            adSetMap[ad.adset_id].purchases += p;
         });
 
         if (Object.keys(adSetMap).length > 0) {
@@ -886,11 +900,22 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
         }
     });
     
-    // 2. Add insights data
-    const campaignAds = currentAdsList.filter(ad => ad.campaign_id === campData.camp.campaign_id);
-    campaignAds.forEach(ad => {
-        if (!adSetMap[ad.adset_id]) adSetMap[ad.adset_id] = { name: ad.adset_name, ads: [] };
-        adSetMap[ad.adset_id].ads.push(ad);
+    // 2. Add ALL ads from currentAdCreativesMap
+    Object.values(currentAdCreativesMap).forEach(adData => {
+        const adsetId = adData.adset_id;
+        if (adSetMap[adsetId]) {
+            const insightAd = currentAdsList.find(a => a.ad_id === adData.id) || {};
+            adSetMap[adsetId].ads.push({
+                ad_id: adData.id,
+                ad_name: adData.name,
+                spend: parseFloat(insightAd.spend || 0),
+                impressions: parseInt(insightAd.impressions || 0),
+                clicks: parseInt(insightAd.clicks || 0),
+                actions: insightAd.actions || [],
+                reach: insightAd.reach || 0,
+                frequency: insightAd.frequency || 0
+            });
+        }
     });
     
     if (Object.keys(adSetMap).length === 0) {
