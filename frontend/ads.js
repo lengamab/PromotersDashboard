@@ -603,7 +603,8 @@ async function analyzeCampaignWithAI(campData) {
         
         const diffTime = Math.abs(now - start);
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
-        daysActiveText = `${diffDays} days`;
+        const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        daysActiveText = `${diffDays} days, ${diffHours} hours`;
     }
 
     const campStatsText = `
