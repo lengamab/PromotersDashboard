@@ -10,9 +10,25 @@ let currentHourlyData = [];
 let currentCampaignsData = [];
 let currentAdsList = [];
 let currentAdCreativesMap = {};
+let currentAdSetsTargetingMap = {};
 let currentSummary = {};
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Helper for Learning Phase
+    window.isLearningPhase = function(camp) {
+        if (!camp || !camp.budget_info) return false;
+        const now = new Date();
+        if (camp.budget_info.updated_time) {
+            const updated = new Date(camp.budget_info.updated_time);
+            if (Math.abs(now - updated) / (1000 * 60 * 60 * 24) < 4) return true;
+        }
+        if (camp.budget_info.start_time) {
+            const start = new Date(camp.budget_info.start_time);
+            if (Math.abs(now - start) / (1000 * 60 * 60 * 24) < 4) return true;
+        }
+        return false;
+    };
+
     // Setup date filters
     const today = new Date();
     const last30 = new Date();
@@ -107,6 +123,11 @@ async function fetchAdsData() {
                 access_token: META_ACCESS_TOKEN,
                 limit: 1000,
                 fields: 'id,name,creative{body,title,object_story_spec,asset_feed_spec}'
+            }).toString()}`),
+            fetch(`https://graph.facebook.com/v19.0/${META_ACCOUNT_ID}/adsets?${new URLSearchParams({
+                access_token: META_ACCESS_TOKEN,
+                limit: 500,
+                fields: 'id,name,targeting,campaign_id'
             }).toString()}`)
         ]);
         
@@ -116,6 +137,7 @@ async function fetchAdsData() {
         const budgetJson = await budgetRes.json();
         const adJson = await adRes.json();
         const adCreativeJson = await adCreativeRes.json();
+        const adsetsTargetingJson = await adsetsTargetingRes.json();
         
         if (json.error) {
             console.error("Meta API Error:", json.error);
@@ -145,6 +167,13 @@ async function fetchAdsData() {
         if (adCreativeJson.data) {
             adCreativeJson.data.forEach(ad => {
                 currentAdCreativesMap[ad.id] = ad.creative;
+            });
+        }
+        
+        currentAdSetsTargetingMap = {};
+        if (adsetsTargetingJson.data) {
+            adsetsTargetingJson.data.forEach(adset => {
+                currentAdSetsTargetingMap[adset.id] = adset.targeting;
             });
         }
         
@@ -366,8 +395,11 @@ function processAndRenderAds() {
             tr.onmouseover = () => tr.style.background = 'rgba(255,255,255,0.05)';
             tr.onmouseout = () => tr.style.background = 'transparent';
             
+            const isLearning = window.isLearningPhase(camp);
+            const learningBadge = isLearning ? `<span class="learning-badge"><i class="fa-solid fa-graduation-cap"></i>Learning</span>` : '';
+
             tr.innerHTML = `
-                <td style="padding: 15px 20px; font-weight: 500;">${camp.campaign_name}</td>
+                <td style="padding: 15px 20px; font-weight: 500;">${camp.campaign_name} ${learningBadge}</td>
                 <td style="padding: 15px 20px;"><span style="color: ${statusColor}; font-size: 0.85em; border: 1px solid ${statusColor}; padding: 2px 8px; border-radius: 12px; font-weight: 600;">${statusText}</span></td>
                 <td style="padding: 15px 20px; color: var(--text-secondary);">${spend.toFixed(2)}€</td>
                 <td style="padding: 15px 20px; color: var(--text-secondary);">${imp.toLocaleString()}</td>
@@ -412,7 +444,9 @@ let currentSelectedCampaign = null;
 
 function openCampaignModal(camp, spend, imp, clicks, purchases) {
     currentSelectedCampaign = { camp, spend, imp, clicks, purchases };
-    document.getElementById('modal-campaign-name').textContent = camp.campaign_name;
+    const isLearning = window.isLearningPhase(camp);
+    const learningBadge = isLearning ? `<span class="learning-badge"><i class="fa-solid fa-graduation-cap"></i>Learning</span>` : '';
+    document.getElementById('modal-campaign-name').innerHTML = camp.campaign_name + ' ' + learningBadge;
     document.getElementById('modal-camp-spend').textContent = spend.toFixed(2) + '€';
     document.getElementById('modal-camp-purchases').textContent = purchases.toLocaleString();
     
@@ -646,7 +680,12 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
         });
         
         for (const [adsetId, adset] of Object.entries(adSetMap)) {
-            adsText += `\nAd Set: ${adset.name || adsetId}\n`;
+            let targetingDataStr = "No targeting data available";
+            if (currentAdSetsTargetingMap[adsetId]) {
+                const targetingData = currentAdSetsTargetingMap[adsetId];
+                targetingDataStr = JSON.stringify(targetingData, null, 2);
+            }
+            adsText += `\nAd Set: ${adset.name || adsetId}\nTargeting: ${targetingDataStr}\n`;
             adset.ads.forEach(ad => {
                 const creative = currentAdCreativesMap[ad.ad_id] || {};
                 const copyText = creative.body ? `\n   Ad Copy: "${creative.body}"` : '';
