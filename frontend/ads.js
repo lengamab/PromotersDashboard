@@ -114,11 +114,11 @@ async function fetchAdsData() {
             }).toString()}`),
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/ads?${new URLSearchParams({
                 limit: 1000,
-                fields: 'id,name,creative{body,title,object_story_spec,asset_feed_spec}'
+                fields: 'id,name,status,creative{body,title,object_story_spec,asset_feed_spec}'
             }).toString()}`),
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/adsets?${new URLSearchParams({
                 limit: 500,
-                fields: 'id,name,targeting,campaign_id,optimization_goal,billing_event'
+                fields: 'id,name,status,targeting,campaign_id,optimization_goal,billing_event'
             }).toString()}`)
         ]);
         
@@ -157,7 +157,7 @@ async function fetchAdsData() {
         currentAdCreativesMap = {};
         if (adCreativeJson.data) {
             adCreativeJson.data.forEach(ad => {
-                currentAdCreativesMap[ad.id] = ad.creative;
+                currentAdCreativesMap[ad.id] = ad;
             });
         }
         
@@ -560,6 +560,11 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                 const asCpc = adset.clicks > 0 ? (adset.spend / adset.clicks).toFixed(2) : 0;
                 const asCtr = adset.imp > 0 ? ((adset.clicks / adset.imp) * 100).toFixed(2) : 0;
                 
+                const adsetTargeting = currentAdSetsTargetingMap[adsetId] || {};
+                const asStatus = adsetTargeting.status || 'UNKNOWN';
+                const statusColors = { ACTIVE: '#28a745', PAUSED: '#ffc107', ARCHIVED: '#6c757d' };
+                const asStatusColor = statusColors[asStatus] || '#6c757d';
+                
                 const adsetEl = document.createElement('div');
                 adsetEl.className = 'adset-item';
                 
@@ -567,7 +572,10 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                 header.className = 'adset-header';
                 header.innerHTML = `
                     <div>
-                        <div style="margin-bottom: 5px; font-size: 1.05em; color: white;">${adset.name || 'Unknown Ad Set'}</div>
+                        <div style="margin-bottom: 5px; font-size: 1.05em; color: white;">
+                            <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${asStatusColor}; margin-right: 8px;" title="${asStatus}"></span>
+                            ${adset.name || 'Unknown Ad Set'}
+                        </div>
                         <div class="adset-stats">
                             <span>Spend: ${adset.spend.toFixed(2)}€</span>
                             <span>CPA: ${asCpa}€</span>
@@ -582,7 +590,8 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                 body.className = 'adset-body';
                 
                 adset.ads.forEach(ad => {
-                    const creative = currentAdCreativesMap[ad.ad_id] || {};
+                    const adData = currentAdCreativesMap[ad.ad_id] || {};
+                    const creative = adData.creative || {};
                     const copyText = creative.body || 'No description';
                     const titleText = creative.title || 'No title';
                     
@@ -607,10 +616,18 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                     const adCpc = adClicks > 0 ? (adSpend / adClicks).toFixed(2) : 0;
                     const adCtr = adImp > 0 ? ((adClicks / adImp) * 100).toFixed(2) : 0;
                     
+                    const adStatus = adData.status || 'UNKNOWN';
+                    const adStatusColor = statusColors[adStatus] || '#6c757d';
+                    
                     const adEl = document.createElement('div');
                     adEl.className = 'ad-item';
                     adEl.innerHTML = `
-                        <div class="ad-header">${ad.ad_name || ad.ad_id}</div>
+                        <div class="ad-header">
+                            <div>
+                                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${adStatusColor}; margin-right: 6px;" title="${adStatus}"></span>
+                                ${ad.ad_name || ad.ad_id}
+                            </div>
+                        </div>
                         <div class="ad-stats">
                             <span>Spend: ${adSpend.toFixed(2)}€</span>
                             <span>Imp: ${adImp}</span>
@@ -730,15 +747,19 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
             let targetingDataStr = "No targeting data available";
             let optGoal = 'UNKNOWN';
             let billEvent = 'UNKNOWN';
+            let asStatus = 'UNKNOWN';
             if (currentAdSetsTargetingMap[adsetId]) {
                 const adsetData = currentAdSetsTargetingMap[adsetId];
                 targetingDataStr = JSON.stringify(adsetData.targeting || {}, null, 2);
                 optGoal = adsetData.optimization_goal || 'UNKNOWN';
                 billEvent = adsetData.billing_event || 'UNKNOWN';
+                asStatus = adsetData.status || 'UNKNOWN';
             }
-            adsText += `\nAd Set: ${adset.name || adsetId} (Optimization: ${optGoal}, Billing: ${billEvent})\nTargeting: ${targetingDataStr}\n`;
+            adsText += `\nAd Set: ${adset.name || adsetId} (Status: ${asStatus}, Optimization: ${optGoal}, Billing: ${billEvent})\nTargeting: ${targetingDataStr}\n`;
             adset.ads.forEach(ad => {
-                const creative = currentAdCreativesMap[ad.ad_id] || {};
+                const adData = currentAdCreativesMap[ad.ad_id] || {};
+                const creative = adData.creative || {};
+                const adStatus = adData.status || 'UNKNOWN';
                 const copyText = creative.body ? `\n   Ad Copy: "${creative.body}"` : '';
                 const titleText = creative.title ? `\n   Ad Title: "${creative.title}"` : '';
                 
@@ -760,7 +781,8 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
                     if (lca) linkClicks = parseInt(lca.value);
                 }
                 
-                adsText += ` - Ad: ${ad.ad_name || ad.ad_id} | Spend: ${ad.spend || 0}€ | Imp: ${ad.impressions || 0} | Reach: ${adReach} | Freq: ${adFreq} | Clicks: ${ad.clicks || 0} | Link Clicks: ${linkClicks}${titleText}${copyText}${destLinkText}\n`;
+                adsText += `- Ad: ${ad.ad_name || ad.ad_id} (Status: ${adStatus})
+   Spend: ${ad.spend || 0}€, Impressions: ${ad.impressions || 0}, Reach: ${adReach}, Frequency: ${adFreq}, Link Clicks: ${linkClicks}${titleText}${copyText}${destLinkText}\n`;
             });
         }
     }
