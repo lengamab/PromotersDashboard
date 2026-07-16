@@ -94,7 +94,7 @@ async function fetchAdsData() {
                 time_range: JSON.stringify({ since: new Date().toISOString().split('T')[0], until: new Date().toISOString().split('T')[0] }),
                 breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
                 limit: 100,
-                fields: 'spend,clicks'
+                fields: 'spend,clicks,actions'
             }).toString()}`),
             fetch(`${url}?${new URLSearchParams({
                 level: 'campaign',
@@ -330,6 +330,7 @@ function processAndRenderAds() {
     const hourlyLabels = [];
     const hourlySpendData = [];
     const hourlyClicksData = [];
+    const hourlyLandingPageViewsData = [];
     
     // Sort hourly data by hour
     currentHourlyData.sort((a, b) => a.hourly_stats_aggregated_by_advertiser_time_zone.localeCompare(b.hourly_stats_aggregated_by_advertiser_time_zone));
@@ -338,6 +339,15 @@ function processAndRenderAds() {
         hourlyLabels.push(hour.hourly_stats_aggregated_by_advertiser_time_zone.split(' - ')[0].substring(0, 5)); // "00:00:00 - 00:59:59" -> "00:00"
         hourlySpendData.push(parseFloat(hour.spend || 0));
         hourlyClicksData.push(parseInt(hour.clicks || 0));
+        
+        let landingPageViews = 0;
+        if (hour.actions) {
+            const lpvAction = hour.actions.find(a => a.action_type === 'landing_page_view');
+            if (lpvAction) {
+                landingPageViews = parseInt(lpvAction.value);
+            }
+        }
+        hourlyLandingPageViewsData.push(landingPageViews);
     });
 
     const hourlyCtx = document.getElementById('hourlyChart').getContext('2d');
@@ -357,6 +367,15 @@ function processAndRenderAds() {
                     data: hourlyClicksData,
                     type: 'line',
                     borderColor: '#ffc107',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    yAxisID: 'y1'
+                },
+                {
+                    label: 'Hourly Landing Page Views',
+                    data: hourlyLandingPageViewsData,
+                    type: 'line',
+                    borderColor: '#28a745',
                     borderWidth: 2,
                     tension: 0.3,
                     yAxisID: 'y1'
@@ -384,7 +403,7 @@ function processAndRenderAds() {
                     position: 'right',
                     grid: { drawOnChartArea: false },
                     ticks: { color: '#a0a0a0' },
-                    title: { display: true, text: 'Clicks', color: '#a0a0a0' }
+                    title: { display: true, text: 'Clicks / Views', color: '#a0a0a0' }
                 }
             }
         }
