@@ -1,10 +1,42 @@
 const META_ACCOUNT_ID = 'act_911535275086772';
 let GEMINI_API_KEY = 'AQ.Ab8RN6IgzUweVqfl0oB-C7TVuYVTm90clJZKEnYxblYv2trAqA';
 
+window.getMetaStatusDetails = function(status, effectiveStatus, endTime) {
+    let finalStatus = effectiveStatus || status || 'UNKNOWN';
+    if (finalStatus === 'ACTIVE' && endTime) {
+        const endDate = new Date(endTime);
+        if (endDate < new Date()) {
+            finalStatus = 'COMPLETED';
+        }
+    }
+    const colors = {
+        ACTIVE: '#28a745',
+        PAUSED: '#ffc107',
+        ARCHIVED: '#6c757d',
+        CAMPAIGN_PAUSED: '#ffc107',
+        ADSET_PAUSED: '#ffc107',
+        COMPLETED: '#6c757d',
+        INACTIVE: '#6c757d',
+        DELETED: '#dc3545',
+        PENDING_REVIEW: '#17a2b8',
+        DISAPPROVED: '#dc3545',
+        PREAPPROVED: '#28a745',
+        PENDING_BILLING_INFO: '#dc3545',
+        WITH_ISSUES: '#dc3545',
+        IN_PROCESS: '#17a2b8'
+    };
+    let displayText = finalStatus;
+    if (finalStatus === 'CAMPAIGN_PAUSED') displayText = 'PAUSED';
+    if (finalStatus === 'ADSET_PAUSED') displayText = 'PAUSED';
+    return { text: displayText, color: colors[finalStatus] || '#6c757d' };
+};
+
 let adsChartInstance = null;
 let hourlyChartInstance = null;
+let modalHourlyChartInstance = null;
 let currentAdsData = [];
 let currentHourlyData = [];
+let currentHourlyCampData = [];
 let currentCampaignsData = [];
 let currentAdsList = [];
 let currentAdCreativesMap = {};
@@ -87,7 +119,7 @@ async function fetchAdsData() {
     });
 
     try {
-        const [res, hourlyRes, campRes, budgetRes, adRes, adCreativeRes, adsetsTargetingRes] = await Promise.all([
+        const [res, hourlyRes, hourlyCampRes, campRes, budgetRes, adRes, adCreativeRes, adsetsTargetingRes] = await Promise.all([
             fetch(`${url}?${params.toString()}`),
             fetch(`${url}?${new URLSearchParams({
                 level: 'account',
@@ -98,13 +130,20 @@ async function fetchAdsData() {
             }).toString()}`),
             fetch(`${url}?${new URLSearchParams({
                 level: 'campaign',
+                time_range: JSON.stringify({ since: new Date().toISOString().split('T')[0], until: new Date().toISOString().split('T')[0] }),
+                breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
+                limit: 2000,
+                fields: 'campaign_id,spend,clicks,actions'
+            }).toString()}`),
+            fetch(`${url}?${new URLSearchParams({
+                level: 'campaign',
                 time_range: JSON.stringify({ since: fromDate, until: toDate }),
                 limit: 500,
                 fields: 'campaign_name,campaign_id,spend,impressions,clicks,actions,reach,frequency'
             }).toString()}`),
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/campaigns?${new URLSearchParams({
                 limit: 500,
-                fields: 'id,name,daily_budget,lifetime_budget,status,start_time,stop_time,updated_time,objective'
+                fields: 'id,name,daily_budget,lifetime_budget,status,effective_status,start_time,stop_time,updated_time,objective'
             }).toString()}`),
             fetch(`${url}?${new URLSearchParams({
                 level: 'ad',
@@ -114,16 +153,17 @@ async function fetchAdsData() {
             }).toString()}`),
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/ads?${new URLSearchParams({
                 limit: 1000,
-                fields: 'id,name,status,creative{body,title,object_story_spec,asset_feed_spec}'
+                fields: 'id,name,status,effective_status,creative{body,title,object_story_spec,asset_feed_spec}'
             }).toString()}`),
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/adsets?${new URLSearchParams({
                 limit: 500,
-                fields: 'id,name,status,targeting,campaign_id,optimization_goal,billing_event'
+                fields: 'id,name,status,effective_status,end_time,targeting,campaign_id,optimization_goal,billing_event'
             }).toString()}`)
         ]);
         
         const json = await res.json();
         const hourlyJson = await hourlyRes.json();
+        const hourlyCampJson = await hourlyCampRes.json();
         const campJson = await campRes.json();
         const budgetJson = await budgetRes.json();
         const adJson = await adRes.json();
@@ -151,6 +191,7 @@ async function fetchAdsData() {
 
         currentAdsData = json.data || [];
         currentHourlyData = hourlyJson.data || [];
+        currentHourlyCampData = hourlyCampJson.data || [];
         currentCampaignsData = campJson.data || [];
         currentAdsList = adJson.data || [];
         
@@ -428,9 +469,13 @@ function processAndRenderAds() {
                 }
             }
 
-            const statusColors = { ACTIVE: '#28a745', PAUSED: '#ffc107', ARCHIVED: '#6c757d' };
-            const statusText = camp.budget_info && camp.budget_info.status ? camp.budget_info.status : 'UNKNOWN';
-            const statusColor = statusColors[statusText] || '#6c757d';
+            const campStatusDetails = window.getMetaStatusDetails(
+                camp.budget_info?.status,
+                camp.budget_info?.effective_status,
+                camp.budget_info?.stop_time
+            );
+            const statusText = campStatusDetails.text;
+            const statusColor = campStatusDetails.color;
 
             const tr = document.createElement('tr');
             tr.style.borderBottom = '1px solid var(--border-color)';
@@ -493,9 +538,13 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
     document.getElementById('modal-camp-spend').textContent = spend.toFixed(2) + '€';
     document.getElementById('modal-camp-purchases').textContent = purchases.toLocaleString();
     
-    const statusColors = { ACTIVE: '#28a745', PAUSED: '#ffc107', ARCHIVED: '#6c757d' };
-    const statusText = camp.budget_info && camp.budget_info.status ? camp.budget_info.status : 'UNKNOWN';
-    const statusColor = statusColors[statusText] || '#6c757d';
+    const campStatusDetails = window.getMetaStatusDetails(
+        camp.budget_info?.status,
+        camp.budget_info?.effective_status,
+        camp.budget_info?.stop_time
+    );
+    const statusText = campStatusDetails.text;
+    const statusColor = campStatusDetails.color;
     
     const statusEl = document.getElementById('modal-camp-status');
     if (statusEl) {
@@ -534,36 +583,48 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
     const adsetsContainer = document.getElementById('modal-adsets-container');
     if (adsetsContainer) {
         adsetsContainer.innerHTML = '';
-        const campaignAds = currentAdsList.filter(ad => ad.campaign_id === camp.campaign_id);
+        const adSetMap = {};
         
-        if (campaignAds.length > 0) {
-            const adSetMap = {};
-            campaignAds.forEach(ad => {
-                if (!adSetMap[ad.adset_id]) {
-                    adSetMap[ad.adset_id] = { name: ad.adset_name, spend: 0, imp: 0, clicks: 0, purchases: 0, ads: [] };
-                }
-                adSetMap[ad.adset_id].ads.push(ad);
-                adSetMap[ad.adset_id].spend += parseFloat(ad.spend || 0);
-                adSetMap[ad.adset_id].imp += parseInt(ad.impressions || 0);
-                adSetMap[ad.adset_id].clicks += parseInt(ad.clicks || 0);
-                
-                let p = 0;
-                if (ad.actions) {
-                    const pa = ad.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
-                    if (pa) p = parseInt(pa.value);
-                }
-                adSetMap[ad.adset_id].purchases += p;
-            });
+        // 1. Get all Ad Sets for this campaign from TargetingMap
+        Object.values(currentAdSetsTargetingMap).forEach(as => {
+            if (as.campaign_id === camp.campaign_id) {
+                adSetMap[as.id] = { name: as.name, spend: 0, imp: 0, clicks: 0, purchases: 0, ads: [] };
+            }
+        });
+        
+        // 2. Add insights data
+        const campaignAds = currentAdsList.filter(ad => ad.campaign_id === camp.campaign_id);
+        campaignAds.forEach(ad => {
+            if (!adSetMap[ad.adset_id]) {
+                adSetMap[ad.adset_id] = { name: ad.adset_name, spend: 0, imp: 0, clicks: 0, purchases: 0, ads: [] };
+            }
+            adSetMap[ad.adset_id].ads.push(ad);
+            adSetMap[ad.adset_id].spend += parseFloat(ad.spend || 0);
+            adSetMap[ad.adset_id].imp += parseInt(ad.impressions || 0);
+            adSetMap[ad.adset_id].clicks += parseInt(ad.clicks || 0);
+            
+            let p = 0;
+            if (ad.actions) {
+                const pa = ad.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+                if (pa) p = parseInt(pa.value);
+            }
+            adSetMap[ad.adset_id].purchases += p;
+        });
 
+        if (Object.keys(adSetMap).length > 0) {
             for (const [adsetId, adset] of Object.entries(adSetMap)) {
                 const asCpa = adset.purchases > 0 ? (adset.spend / adset.purchases).toFixed(2) : 0;
                 const asCpc = adset.clicks > 0 ? (adset.spend / adset.clicks).toFixed(2) : 0;
                 const asCtr = adset.imp > 0 ? ((adset.clicks / adset.imp) * 100).toFixed(2) : 0;
                 
                 const adsetTargeting = currentAdSetsTargetingMap[adsetId] || {};
-                const asStatus = adsetTargeting.status || 'UNKNOWN';
-                const statusColors = { ACTIVE: '#28a745', PAUSED: '#ffc107', ARCHIVED: '#6c757d' };
-                const asStatusColor = statusColors[asStatus] || '#6c757d';
+                const asStatusObj = window.getMetaStatusDetails(
+                    adsetTargeting.status,
+                    adsetTargeting.effective_status,
+                    adsetTargeting.end_time || camp.budget_info?.stop_time
+                );
+                const asStatus = asStatusObj.text;
+                const asStatusColor = asStatusObj.color;
                 
                 const adsetEl = document.createElement('div');
                 adsetEl.className = 'adset-item';
@@ -589,62 +650,70 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                 const body = document.createElement('div');
                 body.className = 'adset-body';
                 
-                adset.ads.forEach(ad => {
-                    const adData = currentAdCreativesMap[ad.ad_id] || {};
-                    const creative = adData.creative || {};
-                    const copyText = creative.body || 'No description';
-                    const titleText = creative.title || 'No title';
-                    
-                    let link = '';
-                    if (creative.object_story_spec && creative.object_story_spec.link_data && creative.object_story_spec.link_data.link) {
-                        link = creative.object_story_spec.link_data.link;
-                    } else if (creative.object_story_spec && creative.object_story_spec.video_data && creative.object_story_spec.video_data.call_to_action && creative.object_story_spec.video_data.call_to_action.value) {
-                        link = creative.object_story_spec.video_data.call_to_action.value.link;
-                    } else if (creative.asset_feed_spec && creative.asset_feed_spec.link_urls && creative.asset_feed_spec.link_urls.length > 0) {
-                        link = creative.asset_feed_spec.link_urls[0].website_url;
-                    }
-                    
-                    const adSpend = parseFloat(ad.spend || 0);
-                    const adImp = parseInt(ad.impressions || 0);
-                    const adClicks = parseInt(ad.clicks || 0);
-                    let adPurchases = 0;
-                    if (ad.actions) {
-                        const pa = ad.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
-                        if (pa) adPurchases = parseInt(pa.value);
-                    }
-                    const adCpa = adPurchases > 0 ? (adSpend / adPurchases).toFixed(2) : 0;
-                    const adCpc = adClicks > 0 ? (adSpend / adClicks).toFixed(2) : 0;
-                    const adCtr = adImp > 0 ? ((adClicks / adImp) * 100).toFixed(2) : 0;
-                    
-                    const adStatus = adData.status || 'UNKNOWN';
-                    const adStatusColor = statusColors[adStatus] || '#6c757d';
-                    
-                    const adEl = document.createElement('div');
-                    adEl.className = 'ad-item';
-                    adEl.innerHTML = `
-                        <div class="ad-header">
-                            <div>
-                                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${adStatusColor}; margin-right: 6px;" title="${adStatus}"></span>
-                                ${ad.ad_name || ad.ad_id}
+                if (adset.ads.length > 0) {
+                    adset.ads.forEach(ad => {
+                        const adData = currentAdCreativesMap[ad.ad_id] || {};
+                        const creative = adData.creative || {};
+                        const copyText = creative.body || 'No description';
+                        const titleText = creative.title || 'No title';
+                        
+                        let link = '';
+                        if (creative.object_story_spec && creative.object_story_spec.link_data && creative.object_story_spec.link_data.link) {
+                            link = creative.object_story_spec.link_data.link;
+                        } else if (creative.object_story_spec && creative.object_story_spec.video_data && creative.object_story_spec.video_data.call_to_action && creative.object_story_spec.video_data.call_to_action.value) {
+                            link = creative.object_story_spec.video_data.call_to_action.value.link;
+                        } else if (creative.asset_feed_spec && creative.asset_feed_spec.link_urls && creative.asset_feed_spec.link_urls.length > 0) {
+                            link = creative.asset_feed_spec.link_urls[0].website_url;
+                        }
+                        
+                        const adSpend = parseFloat(ad.spend || 0);
+                        const adImp = parseInt(ad.impressions || 0);
+                        const adClicks = parseInt(ad.clicks || 0);
+                        let adPurchases = 0;
+                        if (ad.actions) {
+                            const pa = ad.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+                            if (pa) adPurchases = parseInt(pa.value);
+                        }
+                        const adCpa = adPurchases > 0 ? (adSpend / adPurchases).toFixed(2) : 0;
+                        const adCpc = adClicks > 0 ? (adSpend / adClicks).toFixed(2) : 0;
+                        const adCtr = adImp > 0 ? ((adClicks / adImp) * 100).toFixed(2) : 0;
+                        
+                        const adStatusObj = window.getMetaStatusDetails(
+                            adData.status,
+                            adData.effective_status
+                        );
+                        const adStatus = adStatusObj.text;
+                        const adStatusColor = adStatusObj.color;
+                        
+                        const adEl = document.createElement('div');
+                        adEl.className = 'ad-item';
+                        adEl.innerHTML = `
+                            <div class="ad-header">
+                                <div>
+                                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${adStatusColor}; margin-right: 6px;" title="${adStatus}"></span>
+                                    ${ad.ad_name || ad.ad_id}
+                                </div>
                             </div>
-                        </div>
-                        <div class="ad-stats">
-                            <span>Spend: ${adSpend.toFixed(2)}€</span>
-                            <span>Imp: ${adImp}</span>
-                            <span>Clicks: ${adClicks}</span>
-                            <span>Purchases: ${adPurchases}</span>
-                            <span>CPA: ${adCpa}€</span>
-                            <span>CPC: ${adCpc}€</span>
-                            <span>CTR: ${adCtr}%</span>
-                        </div>
-                        <div class="ad-details">
-                            <p><strong>Title:</strong> ${titleText}</p>
-                            <p><strong>Description:</strong> ${copyText.substring(0, 150)}${copyText.length > 150 ? '...' : ''}</p>
-                            ${link ? `<p><strong>Link:</strong> <a href="${link}" target="_blank" class="ad-link">${link}</a></p>` : ''}
-                        </div>
-                    `;
-                    body.appendChild(adEl);
-                });
+                            <div class="ad-stats">
+                                <span>Spend: ${adSpend.toFixed(2)}€</span>
+                                <span>Imp: ${adImp}</span>
+                                <span>Clicks: ${adClicks}</span>
+                                <span>Purchases: ${adPurchases}</span>
+                                <span>CPA: ${adCpa}€</span>
+                                <span>CPC: ${adCpc}€</span>
+                                <span>CTR: ${adCtr}%</span>
+                            </div>
+                            <div class="ad-details">
+                                <p><strong>Title:</strong> ${titleText}</p>
+                                <p><strong>Description:</strong> ${copyText.substring(0, 150)}${copyText.length > 150 ? '...' : ''}</p>
+                                ${link ? `<p><strong>Link:</strong> <a href="${link}" target="_blank" class="ad-link">${link}</a></p>` : ''}
+                            </div>
+                        `;
+                        body.appendChild(adEl);
+                    });
+                } else {
+                    body.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9em; padding: 10px;">No ads data available for this ad set in the selected period.</div>';
+                }
                 
                 header.onclick = () => {
                     const isExpanded = body.style.display === 'block';
@@ -663,6 +732,77 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
         } else {
             adsetsContainer.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9em; padding: 10px;">No ad sets data available for this campaign in the selected period.</div>';
         }
+    }
+
+    // Render Modal Hourly Chart
+    if (modalHourlyChartInstance) {
+        modalHourlyChartInstance.destroy();
+    }
+
+    const modalHourlyLabels = [];
+    const modalHourlySpendData = [];
+    const modalHourlyClicksData = [];
+    
+    // Filter for current campaign
+    const campHourlyData = currentHourlyCampData.filter(h => h.campaign_id === camp.campaign_id);
+    campHourlyData.sort((a, b) => a.hourly_stats_aggregated_by_advertiser_time_zone.localeCompare(b.hourly_stats_aggregated_by_advertiser_time_zone));
+    
+    campHourlyData.forEach(hour => {
+        modalHourlyLabels.push(hour.hourly_stats_aggregated_by_advertiser_time_zone.split(' - ')[0].substring(0, 5));
+        modalHourlySpendData.push(parseFloat(hour.spend || 0));
+        modalHourlyClicksData.push(parseInt(hour.clicks || 0));
+    });
+
+    const modalHourlyCtx = document.getElementById('modalHourlyChart');
+    if (modalHourlyCtx) {
+        modalHourlyChartInstance = new Chart(modalHourlyCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: modalHourlyLabels,
+                datasets: [
+                    {
+                        label: 'Hourly Spend Today (€)',
+                        data: modalHourlySpendData,
+                        backgroundColor: 'rgba(23, 162, 184, 0.7)',
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Hourly Clicks',
+                        data: modalHourlyClicksData,
+                        type: 'line',
+                        borderColor: '#ffc107',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { labels: { color: '#a0a0a0' } } },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#a0a0a0' },
+                        title: { display: true, text: 'Spend (€)', color: '#a0a0a0' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        ticks: { color: '#a0a0a0' },
+                        title: { display: true, text: 'Clicks', color: '#a0a0a0' }
+                    }
+                }
+            }
+        });
     }
 
     document.getElementById('campaignModal').style.display = 'block';
@@ -684,7 +824,11 @@ async function analyzeCampaignWithAI(campData) {
     const budgetEl = document.getElementById('modal-daily-budget');
     const budgetText = budgetEl ? budgetEl.textContent : 'N/A';
 
-    const status = campData.camp.budget_info ? campData.camp.budget_info.status : 'UNKNOWN';
+    const status = window.getMetaStatusDetails(
+        campData.camp.budget_info?.status,
+        campData.camp.budget_info?.effective_status,
+        campData.camp.budget_info?.stop_time
+    ).text;
     const objective = campData.camp.budget_info ? campData.camp.budget_info.objective : 'UNKNOWN';
     let datesText = 'Ongoing';
     let daysActiveText = 'Unknown';
@@ -732,17 +876,26 @@ CPA: ${campData.purchases > 0 ? (campData.spend / campData.purchases).toFixed(2)
 CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 0}%`;
 
     let adsText = '\n\n**Ad Sets & Ads Details:**\n';
-    const campaignAds = currentAdsList.filter(ad => ad.campaign_id === campData.camp.campaign_id);
     
-    if (campaignAds.length === 0) {
+    const adSetMap = {};
+    
+    // 1. Get all Ad Sets for this campaign from TargetingMap
+    Object.values(currentAdSetsTargetingMap).forEach(as => {
+        if (as.campaign_id === campData.camp.campaign_id) {
+            adSetMap[as.id] = { name: as.name, ads: [] };
+        }
+    });
+    
+    // 2. Add insights data
+    const campaignAds = currentAdsList.filter(ad => ad.campaign_id === campData.camp.campaign_id);
+    campaignAds.forEach(ad => {
+        if (!adSetMap[ad.adset_id]) adSetMap[ad.adset_id] = { name: ad.adset_name, ads: [] };
+        adSetMap[ad.adset_id].ads.push(ad);
+    });
+    
+    if (Object.keys(adSetMap).length === 0) {
         adsText += 'No granular ads data available for this campaign.\n';
     } else {
-        const adSetMap = {};
-        campaignAds.forEach(ad => {
-            if (!adSetMap[ad.adset_id]) adSetMap[ad.adset_id] = { name: ad.adset_name, ads: [] };
-            adSetMap[ad.adset_id].ads.push(ad);
-        });
-        
         for (const [adsetId, adset] of Object.entries(adSetMap)) {
             let targetingDataStr = "No targeting data available";
             let optGoal = 'UNKNOWN';
@@ -753,37 +906,49 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
                 targetingDataStr = JSON.stringify(adsetData.targeting || {}, null, 2);
                 optGoal = adsetData.optimization_goal || 'UNKNOWN';
                 billEvent = adsetData.billing_event || 'UNKNOWN';
-                asStatus = adsetData.status || 'UNKNOWN';
+                asStatus = window.getMetaStatusDetails(
+                    adsetData.status,
+                    adsetData.effective_status,
+                    adsetData.end_time || campData.camp.budget_info?.stop_time
+                ).text;
             }
             adsText += `\nAd Set: ${adset.name || adsetId} (Status: ${asStatus}, Optimization: ${optGoal}, Billing: ${billEvent})\nTargeting: ${targetingDataStr}\n`;
-            adset.ads.forEach(ad => {
-                const adData = currentAdCreativesMap[ad.ad_id] || {};
-                const creative = adData.creative || {};
-                const adStatus = adData.status || 'UNKNOWN';
-                const copyText = creative.body ? `\n   Ad Copy: "${creative.body}"` : '';
-                const titleText = creative.title ? `\n   Ad Title: "${creative.title}"` : '';
-                
-                let link = '';
-                if (creative.object_story_spec && creative.object_story_spec.link_data && creative.object_story_spec.link_data.link) {
-                    link = creative.object_story_spec.link_data.link;
-                } else if (creative.object_story_spec && creative.object_story_spec.video_data && creative.object_story_spec.video_data.call_to_action && creative.object_story_spec.video_data.call_to_action.value) {
-                    link = creative.object_story_spec.video_data.call_to_action.value.link;
-                } else if (creative.asset_feed_spec && creative.asset_feed_spec.link_urls && creative.asset_feed_spec.link_urls.length > 0) {
-                    link = creative.asset_feed_spec.link_urls[0].website_url;
-                }
-                const destLinkText = link ? `\n   Dest Link: ${link}` : '';
-                
-                const adReach = ad.reach || 0;
-                const adFreq = ad.frequency || 0;
-                let linkClicks = 0;
-                if (ad.actions) {
-                    const lca = ad.actions.find(a => a.action_type === 'link_click');
-                    if (lca) linkClicks = parseInt(lca.value);
-                }
-                
-                adsText += `- Ad: ${ad.ad_name || ad.ad_id} (Status: ${adStatus})
-   Spend: ${ad.spend || 0}€, Impressions: ${ad.impressions || 0}, Reach: ${adReach}, Frequency: ${adFreq}, Link Clicks: ${linkClicks}${titleText}${copyText}${destLinkText}\n`;
-            });
+            
+            if (adset.ads.length === 0) {
+                adsText += `   No ads data available for this ad set in the selected period.\n`;
+            } else {
+                adset.ads.forEach(ad => {
+                    const adData = currentAdCreativesMap[ad.ad_id] || {};
+                    const creative = adData.creative || {};
+                    const adStatus = window.getMetaStatusDetails(
+                        adData.status,
+                        adData.effective_status
+                    ).text;
+                    const copyText = creative.body ? `\n   Ad Copy: "${creative.body}"` : '';
+                    const titleText = creative.title ? `\n   Ad Title: "${creative.title}"` : '';
+                    
+                    let link = '';
+                    if (creative.object_story_spec && creative.object_story_spec.link_data && creative.object_story_spec.link_data.link) {
+                        link = creative.object_story_spec.link_data.link;
+                    } else if (creative.object_story_spec && creative.object_story_spec.video_data && creative.object_story_spec.video_data.call_to_action && creative.object_story_spec.video_data.call_to_action.value) {
+                        link = creative.object_story_spec.video_data.call_to_action.value.link;
+                    } else if (creative.asset_feed_spec && creative.asset_feed_spec.link_urls && creative.asset_feed_spec.link_urls.length > 0) {
+                        link = creative.asset_feed_spec.link_urls[0].website_url;
+                    }
+                    const destLinkText = link ? `\n   Dest Link: ${link}` : '';
+                    
+                    const adReach = ad.reach || 0;
+                    const adFreq = ad.frequency || 0;
+                    let linkClicks = 0;
+                    if (ad.actions) {
+                        const lca = ad.actions.find(a => a.action_type === 'link_click');
+                        if (lca) linkClicks = parseInt(lca.value);
+                    }
+                    
+                    adsText += `- Ad: ${ad.ad_name || ad.ad_id} (Status: ${adStatus})
+       Spend: ${ad.spend || 0}€, Impressions: ${ad.impressions || 0}, Reach: ${adReach}, Frequency: ${adFreq}, Link Clicks: ${linkClicks}${titleText}${copyText}${destLinkText}\n`;
+                });
+            }
         }
     }
 
