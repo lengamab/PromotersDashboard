@@ -117,21 +117,26 @@ async function fetchAdsData() {
         limit: 100, // Important to prevent pagination truncating 30 days
         fields: 'spend,impressions,clicks,actions'
     });
+    
+    const todayISO = new Date().toISOString().split('T')[0];
+    const yesterdayISO = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
     try {
         const [res, hourlyRes, hourlyCampRes, campRes, budgetRes, adRes, adCreativeRes, adsetsTargetingRes] = await Promise.all([
             fetch(`${url}?${params.toString()}`),
             fetch(`${url}?${new URLSearchParams({
                 level: 'account',
-                time_range: JSON.stringify({ since: new Date().toISOString().split('T')[0], until: new Date().toISOString().split('T')[0] }),
+                time_range: JSON.stringify({ since: yesterdayISO, until: todayISO }),
                 breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
+                time_increment: 1,
                 limit: 100,
                 fields: 'spend,clicks,actions'
             }).toString()}`),
             fetch(`${url}?${new URLSearchParams({
                 level: 'campaign',
-                time_range: JSON.stringify({ since: new Date().toISOString().split('T')[0], until: new Date().toISOString().split('T')[0] }),
+                time_range: JSON.stringify({ since: yesterdayISO, until: todayISO }),
                 breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
+                time_increment: 1,
                 limit: 2000,
                 fields: 'campaign_id,spend,clicks,actions'
             }).toString()}`),
@@ -265,9 +270,13 @@ function processAndRenderAds() {
         totalClicks += clicks;
         totalPurchases += purchases;
 
-        spendData.push(spend);
-        clicksData.push(clicks);
-        purchasesData.push(purchases);
+        if (dateStr !== todayStr) {
+            spendData.push(spend);
+            clicksData.push(clicks);
+            purchasesData.push(purchases);
+        } else {
+            labels.pop(); // Remove today's label if it was pushed
+        }
     }
 
     // Update Cards
@@ -373,22 +382,42 @@ function processAndRenderAds() {
     const hourlyClicksData = [];
     const hourlyLandingPageViewsData = [];
     
-    // Sort hourly data by hour
-    currentHourlyData.sort((a, b) => a.hourly_stats_aggregated_by_advertiser_time_zone.localeCompare(b.hourly_stats_aggregated_by_advertiser_time_zone));
-    
-    currentHourlyData.forEach(hour => {
-        hourlyLabels.push(hour.hourly_stats_aggregated_by_advertiser_time_zone.split(' - ')[0].substring(0, 5)); // "00:00:00 - 00:59:59" -> "00:00"
-        hourlySpendData.push(parseFloat(hour.spend || 0));
-        hourlyClicksData.push(parseInt(hour.clicks || 0));
+    const now = new Date();
+    const timeline = [];
+    for (let i = 23; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 60 * 60 * 1000);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
         
-        let landingPageViews = 0;
-        if (hour.actions) {
-            const lpvAction = hour.actions.find(a => a.action_type === 'landing_page_view');
-            if (lpvAction) {
-                landingPageViews = parseInt(lpvAction.value);
+        timeline.push({
+            dateKey: `${yyyy}-${mm}-${dd}`,
+            hourKey: `${hh}:00:00 - ${hh}:59:59`,
+            label: `${dd}/${mm} ${hh}:00`
+        });
+    }
+
+    timeline.forEach(t => {
+        hourlyLabels.push(t.label);
+        
+        const hourData = currentHourlyData.find(h => h.date_start === t.dateKey && h.hourly_stats_aggregated_by_advertiser_time_zone === t.hourKey);
+        
+        if (hourData) {
+            hourlySpendData.push(parseFloat(hourData.spend || 0));
+            hourlyClicksData.push(parseInt(hourData.clicks || 0));
+            
+            let landingPageViews = 0;
+            if (hourData.actions) {
+                const lpvAction = hourData.actions.find(a => a.action_type === 'landing_page_view');
+                if (lpvAction) landingPageViews = parseInt(lpvAction.value);
             }
+            hourlyLandingPageViewsData.push(landingPageViews);
+        } else {
+            hourlySpendData.push(0);
+            hourlyClicksData.push(0);
+            hourlyLandingPageViewsData.push(0);
         }
-        hourlyLandingPageViewsData.push(landingPageViews);
     });
 
     const totalSpendToday = hourlySpendData.reduce((a, b) => a + b, 0);
@@ -401,7 +430,7 @@ function processAndRenderAds() {
             labels: hourlyLabels,
             datasets: [
                 {
-                    label: 'Hourly Spend Today (€)',
+                    label: 'Hourly Spend (24h) (€)',
                     data: hourlySpendData,
                     backgroundColor: 'rgba(23, 162, 184, 0.7)',
                     yAxisID: 'y'
@@ -769,12 +798,34 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
     
     // Filter for current campaign
     const campHourlyData = currentHourlyCampData.filter(h => h.campaign_id === camp.campaign_id);
-    campHourlyData.sort((a, b) => a.hourly_stats_aggregated_by_advertiser_time_zone.localeCompare(b.hourly_stats_aggregated_by_advertiser_time_zone));
     
-    campHourlyData.forEach(hour => {
-        modalHourlyLabels.push(hour.hourly_stats_aggregated_by_advertiser_time_zone.split(' - ')[0].substring(0, 5));
-        modalHourlySpendData.push(parseFloat(hour.spend || 0));
-        modalHourlyClicksData.push(parseInt(hour.clicks || 0));
+    const nowModal = new Date();
+    const timelineModal = [];
+    for (let i = 23; i >= 0; i--) {
+        const d = new Date(nowModal.getTime() - i * 60 * 60 * 1000);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        
+        timelineModal.push({
+            dateKey: `${yyyy}-${mm}-${dd}`,
+            hourKey: `${hh}:00:00 - ${hh}:59:59`,
+            label: `${dd}/${mm} ${hh}:00`
+        });
+    }
+
+    timelineModal.forEach(t => {
+        modalHourlyLabels.push(t.label);
+        const hourData = campHourlyData.find(h => h.date_start === t.dateKey && h.hourly_stats_aggregated_by_advertiser_time_zone === t.hourKey);
+        
+        if (hourData) {
+            modalHourlySpendData.push(parseFloat(hourData.spend || 0));
+            modalHourlyClicksData.push(parseInt(hourData.clicks || 0));
+        } else {
+            modalHourlySpendData.push(0);
+            modalHourlyClicksData.push(0);
+        }
     });
 
     const modalHourlyCtx = document.getElementById('modalHourlyChart');
@@ -785,7 +836,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                 labels: modalHourlyLabels,
                 datasets: [
                     {
-                        label: 'Hourly Spend Today (€)',
+                        label: 'Hourly Spend (24h) (€)',
                         data: modalHourlySpendData,
                         backgroundColor: 'rgba(23, 162, 184, 0.7)',
                         yAxisID: 'y'
