@@ -790,7 +790,7 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
     const fullContext = campStatsText + adsText;
 
     if (window.updateCopilotContext) {
-        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze the performance of this specific campaign AND its individual Ad Sets and Ads (including Ad Copy/Title performance) based on the context data provided. Tell me what is working well, what is underperforming, and give 3 highly actionable pieces of advice to improve the creatives and targeting based on CPC, CPA, and CTR.";
+        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze the performance of this specific campaign AND its individual Ad Sets and Ads (including Ad Copy/Title performance) based on the context data provided. VERY IMPORTANT: Pay close attention to the Status of each Ad Set and Ad. Do NOT suggest optimizing or changing Ad Sets or Ads that are PAUSED or ARCHIVED, focus only on ACTIVE ones. Tell me what is working well, what is underperforming, and give 3 highly actionable pieces of advice to improve the active creatives and targeting based on CPC, CPA, and CTR.";
         window.updateCopilotContext(fullContext, customPrompt);
     }
 }
