@@ -94,7 +94,7 @@ async function fetchAdsData() {
             fetch(`https://graph.facebook.com/v19.0/${META_ACCOUNT_ID}/campaigns?${new URLSearchParams({
                 access_token: META_ACCESS_TOKEN,
                 limit: 500,
-                fields: 'id,name,daily_budget,lifetime_budget,status,start_time,stop_time'
+                fields: 'id,name,daily_budget,lifetime_budget,status,start_time,stop_time,updated_time'
             }).toString()}`),
             fetch(`${url}?${new URLSearchParams({
                 access_token: META_ACCESS_TOKEN,
@@ -607,6 +607,15 @@ async function analyzeCampaignWithAI(campData) {
         daysActiveText = `${diffDays} days, ${diffHours} hours`;
     }
 
+    let lastChangeText = 'Unknown';
+    if (campData.camp.budget_info && campData.camp.budget_info.updated_time) {
+        const updated = new Date(campData.camp.budget_info.updated_time);
+        const diffUpdate = Math.abs(now - updated);
+        const diffUpdateDays = Math.floor(diffUpdate / (1000 * 60 * 60 * 24)); 
+        const diffUpdateHours = Math.floor((diffUpdate % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        lastChangeText = `${updated.toLocaleDateString()} ${updated.toLocaleTimeString()} (${diffUpdateDays} days, ${diffUpdateHours} hours ago)`;
+    }
+
     const campStatsText = `
 **Currently Selected Campaign Stats:**
 Current Time: ${currentTimeStr}
@@ -614,6 +623,7 @@ Campaign Name: ${campData.camp.campaign_name}
 Campaign ID: ${campData.camp.campaign_id}
 Status: ${status}
 Duration: ${datesText} (Active for: ${daysActiveText})
+Last Significant Change: ${lastChangeText}
 Budget: ${budgetText}
 Spend: ${campData.spend.toFixed(2)}€
 Impressions: ${campData.imp}
