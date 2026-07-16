@@ -245,15 +245,36 @@ def get_event_profile(event_id):
 
 # API: Trigger manual email
 @app.route('/api/send-email', methods=['POST'])
-def trigger_email():
+def manual_email():
     try:
-        report = gather_cash_report()
-        html = build_email_body(report)
-        sent = send_email(html, report)
-        if sent:
-            return jsonify({"success": True, "message": "Email sent successfully!"})
-        else:
-            return jsonify({"success": False, "message": "Email printed to console (SMTP credentials missing in .env)."}), 200
+        from email_sender import run_full_report
+        run_full_report()
+        return jsonify({"success": True, "message": "Email sent successfully"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+import re
+import requests
+
+@app.route('/api/scrape', methods=['GET'])
+def scrape_url():
+    url = request.args.get('url')
+    if not url:
+        return jsonify({"success": False, "error": "No URL provided"}), 400
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        resp = requests.get(url, headers=headers, timeout=10)
+        
+        # Strip script and style tags completely
+        text = re.sub(r'<style.*?>.*?</style>', ' ', resp.text, flags=re.IGNORECASE|re.DOTALL)
+        text = re.sub(r'<script.*?>.*?</script>', ' ', text, flags=re.IGNORECASE|re.DOTALL)
+        # Strip remaining HTML tags
+        text = re.sub(r'<[^>]+>', ' ', text)
+        # Collapse whitespace
+        text = re.sub(r'\s+', ' ', text).strip()
+        
+        # Return first 6000 chars to save tokens
+        return jsonify({"success": True, "data": text[:6000]})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
