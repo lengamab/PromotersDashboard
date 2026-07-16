@@ -110,12 +110,14 @@ def toggle_returned():
     
     returned_amount = req_data.get("returned_amount")
     returned_bool = req_data.get("returned")
+    recovered_by = req_data.get("recovered_by")
     
     if not event_id or not promoter_id:
         return jsonify({"success": False, "error": "Missing event_id or promoter_id"}), 400
         
     db = load_db()
     db_key = f"{event_id}_{promoter_id}"
+    existing_record = db.get(db_key, {})
     
     if returned_amount is not None:
         try:
@@ -126,7 +128,8 @@ def toggle_returned():
         db[db_key] = {
             "returned_amount": amt,
             "returned": False,  # Will be calculated dynamically in gather_cash_report
-            "returned_at": datetime.now().isoformat() if amt > 0 else ""
+            "returned_at": datetime.now().isoformat() if amt > 0 else "",
+            "recovered_by": recovered_by if recovered_by is not None else existing_record.get("recovered_by", "")
         }
     else:
         # Fallback to boolean toggle
@@ -134,7 +137,8 @@ def toggle_returned():
         db[db_key] = {
             "returned": is_ret,
             "returned_at": datetime.now().isoformat() if is_ret else "",
-            "returned_amount": -1.0  # Sentinel indicating we should evaluate full amount/zero
+            "returned_amount": -1.0,  # Sentinel indicating we should evaluate full amount/zero
+            "recovered_by": recovered_by if recovered_by is not None else existing_record.get("recovered_by", "")
         }
         
     if save_db(db):

@@ -564,6 +564,7 @@ def gather_cash_report(start_date=None, end_date=None):
                 "returned": is_returned,
                 "partial": is_partial,
                 "returned_at": db_record.get("returned_at", ""),
+                "recovered_by": db_record.get("recovered_by", ""),
                 "breakdown": breakdown_list,
                 "event_date_raw": ev_date_raw or 0
             })

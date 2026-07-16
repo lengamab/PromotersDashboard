@@ -250,7 +250,7 @@ function setStatLabels(mode) {
 
 // Toggle returned state in DB
 // Update returned amount in DB
-async function updateReturnedAmount(eventId, promoterId, amount) {
+async function updateReturnedAmount(eventId, promoterId, amount, recoveredBy = null) {
     const numericAmount = parseFloat(amount);
     if (isNaN(numericAmount) || numericAmount < 0) {
         showToast('Please enter a valid amount.', 'error');
@@ -264,7 +264,8 @@ async function updateReturnedAmount(eventId, promoterId, amount) {
             body: JSON.stringify({
                 event_id: eventId,
                 promoter_id: promoterId,
-                returned_amount: numericAmount
+                returned_amount: numericAmount,
+                recovered_by: recoveredBy
             })
         });
         const result = await response.json();
@@ -390,11 +391,19 @@ function renderTable() {
                     <div class="action-amount-wrapper">
                         <input type="number" step="0.5" min="0" max="${item.net_due}" 
                             value="${item.returned_amount}" 
-                            onchange="updateReturnedAmount('${item.event_id}', '${item.promoter_id}', this.value)" 
+                            id="amount_input_${item.event_id}_${item.promoter_id}"
+                            onchange="updateReturnedAmount('${item.event_id}', '${item.promoter_id}', this.value, document.getElementById('recovered_by_${item.event_id}_${item.promoter_id}')?.value)" 
                             class="amount-input">
                         <span class="currency-symbol">€</span>
+                        <select id="recovered_by_${item.event_id}_${item.promoter_id}"
+                            class="recovered-by-select"
+                            onchange="updateReturnedAmount('${item.event_id}', '${item.promoter_id}', document.getElementById('amount_input_${item.event_id}_${item.promoter_id}').value, this.value)">
+                            <option value="">By...</option>
+                            <option value="Jules" ${item.recovered_by === 'Jules' ? 'selected' : ''}>Jules</option>
+                            <option value="Brice" ${item.recovered_by === 'Brice' ? 'selected' : ''}>Brice</option>
+                        </select>
                         <button class="btn-check-all" 
-                            onclick="updateReturnedAmount('${item.event_id}', '${item.promoter_id}', ${item.net_due})" 
+                            onclick="updateReturnedAmount('${item.event_id}', '${item.promoter_id}', ${item.net_due}, document.getElementById('recovered_by_${item.event_id}_${item.promoter_id}')?.value)" 
                             title="Mark fully returned">
                             <i class="fa-solid fa-circle-check"></i>
                         </button>
