@@ -532,7 +532,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                     
                     const adEl = document.createElement('div');
                     adEl.className = 'ad-item';
-                    adEl.innerHTML = \`
+                    adEl.innerHTML = `
                         <div class="ad-header">${ad.ad_name || ad.ad_id}</div>
                         <div class="ad-stats">
                             <span>Spend: ${adSpend.toFixed(2)}€</span>
@@ -546,9 +546,9 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                         <div class="ad-details">
                             <p><strong>Title:</strong> ${titleText}</p>
                             <p><strong>Description:</strong> ${copyText.substring(0, 150)}${copyText.length > 150 ? '...' : ''}</p>
-                            \${link ? \`<p><strong>Link:</strong> <a href="\${link}" target="_blank" class="ad-link">\${link}</a></p>\` : ''}
+                            ${link ? `<p><strong>Link:</strong> <a href="${link}" target="_blank" class="ad-link">${link}</a></p>` : ''}
                         </div>
-                    \`;
+                    `;
                     body.appendChild(adEl);
                 });
                 
