@@ -322,29 +322,6 @@ const CopilotChatWidget = () => {
         tools: tools
       });
       
-      const simulateStream = async (textToStream, isNewMessage) => {
-          if (isNewMessage) {
-              setMessages(prev => [...prev, { role: 'model', parts: [{ text: "" }] }]);
-          }
-          
-          // Split by words to make it look more natural
-          const words = textToStream.split(/([ \n]+)/);
-          for (let i = 0; i < words.length; i++) {
-              const chunk = words[i];
-              if (!chunk) continue;
-              
-              setMessages(prev => {
-                  const newMessages = [...prev];
-                  newMessages[newMessages.length - 1].parts[0].text += chunk;
-                  return newMessages;
-              });
-              
-              // Small delay for typing effect (faster for spaces/newlines)
-              const delay = chunk.trim() === '' ? 5 : Math.min(30, chunk.length * 8);
-              await new Promise(r => setTimeout(r, delay));
-          }
-      };
-
       const contents = messages.slice(1).map(m => ({
           role: m.role,
           parts: m.parts
@@ -357,7 +334,7 @@ const CopilotChatWidget = () => {
       let initialText = "";
       try { initialText = response.text(); } catch (e) {}
       if (initialText) {
-          await simulateStream(initialText, true);
+          setMessages(prev => [...prev, { role: 'model', parts: [{ text: initialText }] }]);
       }
       
       // Handle tool calls recursively
@@ -366,17 +343,17 @@ const CopilotChatWidget = () => {
         // Manually append the model's function calls to the history to maintain the strict turn sequence
         contents.push({ role: 'model', parts: response.candidates[0].content.parts });
 
-        const functionResponses = [];
-        for (const call of calls) {
+        // Execute all tool calls in parallel to massively speed up agent responses
+        const functionResponses = await Promise.all(calls.map(async (call) => {
           const apiResponse = await dispatchToolCall(call);
-          functionResponses.push({
+          return {
             functionResponse: {
               name: call.name,
               response: { result: apiResponse },
               id: call.id
             }
-          });
-        }
+          };
+        }));
         
         // Append the user's function responses to the history
         contents.push({ role: 'user', parts: functionResponses });
@@ -392,13 +369,12 @@ const CopilotChatWidget = () => {
                 const last = prev[prev.length - 1];
                 if (last && last.role === 'model') {
                     const newMessages = [...prev];
-                    newMessages[newMessages.length - 1].parts[0].text += "\n\n";
+                    newMessages[newMessages.length - 1].parts[0].text += "\n\n" + loopText;
                     return newMessages;
                 } else {
-                    return [...prev, { role: 'model', parts: [{ text: "" }] }];
+                    return [...prev, { role: 'model', parts: [{ text: loopText }] }];
                 }
             });
-            await simulateStream(loopText, false);
         }
         
         calls = typeof response.functionCalls === 'function' ? response.functionCalls() : response.functionCalls;
