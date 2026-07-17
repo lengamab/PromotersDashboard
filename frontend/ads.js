@@ -802,6 +802,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
     const modalHourlyLabels = [];
     const modalHourlySpendData = [];
     const modalHourlyClicksData = [];
+    const modalHourlyLandingPageViewsData = [];
     
     // Filter for current campaign
     const campHourlyData = currentHourlyCampData.filter(h => h.campaign_id === camp.campaign_id);
@@ -829,9 +830,17 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
         if (hourData) {
             modalHourlySpendData.push(parseFloat(hourData.spend || 0));
             modalHourlyClicksData.push(parseInt(hourData.clicks || 0));
+            
+            let landingPageViews = 0;
+            if (hourData.actions) {
+                const lpvAction = hourData.actions.find(a => a.action_type === 'landing_page_view');
+                if (lpvAction) landingPageViews = parseInt(lpvAction.value);
+            }
+            modalHourlyLandingPageViewsData.push(landingPageViews);
         } else {
             modalHourlySpendData.push(0);
             modalHourlyClicksData.push(0);
+            modalHourlyLandingPageViewsData.push(0);
         }
     });
 
@@ -853,6 +862,15 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                         data: modalHourlyClicksData,
                         type: 'line',
                         borderColor: '#ffc107',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        yAxisID: 'y1'
+                    },
+                    {
+                        label: 'Hourly Landing Page Views',
+                        data: modalHourlyLandingPageViewsData,
+                        type: 'line',
+                        borderColor: '#28a745',
                         borderWidth: 2,
                         tension: 0.3,
                         yAxisID: 'y1'
