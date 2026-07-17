@@ -28,9 +28,6 @@ INSTRUCTIONS:
 
 const fetchCampaignHistoricalDataHandler = async ({ campaignId, since, until }) => {
   try {
-    const token = window.META_ACCESS_TOKEN;
-    if (!token) return { error: "Meta Access Token not found." };
-    
     // Default to last 30 days if no dates provided
     let fromDate = since;
     let toDate = until;
@@ -43,7 +40,6 @@ const fetchCampaignHistoricalDataHandler = async ({ campaignId, since, until }) 
     }
 
     const params = new URLSearchParams({
-        access_token: token,
         level: 'campaign',
         time_range: JSON.stringify({ since: fromDate, until: toDate }),
         time_increment: 1,
@@ -51,7 +47,7 @@ const fetchCampaignHistoricalDataHandler = async ({ campaignId, since, until }) 
         fields: 'spend,impressions,clicks,actions'
     });
 
-    const response = await fetch(`https://graph.facebook.com/v20.0/${campaignId}/insights?${params.toString()}`);
+    const response = await fetch(`/api/meta-proxy/${campaignId}/insights?${params.toString()}`);
     const data = await response.json();
     if (data.error) return { error: data.error.message };
     
@@ -73,9 +69,7 @@ const fetchCampaignHistoricalDataHandler = async ({ campaignId, since, until }) 
 
 const fetchAccountHistoricalDataHandler = async ({ since, until }) => {
   try {
-    const token = window.META_ACCESS_TOKEN;
-    const accountId = window.META_ACCOUNT_ID;
-    if (!token || !accountId) return { error: "Meta API credentials not found." };
+    const accountId = 'act_911535275086772';
     
     // Default to last 30 days if no dates provided
     let fromDate = since;
@@ -89,7 +83,6 @@ const fetchAccountHistoricalDataHandler = async ({ since, until }) => {
     }
 
     const params = new URLSearchParams({
-        access_token: token,
         level: 'account',
         time_range: JSON.stringify({ since: fromDate, until: toDate }),
         time_increment: 1,
@@ -97,7 +90,7 @@ const fetchAccountHistoricalDataHandler = async ({ since, until }) => {
         fields: 'spend,impressions,clicks,actions'
     });
 
-    const response = await fetch(`https://graph.facebook.com/v20.0/${accountId}/insights?${params.toString()}`);
+    const response = await fetch(`/api/meta-proxy/${accountId}/insights?${params.toString()}`);
     const data = await response.json();
     if (data.error) return { error: data.error.message };
     
@@ -119,9 +112,7 @@ const fetchAccountHistoricalDataHandler = async ({ since, until }) => {
 
 const fetchCampaignBudgetHandler = async ({ campaignId }) => {
   try {
-    const token = window.META_ACCESS_TOKEN;
-    if (!token) return { error: "Meta Access Token not found." };
-    const response = await fetch(`https://graph.facebook.com/v20.0/${campaignId}?fields=name,daily_budget,lifetime_budget&access_token=${token}`);
+    const response = await fetch(`/api/meta-proxy/${campaignId}?fields=name,daily_budget,lifetime_budget`);
     const data = await response.json();
     if (data.error) return { error: data.error.message };
     return data;
@@ -132,10 +123,8 @@ const fetchCampaignBudgetHandler = async ({ campaignId }) => {
 
 const fetchActiveCampaignsHandler = async () => {
   try {
-    const token = window.META_ACCESS_TOKEN;
-    const accountId = window.META_ACCOUNT_ID;
-    if (!token || !accountId) return { error: "Meta API credentials not found." };
-    const res = await fetch(`https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=name,status,daily_budget,lifetime_budget&effective_status=['ACTIVE']&access_token=${token}`);
+    const accountId = 'act_911535275086772';
+    const res = await fetch(`/api/meta-proxy/${accountId}/campaigns?fields=name,status,daily_budget,lifetime_budget&effective_status=['ACTIVE']`);
     const data = await res.json();
     if (data.error) return { error: data.error.message };
     return data.data.map(c => ({
@@ -333,6 +322,29 @@ const CopilotChatWidget = () => {
         tools: tools
       });
       
+      const simulateStream = async (textToStream, isNewMessage) => {
+          if (isNewMessage) {
+              setMessages(prev => [...prev, { role: 'model', parts: [{ text: "" }] }]);
+          }
+          
+          // Split by words to make it look more natural
+          const words = textToStream.split(/([ \n]+)/);
+          for (let i = 0; i < words.length; i++) {
+              const chunk = words[i];
+              if (!chunk) continue;
+              
+              setMessages(prev => {
+                  const newMessages = [...prev];
+                  newMessages[newMessages.length - 1].parts[0].text += chunk;
+                  return newMessages;
+              });
+              
+              // Small delay for typing effect (faster for spaces/newlines)
+              const delay = chunk.trim() === '' ? 5 : Math.min(30, chunk.length * 8);
+              await new Promise(r => setTimeout(r, delay));
+          }
+      };
+
       const contents = messages.slice(1).map(m => ({
           role: m.role,
           parts: m.parts
@@ -345,7 +357,7 @@ const CopilotChatWidget = () => {
       let initialText = "";
       try { initialText = response.text(); } catch (e) {}
       if (initialText) {
-          setMessages(prev => [...prev, { role: 'model', parts: [{ text: initialText }] }]);
+          await simulateStream(initialText, true);
       }
       
       // Handle tool calls recursively
@@ -380,12 +392,13 @@ const CopilotChatWidget = () => {
                 const last = prev[prev.length - 1];
                 if (last && last.role === 'model') {
                     const newMessages = [...prev];
-                    newMessages[newMessages.length - 1].parts[0].text += "\n\n" + loopText;
+                    newMessages[newMessages.length - 1].parts[0].text += "\n\n";
                     return newMessages;
                 } else {
-                    return [...prev, { role: 'model', parts: [{ text: loopText }] }];
+                    return [...prev, { role: 'model', parts: [{ text: "" }] }];
                 }
             });
+            await simulateStream(loopText, false);
         }
         
         calls = typeof response.functionCalls === 'function' ? response.functionCalls() : response.functionCalls;
