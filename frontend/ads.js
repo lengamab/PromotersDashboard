@@ -422,8 +422,13 @@ function processAndRenderAds() {
         }
     });
 
-    const totalSpendToday = hourlySpendData.reduce((a, b) => a + b, 0);
-    document.getElementById('stat-spend-today').textContent = totalSpendToday.toFixed(2) + '€';
+    let actualSpendToday = 0;
+    currentHourlyData.forEach(hour => {
+        if (hour.date_start === todayStr) {
+            actualSpendToday += parseFloat(hour.spend || 0);
+        }
+    });
+    document.getElementById('stat-spend-today').textContent = actualSpendToday.toFixed(2) + '€';
 
     const hourlyCtx = document.getElementById('hourlyChart').getContext('2d');
     hourlyChartInstance = new Chart(hourlyCtx, {
