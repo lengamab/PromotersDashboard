@@ -333,36 +333,20 @@ const CopilotChatWidget = () => {
         tools: tools
       });
       
-      const processStream = async (resultStream) => {
-        let hasAddedMessage = false;
-        for await (const chunk of resultStream.stream) {
-          let chunkText = "";
-          try { chunkText = chunk.text(); } catch (e) {}
-          
-          if (chunkText) {
-            if (!hasAddedMessage) {
-              setMessages(prev => [...prev, { role: 'model', parts: [{ text: chunkText }] }]);
-              hasAddedMessage = true;
-            } else {
-              setMessages(prev => {
-                const newMessages = [...prev];
-                newMessages[newMessages.length - 1].parts[0].text += chunkText;
-                return newMessages;
-              });
-            }
-          }
-        }
-        return await resultStream.response;
-      };
-
       const contents = messages.slice(1).map(m => ({
           role: m.role,
           parts: m.parts
       }));
       contents.push({ role: 'user', parts: [{ text }] });
 
-      let resultStream = await model.generateContentStream({ contents });
-      let response = await processStream(resultStream);
+      let result = await model.generateContent({ contents });
+      let response = result.response;
+      
+      let initialText = "";
+      try { initialText = response.text(); } catch (e) {}
+      if (initialText) {
+          setMessages(prev => [...prev, { role: 'model', parts: [{ text: initialText }] }]);
+      }
       
       // Handle tool calls recursively
       let calls = typeof response.functionCalls === 'function' ? response.functionCalls() : response.functionCalls;
@@ -386,13 +370,29 @@ const CopilotChatWidget = () => {
         contents.push({ role: 'user', parts: functionResponses });
         
         // Send the complete history back to the model
-        resultStream = await model.generateContentStream({ contents });
-        response = await processStream(resultStream);
+        result = await model.generateContent({ contents });
+        response = result.response;
+        
+        let loopText = "";
+        try { loopText = response.text(); } catch (e) {}
+        if (loopText) {
+            setMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last && last.role === 'model') {
+                    const newMessages = [...prev];
+                    newMessages[newMessages.length - 1].parts[0].text += "\n\n" + loopText;
+                    return newMessages;
+                } else {
+                    return [...prev, { role: 'model', parts: [{ text: loopText }] }];
+                }
+            });
+        }
+        
         calls = typeof response.functionCalls === 'function' ? response.functionCalls() : response.functionCalls;
       }
 
       // Handle cases where the response stopped unexpectedly and no text was streamed
-      if (!response.text()) {
+      if (!initialText && (!calls || calls.length === 0)) {
         const candidate = response.candidates?.[0];
         if (candidate && candidate.finishReason !== 'STOP') {
             setMessages(prev => [...prev, { role: 'model', parts: [{ text: `*Notice: Response stopped due to ${candidate.finishReason}*` }] }]);
