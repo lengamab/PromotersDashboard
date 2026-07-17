@@ -327,19 +327,12 @@ const CopilotChatWidget = () => {
     setIsLoading(true);
 
     try {
-      // Re-initialize model session with latest context to ensure the AI has the most recent dashboard data
       const model = genAI.getGenerativeModel({
         model: "gemini-3.5-flash",
         systemInstruction: `${SYSTEM_INSTRUCTION}\n\nCURRENT DASHBOARD CONTEXT DATA:\n${activeContext}`,
         tools: tools
       });
-      // We manually construct history from our state to allow fresh system instruction overrides
-      const history = messages.slice(1).map(m => ({
-          role: m.role,
-          parts: m.parts
-      }));
-      chatSessionRef.current = model.startChat({ history });
-
+      
       const processStream = async (resultStream) => {
         let hasAddedMessage = false;
         for await (const chunk of resultStream.stream) {
@@ -362,14 +355,22 @@ const CopilotChatWidget = () => {
         return await resultStream.response;
       };
 
-      let resultStream = await chatSessionRef.current.sendMessageStream(text);
+      const contents = messages.slice(1).map(m => ({
+          role: m.role,
+          parts: m.parts
+      }));
+      contents.push({ role: 'user', parts: [{ text }] });
+
+      let resultStream = await model.generateContentStream({ contents });
       let response = await processStream(resultStream);
       
       // Handle tool calls recursively
       let calls = typeof response.functionCalls === 'function' ? response.functionCalls() : response.functionCalls;
       while (calls && calls.length > 0) {
+        // Manually append the model's function calls to the history to maintain the strict turn sequence
+        contents.push({ role: 'model', parts: response.candidates[0].content.parts });
+
         const functionResponses = [];
-        
         for (const call of calls) {
           const apiResponse = await dispatchToolCall(call);
           functionResponses.push({
@@ -381,8 +382,11 @@ const CopilotChatWidget = () => {
           });
         }
         
-        // Send tool results back
-        resultStream = await chatSessionRef.current.sendMessageStream(functionResponses);
+        // Append the user's function responses to the history
+        contents.push({ role: 'user', parts: functionResponses });
+        
+        // Send the complete history back to the model
+        resultStream = await model.generateContentStream({ contents });
         response = await processStream(resultStream);
         calls = typeof response.functionCalls === 'function' ? response.functionCalls() : response.functionCalls;
       }
