@@ -470,10 +470,15 @@ const CopilotChatWidget = () => {
               margin-bottom: 16px;
               color: var(--text-color);
             }
-            .ai-message-bubble p { margin-top: 0; margin-bottom: 10px; }
+            .ai-message-bubble p { margin-top: 0; margin-bottom: 12px; line-height: 1.6; }
             .ai-message-bubble p:last-child { margin-bottom: 0; }
-            .ai-message-bubble h1, .ai-message-bubble h2, .ai-message-bubble h3 { color: var(--color-primary); margin-top: 15px; margin-bottom: 10px; font-size: 1.1em;}
+            .ai-message-bubble ul, .ai-message-bubble ol { margin-top: 8px; margin-bottom: 16px; padding-left: 24px; }
+            .ai-message-bubble li { margin-bottom: 8px; line-height: 1.5; }
+            .ai-message-bubble li:last-child { margin-bottom: 0; }
+            .ai-message-bubble hr { border: none; border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 20px 0; }
+            .ai-message-bubble h1, .ai-message-bubble h2, .ai-message-bubble h3 { color: var(--color-primary); margin-top: 24px; margin-bottom: 12px; font-size: 1.1em; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 4px; }
             .ai-message-bubble h1 { font-size: 1.3em; }
+            .ai-message-bubble h2:first-child, .ai-message-bubble h3:first-child { margin-top: 0; }
             .ai-message-bubble strong { color: #fff; }
             .user-message-bubble {
               background: var(--color-primary);
