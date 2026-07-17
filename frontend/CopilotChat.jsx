@@ -137,6 +137,30 @@ const fetchActiveCampaignsHandler = async () => {
   }
 };
 
+const queryMetaGraphAPIHandler = async ({ endpoint, params }) => {
+  try {
+    let queryParams = new URLSearchParams();
+    if (params) {
+      const parsedParams = JSON.parse(params);
+      for (const [key, value] of Object.entries(parsedParams)) {
+        queryParams.append(key, value);
+      }
+    }
+    const response = await fetch(`/api/meta-proxy/${endpoint}?${queryParams.toString()}`);
+    const data = await response.json();
+    if (data.error) return { error: data.error.message };
+    
+    // Safety limit to avoid huge LLM context blowout
+    if (data.data && Array.isArray(data.data) && data.data.length > 50) {
+      data.data = data.data.slice(0, 50);
+      data.note_to_ai = "Response truncated to 50 items to save tokens. Please request specific IDs or use limit/paging if you need more.";
+    }
+    return data;
+  } catch (e) {
+    return { error: e.message };
+  }
+};
+
 const fetchFourvenuesPerformanceHandler = async () => {
   try {
     const res = await fetch('/api/performance');
@@ -233,6 +257,18 @@ const tools = [
         }
       },
       {
+        name: "queryMetaGraphAPI",
+        description: "A raw proxy to the Meta Graph API (v19.0). Use this to fetch advanced or deeply nested data that isn't provided in the context (e.g., adsets, ad creatives, demographic breakdowns). Do NOT include the base URL or access token.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            endpoint: { type: "STRING", description: "The API endpoint path (e.g., 'act_911535275086772/adsets' or '<adset_id>/ads')." },
+            params: { type: "STRING", description: "A JSON string of query parameters (e.g., '{\"fields\": \"name,targeting,daily_budget\", \"limit\": \"100\"}')." }
+          },
+          required: ["endpoint"]
+        }
+      },
+      {
         name: "fetchFourvenuesEvents",
         description: "Fetch a list of all Fourvenues events within a time period, including their total tickets sold, revenue, and attendance.",
         parameters: {
@@ -271,16 +307,19 @@ const tools = [
 ];
 
 const dispatchToolCall = async (call) => {
-  if (call.name === 'fetchCampaignBudget') return await fetchCampaignBudgetHandler(call.args);
-  if (call.name === 'fetchCampaignHistoricalData') return await fetchCampaignHistoricalDataHandler(call.args);
-  if (call.name === 'fetchAccountHistoricalData') return await fetchAccountHistoricalDataHandler(call.args);
-  if (call.name === 'fetchActiveCampaigns') return await fetchActiveCampaignsHandler();
-  if (call.name === 'fetchFourvenuesEvents') return await fetchFourvenuesEventsHandler(call.args);
-  if (call.name === 'fetchFourvenuesTicketPrices') return await fetchFourvenuesTicketPricesHandler();
-  if (call.name === 'fetchFourvenuesPerformance') return await fetchFourvenuesPerformanceHandler();
-  if (call.name === 'fetchFourvenuesWallet') return await fetchFourvenuesWalletHandler();
-  if (call.name === 'fetchPromoterProfile') return await fetchPromoterProfileHandler(call.args);
-  return { error: `Unknown tool: ${call.name}` };
+  switch (call.name) {
+    case 'fetchCampaignBudget': return await fetchCampaignBudgetHandler(call.args);
+    case 'fetchCampaignHistoricalData': return await fetchCampaignHistoricalDataHandler(call.args);
+    case 'fetchAccountHistoricalData': return await fetchAccountHistoricalDataHandler(call.args);
+    case 'fetchActiveCampaigns': return await fetchActiveCampaignsHandler();
+    case 'queryMetaGraphAPI': return await queryMetaGraphAPIHandler(call.args);
+    case 'fetchFourvenuesEvents': return await fetchFourvenuesEventsHandler(call.args);
+    case 'fetchFourvenuesTicketPrices': return await fetchFourvenuesTicketPricesHandler();
+    case 'fetchFourvenuesPerformance': return await fetchFourvenuesPerformanceHandler();
+    case 'fetchFourvenuesWallet': return await fetchFourvenuesWalletHandler();
+    case 'fetchPromoterProfile': return await fetchPromoterProfileHandler(call.args);
+    default: return { error: `Unknown tool: ${call.name}` };
+  }
 };
 
 const CopilotChatWidget = () => {
@@ -349,6 +388,7 @@ const CopilotChatWidget = () => {
           if (c.name === 'fetchAccountHistoricalData') return `Analyzing overall account history...`;
           if (c.name === 'fetchCampaignBudget') return `Checking budget settings...`;
           if (c.name === 'fetchActiveCampaigns') return `Scanning active campaigns...`;
+          if (c.name === 'queryMetaGraphAPI') return `Querying Meta Graph API for advanced metrics...`;
           if (c.name === 'fetchFourvenuesPerformance') return `Cross-referencing with Fourvenues database...`;
           return `Executing ${c.name}...`;
         }).join('\n');
