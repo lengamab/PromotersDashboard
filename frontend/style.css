@@ -1229,8 +1229,8 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 12px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    max-width: 1000px;
-    width: 90%;
+    max-width: 1200px;
+    width: 95%;
     position: relative;
     animation: modalSlideIn 0.3s ease-out;
 }
