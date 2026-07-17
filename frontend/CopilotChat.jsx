@@ -340,10 +340,33 @@ const CopilotChatWidget = () => {
       }));
       chatSessionRef.current = model.startChat({ history });
 
-      let result = await chatSessionRef.current.sendMessage(text);
+      const processStream = async (resultStream) => {
+        let hasAddedMessage = false;
+        for await (const chunk of resultStream.stream) {
+          let chunkText = "";
+          try { chunkText = chunk.text(); } catch (e) {}
+          
+          if (chunkText) {
+            if (!hasAddedMessage) {
+              setMessages(prev => [...prev, { role: 'model', parts: [{ text: chunkText }] }]);
+              hasAddedMessage = true;
+            } else {
+              setMessages(prev => {
+                const newMessages = [...prev];
+                newMessages[newMessages.length - 1].parts[0].text += chunkText;
+                return newMessages;
+              });
+            }
+          }
+        }
+        return await resultStream.response;
+      };
+
+      let resultStream = await chatSessionRef.current.sendMessageStream(text);
+      let response = await processStream(resultStream);
       
       // Handle tool calls recursively
-      let calls = typeof result.response.functionCalls === 'function' ? result.response.functionCalls() : result.response.functionCalls;
+      let calls = typeof response.functionCalls === 'function' ? response.functionCalls() : response.functionCalls;
       while (calls && calls.length > 0) {
         const functionResponses = [];
         
@@ -359,25 +382,18 @@ const CopilotChatWidget = () => {
         }
         
         // Send tool results back
-        result = await chatSessionRef.current.sendMessage(functionResponses);
-        calls = typeof result.response.functionCalls === 'function' ? result.response.functionCalls() : result.response.functionCalls;
+        resultStream = await chatSessionRef.current.sendMessageStream(functionResponses);
+        response = await processStream(resultStream);
+        calls = typeof response.functionCalls === 'function' ? response.functionCalls() : response.functionCalls;
       }
 
-      let finalResponseText = "";
-      try {
-        finalResponseText = result.response.text();
-      } catch (e) {
-        console.warn("Failed to get text from response, maybe blocked or empty?", e);
-        // Sometimes text() throws if the response was blocked by safety or had no text parts
-        const candidate = result.response.candidates?.[0];
+      // Handle cases where the response stopped unexpectedly and no text was streamed
+      if (!response.text()) {
+        const candidate = response.candidates?.[0];
         if (candidate && candidate.finishReason !== 'STOP') {
-          finalResponseText = `*Notice: Response stopped due to ${candidate.finishReason}*`;
-        } else {
-          finalResponseText = "*Notice: The model returned an empty or invalid text response.*";
+            setMessages(prev => [...prev, { role: 'model', parts: [{ text: `*Notice: Response stopped due to ${candidate.finishReason}*` }] }]);
         }
       }
-
-      setMessages(prev => [...prev, { role: 'model', parts: [{ text: finalResponseText || "*Warning: Empty response received.*" }] }]);
     } catch (err) {
       console.error(err);
       const errorMsg = (err && err.message) ? err.message : String(err);
