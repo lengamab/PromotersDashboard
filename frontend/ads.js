@@ -730,6 +730,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                         <div class="adset-stats">
                             ${asBudgetText}
                             <span>Spend: ${adset.spend.toFixed(2)}€</span>
+                            <span>Purchases: ${adset.purchases}</span>
                             <span>CPA: ${asCpa}€</span>
                             <span>CPC: ${asCpc}€</span>
                             <span>CTR: ${asCtr}%</span>
