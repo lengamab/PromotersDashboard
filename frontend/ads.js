@@ -558,9 +558,40 @@ async function analyzeWithAI() {
 - CTR (Click-Through Rate): ${currentSummary.ctr}%
 `;
 
+    let campaignsSummary = "\n**Campaign Performance Breakdown:**\n";
+    if (currentCampaignsData && currentCampaignsData.length > 0) {
+        currentCampaignsData.forEach(camp => {
+            const spend = parseFloat(camp.spend || 0);
+            const imp = parseInt(camp.impressions || 0);
+            const clicks = parseInt(camp.clicks || 0);
+            let purchases = 0;
+            if (camp.actions) {
+                const pa = camp.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+                if (pa) purchases = parseInt(pa.value);
+            }
+            const cpa = purchases > 0 ? (spend / purchases).toFixed(2) : 0;
+            const cpc = clicks > 0 ? (spend / clicks).toFixed(2) : 0;
+            const ctr = imp > 0 ? ((clicks / imp) * 100).toFixed(2) : 0;
+            
+            let budgetText = "N/A";
+            const status = camp.budget_info?.effective_status || 'UNKNOWN';
+            if (camp.budget_info) {
+                if (camp.budget_info.daily_budget) {
+                    budgetText = (parseInt(camp.budget_info.daily_budget)/100).toFixed(2) + '€/day';
+                } else if (camp.budget_info.lifetime_budget) {
+                    budgetText = (parseInt(camp.budget_info.lifetime_budget)/100).toFixed(2) + '€ (life)';
+                }
+            }
+            
+            campaignsSummary += `- [${status}] ${camp.campaign_name} | Spend: ${spend.toFixed(2)}€ | Budget: ${budgetText} | Purchases: ${purchases} | CPA: ${cpa}€ | CPC: ${cpc}€ | CTR: ${ctr}%\n`;
+        });
+    }
+
+    const fullContextData = contextData + campaignsSummary;
+
     if (window.updateCopilotContext) {
-        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze my overall account performance based on the context data. Identify top-performing trends, pinpoint areas of inefficient spend, and provide 3 concrete, data-backed recommendations to optimize my budget.";
-        window.updateCopilotContext(contextData, customPrompt);
+        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze my overall account performance and individual campaigns based purely on the extensive context data provided. CRITICAL: DO NOT MAKE ANY API FUNCTION CALLS. You already have all the data you need in the context. Identify top-performing trends, pinpoint areas of inefficient spend, and provide 3 concrete, data-backed recommendations to optimize my budget.";
+        window.updateCopilotContext(fullContextData, customPrompt);
     }
 }
 
