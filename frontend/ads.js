@@ -590,7 +590,7 @@ async function analyzeWithAI() {
     const fullContextData = contextData + campaignsSummary;
 
     if (window.updateCopilotContext) {
-        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze my overall account performance and individual campaigns based purely on the extensive context data provided. CRITICAL: DO NOT MAKE ANY API FUNCTION CALLS. You already have all the data you need in the context. Identify top-performing trends, pinpoint areas of inefficient spend, and provide 3 concrete, data-backed recommendations to optimize my budget.";
+        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze my overall account performance and individual campaigns based on the extensive context data provided. Identify top-performing trends, pinpoint areas of inefficient spend, and provide 3 concrete, data-backed recommendations to optimize my budget. If you need more granular data to make recommendations, feel free to use your API tools.";
         window.updateCopilotContext(fullContextData, customPrompt);
     }
 }
