@@ -342,6 +342,27 @@ const CopilotChatWidget = () => {
       while (calls && calls.length > 0) {
         // Manually append the model's function calls to the history to maintain the strict turn sequence
         contents.push({ role: 'model', parts: response.candidates[0].content.parts });
+        
+        // Show what the agent is analyzing in the UI
+        const analyzingTasks = calls.map(c => {
+          if (c.name === 'fetchCampaignHistoricalData') return `Analyzing historical data for campaign ${c.args.campaignId}...`;
+          if (c.name === 'fetchAccountHistoricalData') return `Analyzing overall account history...`;
+          if (c.name === 'fetchCampaignBudget') return `Checking budget settings...`;
+          if (c.name === 'fetchActiveCampaigns') return `Scanning active campaigns...`;
+          if (c.name === 'fetchFourvenuesPerformance') return `Cross-referencing with Fourvenues database...`;
+          return `Executing ${c.name}...`;
+        }).join('\n');
+        
+        setMessages(prev => {
+           const newMessages = [...prev];
+           const lastMsg = newMessages[newMessages.length - 1];
+           if (lastMsg && lastMsg.role === 'model') {
+               lastMsg.parts[0].text += `\n\n> 🔍 *${analyzingTasks.replace(/\n/g, '*\n> 🔍 *')}*\n\n`;
+               return newMessages;
+           } else {
+               return [...prev, { role: 'model', parts: [{ text: `> 🔍 *${analyzingTasks.replace(/\n/g, '*\n> 🔍 *')}*\n\n` }] }];
+           }
+        });
 
         // Execute all tool calls in parallel to massively speed up agent responses
         const functionResponses = await Promise.all(calls.map(async (call) => {
@@ -369,7 +390,7 @@ const CopilotChatWidget = () => {
                 const last = prev[prev.length - 1];
                 if (last && last.role === 'model') {
                     const newMessages = [...prev];
-                    newMessages[newMessages.length - 1].parts[0].text += "\n\n" + loopText;
+                    newMessages[newMessages.length - 1].parts[0].text += loopText;
                     return newMessages;
                 } else {
                     return [...prev, { role: 'model', parts: [{ text: loopText }] }];
