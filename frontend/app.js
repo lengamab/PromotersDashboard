@@ -1993,9 +1993,10 @@ async function fetchPNLData() {
             });
         }
         
-        // 4. Calculate Net Profit
+        // 4. Calculate Net Profit and IVA (Spain 21%)
         const totalExpenses = metaSpent + totalCommissions + totalManualExpenses;
-        const netProfit = totalFvRevenue - totalExpenses;
+        const ivaAmount = totalFvRevenue - (totalFvRevenue / 1.21);
+        const netProfit = totalFvRevenue - totalExpenses - ivaAmount;
         
         // Update Stat Cards
         animateValue(document.getElementById('pnl-total-revenue'), 0, totalFvRevenue, 1000, true, '', '€');
@@ -2017,6 +2018,7 @@ async function fetchPNLData() {
         document.getElementById('pnl-summary-meta').textContent = '-' + metaSpent.toFixed(2) + '€';
         document.getElementById('pnl-summary-commissions').textContent = '-' + totalCommissions.toFixed(2) + '€';
         document.getElementById('pnl-summary-manual').textContent = '-' + totalManualExpenses.toFixed(2) + '€';
+        document.getElementById('pnl-summary-iva').textContent = '-' + ivaAmount.toFixed(2) + '€';
         
         const sumNet = document.getElementById('pnl-summary-net');
         sumNet.textContent = netProfit.toFixed(2) + '€';
