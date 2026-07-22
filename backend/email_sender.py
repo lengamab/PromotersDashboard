@@ -212,14 +212,14 @@ def gather_performance_report(start_date=None, end_date=None):
         event_date_raw = event.get("date", 0)
         is_completed = (event_date_raw + 86400) < current_time
         
-        # Invalidate cache if it doesn't have the new format (checking for commission in daily stats)
+        # Invalidate cache if it doesn't have the new format (checking for cash_revenue in daily stats)
         is_valid_cache = False
         if is_completed and event_id in cache["events"] and isinstance(cache["events"][event_id], dict):
             daily_data = cache["events"][event_id].get("daily", {})
             if daily_data:
                 first_day = next(iter(daily_data.values()))
                 first_promoter = next(iter(first_day.get("promoters", {}).values()), {})
-                if "commission" in first_promoter:
+                if "cash_revenue" in first_promoter:
                     is_valid_cache = True
                     
         if not (is_completed and is_valid_cache):
@@ -245,7 +245,7 @@ def gather_performance_report(start_date=None, end_date=None):
             if daily_data:
                 first_day = next(iter(daily_data.values()))
                 first_promoter = next(iter(first_day.get("promoters", {}).values()), {})
-                if "commission" in first_promoter:
+                if "cash_revenue" in first_promoter:
                     is_valid_cache = True
                     
         if is_completed and is_valid_cache:
