@@ -2117,6 +2117,20 @@ async function fetchPNLData() {
             
             renderCashoutsTable('Jules', 'cashout-list-jules');
             renderCashoutsTable('Brice', 'cashout-list-brice');
+
+            const totalCashouts = julesTotal + briceTotal;
+            const finalBalance = netProfit - totalCashouts;
+
+            const cashoutsEl = document.getElementById('pnl-summary-cashouts');
+            if (cashoutsEl) {
+                cashoutsEl.textContent = '-' + totalCashouts.toFixed(2) + '€';
+            }
+
+            const finalBalanceEl = document.getElementById('pnl-summary-final-balance');
+            if (finalBalanceEl) {
+                finalBalanceEl.textContent = finalBalance.toFixed(2) + '€';
+                finalBalanceEl.style.color = finalBalance < 0 ? 'var(--color-danger)' : 'var(--color-success)';
+            }
         }
         
     } catch (e) {
