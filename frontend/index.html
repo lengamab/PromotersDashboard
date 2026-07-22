@@ -48,6 +48,9 @@
                 <button class="nav-tab" data-tab="sales">
                     <i class="fa-solid fa-list-ul"></i> Full Sales History
                 </button>
+                <button class="nav-tab" data-tab="pnl">
+                    <i class="fa-solid fa-scale-balanced"></i> Profit & Loss
+                </button>
                 <button class="nav-tab" onclick="window.location.href='partners.html'" style="background: var(--surface-color); color: var(--color-primary); border: 1px solid var(--color-primary);">
                     <i class="fa-solid fa-handshake"></i> Partners Dashboard
                 </button>
@@ -492,6 +495,112 @@
             </main>
         </div>
 
+        <!-- Profit & Loss View -->
+        <div id="view-pnl" class="view-pane hidden">
+            <!-- PNL Stats Grid -->
+            <div class="stats-grid" style="margin-bottom: 24px; margin-top: 10px; grid-template-columns: repeat(4, 1fr);">
+                <div class="stat-card" style="border-left: 4px solid var(--color-success);">
+                    <div class="stat-icon" style="color: var(--color-success); background: rgba(16, 185, 129, 0.1);"><i class="fa-solid fa-arrow-trend-up"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-label">Total Revenue</div>
+                        <div class="stat-value" id="pnl-total-revenue" style="color: var(--color-success);">0.00€</div>
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid var(--color-danger);">
+                    <div class="stat-icon" style="color: var(--color-danger); background: rgba(239, 68, 68, 0.1);"><i class="fa-solid fa-arrow-trend-down"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-label">Total Expenses</div>
+                        <div class="stat-value" id="pnl-total-expenses" style="color: var(--color-danger);">0.00€</div>
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid var(--color-warning);">
+                    <div class="stat-icon" style="color: var(--color-warning); background: rgba(245, 158, 11, 0.1);"><i class="fa-solid fa-percent"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-label">Promoter Commissions</div>
+                        <div class="stat-value" id="pnl-promoter-commissions" style="color: var(--color-warning);">0.00€</div>
+                    </div>
+                </div>
+                <div class="stat-card total">
+                    <div class="stat-icon-wrapper">
+                        <i class="fa-solid fa-piggy-bank"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Net Profit</h3>
+                        <p id="pnl-net-profit">0.00€</p>
+                    </div>
+                    <div class="card-glow"></div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px; margin-bottom: 24px;">
+                <!-- PNL Summary -->
+                <main class="sheet-container">
+                    <h3 style="padding: 16px; margin: 0; border-bottom: 1px solid var(--border-color); color: var(--text-primary);">
+                        <i class="fa-solid fa-chart-pie"></i> Financial Summary
+                    </h3>
+                    <div class="table-wrapper">
+                        <table class="tracking-table pnl-table">
+                            <tbody>
+                                <tr>
+                                    <td><strong>Fourvenues Revenue</strong></td>
+                                    <td style="text-align: right; color: var(--color-success);" id="pnl-summary-revenue">0.00€</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Meta Ads Spent</strong></td>
+                                    <td style="text-align: right; color: var(--color-danger);" id="pnl-summary-meta">-0.00€</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Promoter Commissions</strong></td>
+                                    <td style="text-align: right; color: var(--color-danger);" id="pnl-summary-commissions">-0.00€</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Manual Expenses</strong></td>
+                                    <td style="text-align: right; color: var(--color-danger);" id="pnl-summary-manual">-0.00€</td>
+                                </tr>
+                                <tr style="background-color: var(--bg-surface); font-weight: bold; border-top: 2px solid var(--border-color);">
+                                    <td style="font-size: 16px;">NET PROFIT</td>
+                                    <td style="text-align: right; font-size: 16px;" id="pnl-summary-net">0.00€</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </main>
+
+                <!-- Manual Expenses -->
+                <main class="sheet-container">
+                    <div style="padding: 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0; color: var(--text-primary);">
+                            <i class="fa-solid fa-receipt"></i> Manual Expenses
+                        </h3>
+                        <button class="btn btn-primary btn-sm" onclick="openExpenseModal()">
+                            <i class="fa-solid fa-plus"></i> Add Expense
+                        </button>
+                    </div>
+                    <div class="table-wrapper" style="max-height: 400px; overflow-y: auto;">
+                        <table class="tracking-table expenses-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 15%">Date</th>
+                                    <th style="width: 25%">Person</th>
+                                    <th style="width: 15%; text-align: center;">Method</th>
+                                    <th style="width: 25%">Description</th>
+                                    <th style="width: 15%; text-align: right;">Amount (€)</th>
+                                    <th style="width: 5%; text-align: center;">Act</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pnl-expenses-body">
+                                <tr>
+                                    <td colspan="6" class="loading-state">
+                                        <i class="fa-solid fa-spinner fa-spin"></i> Loading expenses...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </main>
+            </div>
+        </div>
+
         <!-- Promoter Profile Modal -->
         <div id="promoter-modal" class="modal">
             <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
@@ -712,6 +821,48 @@
             </div>
         </div>
         
+        <!-- Add Expense Modal -->
+        <div id="expense-modal" class="modal">
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2><i class="fa-solid fa-plus-circle"></i> Add Manual Expense</h2>
+                    <span class="close-modal" onclick="closeExpenseModal()">&times;</span>
+                </div>
+                <div class="modal-body" style="padding: 20px;">
+                    <form id="expense-form" style="display: flex; flex-direction: column; gap: 15px;">
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
+                            <label for="expense-date" style="font-size: 14px; font-weight: 500;">Date</label>
+                            <input type="date" id="expense-date" required style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
+                            <label for="expense-person" style="font-size: 14px; font-weight: 500;">Person (Who spent it?)</label>
+                            <input type="text" id="expense-person" required placeholder="e.g., Brice, Meta..." style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
+                            <label for="expense-amount" style="font-size: 14px; font-weight: 500;">Amount (€)</label>
+                            <input type="number" id="expense-amount" step="0.01" required placeholder="0.00" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
+                            <label for="expense-method" style="font-size: 14px; font-weight: 500;">Method</label>
+                            <select id="expense-method" required style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Card">Card</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
+                            <label for="expense-desc" style="font-size: 14px; font-weight: 500;">Description (Optional)</label>
+                            <input type="text" id="expense-desc" placeholder="e.g., Facebook ads, VIP table decor..." style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="margin-top: 10px; width: 100%; padding: 12px; font-size: 16px;">
+                            <i class="fa-solid fa-save"></i> Save Expense
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <!-- Toast Notifications -->
         <div id="toast-container" class="toast-container"></div>
     </div>

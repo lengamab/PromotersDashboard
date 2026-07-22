@@ -65,6 +65,7 @@ const viewEventPerformance = document.getElementById('view-event-performance');
 const performanceTableBody = document.getElementById('performance-table-body');
 const viewSales = document.getElementById('view-sales');
 const salesTableBody = document.getElementById('sales-table-body');
+const viewPnl = document.getElementById('view-pnl');
 const navTabs = document.querySelectorAll('.nav-tab');
 const searchInput = document.getElementById('search-input');
 const filterBtns = document.querySelectorAll('.filter-btn');
@@ -1567,6 +1568,7 @@ navTabs.forEach(tab => {
         viewPerformance.classList.add('hidden');
         if (viewEventPerformance) viewEventPerformance.classList.add('hidden');
         if (viewSales) viewSales.classList.add('hidden');
+        if (viewPnl) viewPnl.classList.add('hidden');
         
         // Show active and update stat labels
         if (viewName === 'tracking') {
@@ -1605,6 +1607,10 @@ navTabs.forEach(tab => {
                     }
                 }, 60000);
             }
+        } else if (viewName === 'pnl') {
+            if (viewPnl) viewPnl.classList.remove('hidden');
+            mainStats.classList.add('hidden');
+            fetchPNLData();
         }
     });
 });
@@ -1858,6 +1864,9 @@ function reloadCurrentTab() {
         case 'sales':
             loadSalesHistory();
             break;
+        case 'pnl':
+            fetchPNLData();
+            break;
     }
 }
 
@@ -1919,4 +1928,200 @@ function openDailySalesModal(dayData) {
 
 function closeDailySalesModal() {
     document.getElementById('modal-daily-sales').style.display = 'none';
+}
+
+// --- Profit and Loss (PNL) Logic ---
+
+let currentExpenses = [];
+
+async function fetchPNLData() {
+    if (!document.getElementById('view-pnl') || document.getElementById('view-pnl').classList.contains('hidden')) return;
+    
+    // Show loading states
+    document.getElementById('pnl-expenses-body').innerHTML = '<tr><td colspan="6" class="loading-state"><i class="fa-solid fa-spinner fa-spin"></i> Loading PNL data...</td></tr>';
+    
+    const query = getDateQueryString();
+    
+    try {
+        // 1. Fetch Fourvenues Revenue & Commissions
+        const perfRes = await fetch(`/api/events/performance${query}`);
+        const perfData = await perfRes.json();
+        
+        let totalFvRevenue = 0;
+        let totalCommissions = 0;
+        
+        if (perfData.success && perfData.data) {
+            perfData.data.forEach(ev => {
+                totalFvRevenue += (ev.total_revenue || 0);
+            });
+        }
+        
+        // Also fetch performance (promoter stats) for commissions since event stats don't return commissions directly
+        const promPerfRes = await fetch(`/api/performance${query}`);
+        const promPerfData = await promPerfRes.json();
+        if (promPerfData.success && promPerfData.data) {
+            promPerfData.data.forEach(p => {
+                totalCommissions += (p.total_commission || 0);
+            });
+        }
+
+        // 2. Fetch Meta Ads Spent
+        let metaSpent = 0;
+        const fromDate = dateStart || new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0];
+        const toDate = dateEnd || new Date().toISOString().split('T')[0];
+        
+        try {
+            const metaUrl = `/api/meta-proxy/act_911535275086772/insights?level=account&time_range=${encodeURIComponent(JSON.stringify({ since: fromDate, until: toDate }))}`;
+            const metaRes = await fetch(metaUrl);
+            const metaData = await metaRes.json();
+            if (metaData.data && metaData.data.length > 0) {
+                metaSpent = parseFloat(metaData.data[0].spend || 0);
+            }
+        } catch (e) {
+            console.error("Failed to fetch meta spent", e);
+        }
+
+        // 3. Fetch Manual Expenses
+        const expRes = await fetch(`/api/expenses${query}`);
+        const expData = await expRes.json();
+        
+        let totalManualExpenses = 0;
+        if (expData.success) {
+            currentExpenses = expData.data;
+            currentExpenses.forEach(ex => {
+                totalManualExpenses += parseFloat(ex.amount || 0);
+            });
+        }
+        
+        // 4. Calculate Net Profit
+        const totalExpenses = metaSpent + totalCommissions + totalManualExpenses;
+        const netProfit = totalFvRevenue - totalExpenses;
+        
+        // Update Stat Cards
+        animateValue(document.getElementById('pnl-total-revenue'), 0, totalFvRevenue, 1000, true, '', '€');
+        animateValue(document.getElementById('pnl-total-expenses'), 0, totalExpenses, 1000, true, '', '€');
+        animateValue(document.getElementById('pnl-promoter-commissions'), 0, totalCommissions, 1000, true, '', '€');
+        animateValue(document.getElementById('pnl-net-profit'), 0, netProfit, 1000, true, '', '€');
+        
+        const netProfitCard = document.getElementById('pnl-net-profit').parentElement.parentElement;
+        if (netProfit < 0) {
+            netProfitCard.style.borderLeft = '4px solid var(--color-danger)';
+            netProfitCard.querySelector('.stat-icon-wrapper').style.color = 'var(--color-danger)';
+        } else {
+            netProfitCard.style.borderLeft = '4px solid var(--color-success)';
+            netProfitCard.querySelector('.stat-icon-wrapper').style.color = 'var(--color-success)';
+        }
+        
+        // Update PNL Summary Table
+        document.getElementById('pnl-summary-revenue').textContent = totalFvRevenue.toFixed(2) + '€';
+        document.getElementById('pnl-summary-meta').textContent = '-' + metaSpent.toFixed(2) + '€';
+        document.getElementById('pnl-summary-commissions').textContent = '-' + totalCommissions.toFixed(2) + '€';
+        document.getElementById('pnl-summary-manual').textContent = '-' + totalManualExpenses.toFixed(2) + '€';
+        
+        const sumNet = document.getElementById('pnl-summary-net');
+        sumNet.textContent = netProfit.toFixed(2) + '€';
+        sumNet.style.color = netProfit < 0 ? 'var(--color-danger)' : 'var(--color-success)';
+        
+        renderExpensesTable();
+        
+    } catch (e) {
+        console.error("Failed to fetch PNL data", e);
+        document.getElementById('pnl-expenses-body').innerHTML = `<tr><td colspan="6" class="loading-state" style="color:var(--color-danger)">Failed to load data.</td></tr>`;
+    }
+}
+
+function renderExpensesTable() {
+    const tbody = document.getElementById('pnl-expenses-body');
+    tbody.innerHTML = '';
+    
+    if (currentExpenses.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-secondary);">No manual expenses found in this period.</td></tr>';
+        return;
+    }
+    
+    // Sort by date desc
+    currentExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    currentExpenses.forEach(ex => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${ex.date}</td>
+            <td style="font-weight: 500;">${ex.person}</td>
+            <td style="text-align: center;"><span class="status-badge" style="background: var(--surface-color); color: var(--text-primary); border: 1px solid var(--border-color);">${ex.method}</span></td>
+            <td style="color: var(--text-secondary); font-size: 13px;">${ex.description || '-'}</td>
+            <td style="text-align: right; color: var(--color-danger); font-weight: 500;">${parseFloat(ex.amount).toFixed(2)}€</td>
+            <td style="text-align: center;">
+                <button class="action-btn" style="color: var(--color-danger); padding: 4px;" onclick="deleteExpense('${ex.id}')" title="Delete">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function openExpenseModal() {
+    const modal = document.getElementById('expense-modal');
+    document.getElementById('expense-form').reset();
+    document.getElementById('expense-date').value = new Date().toISOString().split('T')[0];
+    modal.classList.add('show');
+}
+
+function closeExpenseModal() {
+    document.getElementById('expense-modal').classList.remove('show');
+}
+
+document.getElementById('expense-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const date = document.getElementById('expense-date').value;
+    const person = document.getElementById('expense-person').value;
+    const amount = document.getElementById('expense-amount').value;
+    const method = document.getElementById('expense-method').value;
+    const desc = document.getElementById('expense-desc').value;
+    
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+    submitBtn.disabled = true;
+    
+    try {
+        const res = await fetch('/api/expenses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date, person, amount, method, description: desc })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+            showToast('Expense saved successfully', 'success');
+            closeExpenseModal();
+            fetchPNLData();
+        } else {
+            showToast(data.error || 'Failed to save expense', 'error');
+        }
+    } catch (err) {
+        showToast('Network error', 'error');
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
+});
+
+async function deleteExpense(id) {
+    if (!confirm("Are you sure you want to delete this expense?")) return;
+    
+    try {
+        const res = await fetch('/api/expenses/' + id, { method: 'DELETE' });
+        const data = await res.json();
+        
+        if (data.success) {
+            showToast('Expense deleted', 'success');
+            fetchPNLData();
+        } else {
+            showToast(data.error || 'Failed to delete', 'error');
+        }
+    } catch (err) {
+        showToast('Network error', 'error');
+    }
 }

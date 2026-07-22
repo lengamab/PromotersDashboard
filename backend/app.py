@@ -40,6 +40,27 @@ def save_db(data):
         print(f"Error saving to DB: {e}")
         return False
 
+EXPENSES_PATH = os.path.join(os.path.dirname(__file__), 'expenses.json')
+
+def load_expenses():
+    if os.path.exists(EXPENSES_PATH):
+        try:
+            with open(EXPENSES_PATH, 'r') as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+def save_expenses(data):
+    try:
+        with open(EXPENSES_PATH, 'w') as f:
+            json.dump(data, f, indent=2)
+        return True
+    except Exception as e:
+        print(f"Error saving expenses: {e}")
+        return False
+
+
 # Serve index.html on root route
 @app.route('/')
 def serve_index():
@@ -405,6 +426,80 @@ def meta_proxy(endpoint):
         return jsonify(resp.json()), resp.status_code
     except Exception as e:
         return jsonify({"error": {"message": str(e)}}), 500
+
+# API: Expenses endpoints
+@app.route('/api/expenses', methods=['GET'])
+def get_expenses():
+    try:
+        expenses = load_expenses()
+        start = request.args.get('start')
+        end = request.args.get('end')
+        
+        filtered_expenses = []
+        for expense in expenses:
+            expense_date = expense.get('date', '')
+            if start and expense_date < start:
+                continue
+            if end and expense_date > end:
+                continue
+            filtered_expenses.append(expense)
+            
+        return jsonify({"success": True, "data": filtered_expenses})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/expenses', methods=['POST'])
+def add_expense():
+    try:
+        req_data = request.json or {}
+        expenses = load_expenses()
+        
+        import uuid
+        expense_id = req_data.get('id') or str(uuid.uuid4())
+        
+        new_expense = {
+            "id": expense_id,
+            "date": req_data.get('date'),
+            "person": req_data.get('person'),
+            "amount": float(req_data.get('amount', 0)),
+            "method": req_data.get('method'),
+            "description": req_data.get('description', '')
+        }
+        
+        # If updating, find and replace
+        updated = False
+        for i, expense in enumerate(expenses):
+            if expense.get('id') == expense_id:
+                expenses[i] = new_expense
+                updated = True
+                break
+                
+        if not updated:
+            expenses.append(new_expense)
+            
+        if save_expenses(expenses):
+            return jsonify({"success": True, "expense": new_expense})
+        else:
+            return jsonify({"success": False, "error": "Failed to save expenses"}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/expenses/<expense_id>', methods=['DELETE'])
+def delete_expense(expense_id):
+    try:
+        expenses = load_expenses()
+        original_length = len(expenses)
+        expenses = [e for e in expenses if e.get('id') != expense_id]
+        
+        if len(expenses) < original_length:
+            if save_expenses(expenses):
+                return jsonify({"success": True})
+            else:
+                return jsonify({"success": False, "error": "Failed to save expenses"}), 500
+        else:
+            return jsonify({"success": False, "error": "Expense not found"}), 404
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 5000))
