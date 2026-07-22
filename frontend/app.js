@@ -1956,7 +1956,7 @@ async function fetchPNLData() {
                 totalFvRevenue += (ev.total_revenue || 0);
                 
                 // Calculate boat party costs (40 euros per ticket sold)
-                if (ev.event_name && ev.event_name.toLowerCase().includes('boat party')) {
+                if (ev.event_name && ev.event_name.normalize("NFKD").toLowerCase().includes('boat party')) {
                     boatPartyCosts += (ev.total_tickets || 0) * 40;
                 }
             });
@@ -2107,11 +2107,12 @@ function openExpenseModal() {
     const modal = document.getElementById('expense-modal');
     document.getElementById('expense-form').reset();
     document.getElementById('expense-date').value = new Date().toISOString().split('T')[0];
-    modal.classList.add('show');
+    if (modal) modal.style.display = 'block';
 }
 
 function closeExpenseModal() {
-    document.getElementById('expense-modal').classList.remove('show');
+    const modal = document.getElementById('expense-modal');
+    if (modal) modal.style.display = 'none';
 }
 
 document.getElementById('expense-form')?.addEventListener('submit', async (e) => {
@@ -2171,10 +2172,10 @@ async function deleteExpense(id) {
 
 function openCommissionBreakdownModal() {
     const modal = document.getElementById('commission-breakdown-modal');
-    if (modal) modal.classList.add('show');
+    if (modal) modal.style.display = 'block';
 }
 
 function closeCommissionBreakdownModal() {
     const modal = document.getElementById('commission-breakdown-modal');
-    if (modal) modal.classList.remove('show');
+    if (modal) modal.style.display = 'none';
 }
