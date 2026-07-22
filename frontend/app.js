@@ -1962,14 +1962,37 @@ async function fetchPNLData() {
             });
         }
         
-        // Also fetch performance (promoter stats) for commissions since event stats don't return commissions directly
+        // Also fetch performance (promoter stats) for commissions and cash/online split
         const promPerfRes = await fetch(`/api/performance${query}`);
         const promPerfData = await promPerfRes.json();
-        if (promPerfData.success && promPerfData.data && promPerfData.data.promoter_stats) {
-            promPerfData.data.promoter_stats.forEach(p => {
-                totalCommissions += (p.total_commission || 0);
-            });
+        
+        let promHtml = '';
+        if (promPerfData.success && promPerfData.data) {
+            // Update Revenue Split
+            const cash = promPerfData.data.total_cash_revenue || 0;
+            const online = promPerfData.data.total_online_revenue || 0;
+            const splitEl = document.getElementById('pnl-revenue-split');
+            if (splitEl) {
+                splitEl.textContent = `Cash: ${cash.toFixed(2)}€ | Online: ${online.toFixed(2)}€`;
+            }
+            
+            if (promPerfData.data.promoter_stats) {
+                promPerfData.data.promoter_stats.forEach(p => {
+                    totalCommissions += (p.total_commission || 0);
+                    promHtml += `
+                        <tr>
+                            <td>
+                                <div style="font-weight: 500;">${p.promoter_name}</div>
+                            </td>
+                            <td style="text-align: right;">${p.total_tickets}</td>
+                            <td style="text-align: right;">${(p.total_revenue || 0).toFixed(2)}€</td>
+                            <td style="text-align: right; color: var(--color-warning); font-weight: bold;">${(p.total_commission || 0).toFixed(2)}€</td>
+                        </tr>
+                    `;
+                });
+            }
         }
+        document.getElementById('commission-breakdown-body').innerHTML = promHtml;
 
         // 2. Fetch Meta Ads Spent
         let metaSpent = 0;
@@ -1999,10 +2022,19 @@ async function fetchPNLData() {
             });
         }
         
-        // 4. Calculate Net Profit and IVA (Spain 21%)
+        // 4. Calculate Net Profit, IVA, IRPF and Cuota
+        const cuotaInput = document.getElementById('pnl-cuota-input');
+        const cuotaAmount = cuotaInput ? parseFloat(cuotaInput.value || 0) : 300;
+        
         const totalExpenses = metaSpent + totalCommissions + totalManualExpenses + boatPartyCosts;
         const ivaAmount = totalFvRevenue - (totalFvRevenue / 1.21);
-        const netProfit = totalFvRevenue - totalExpenses - ivaAmount;
+        
+        const netProfitBeforeTaxes = totalFvRevenue - totalExpenses - ivaAmount - cuotaAmount;
+        let irpfAmount = 0;
+        if (netProfitBeforeTaxes > 0) {
+            irpfAmount = netProfitBeforeTaxes * 0.07;
+        }
+        const netProfit = netProfitBeforeTaxes - irpfAmount;
         
         // Update Stat Cards
         animateValue(document.getElementById('pnl-total-revenue'), 0, totalFvRevenue, 1000, true, '', '€');
@@ -2026,6 +2058,8 @@ async function fetchPNLData() {
         document.getElementById('pnl-summary-commissions').textContent = '-' + totalCommissions.toFixed(2) + '€';
         document.getElementById('pnl-summary-manual').textContent = '-' + totalManualExpenses.toFixed(2) + '€';
         document.getElementById('pnl-summary-iva').textContent = '-' + ivaAmount.toFixed(2) + '€';
+        document.getElementById('pnl-summary-irpf').textContent = '-' + irpfAmount.toFixed(2) + '€';
+        document.getElementById('pnl-summary-cuota').textContent = '-' + cuotaAmount.toFixed(2) + '€';
         
         const sumNet = document.getElementById('pnl-summary-net');
         sumNet.textContent = netProfit.toFixed(2) + '€';
@@ -2133,4 +2167,14 @@ async function deleteExpense(id) {
     } catch (err) {
         showToast('Network error', 'error');
     }
+}
+
+function openCommissionBreakdownModal() {
+    const modal = document.getElementById('commission-breakdown-modal');
+    if (modal) modal.classList.add('show');
+}
+
+function closeCommissionBreakdownModal() {
+    const modal = document.getElementById('commission-breakdown-modal');
+    if (modal) modal.classList.remove('show');
 }

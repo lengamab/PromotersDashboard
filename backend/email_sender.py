@@ -282,10 +282,14 @@ def gather_performance_report(start_date=None, end_date=None):
                 _, day_str = parse_fourvenues_time(created_at)
                 
                 if day_str not in event_daily:
-                    event_daily[day_str] = {"sales": 0, "revenue": 0.0, "promoters": {}, "no_shows": 0}
+                    event_daily[day_str] = {"sales": 0, "revenue": 0.0, "cash_revenue": 0.0, "online_revenue": 0.0, "promoters": {}, "no_shows": 0}
                     
                 event_daily[day_str]["sales"] += 1
                 event_daily[day_str]["revenue"] += price
+                if sale_type == "cash":
+                    event_daily[day_str]["cash_revenue"] += price
+                else:
+                    event_daily[day_str]["online_revenue"] += price
                 if is_completed and t.get("enter", 0) != 1:
                     event_daily[day_str]["no_shows"] += 1
                 
@@ -293,11 +297,17 @@ def gather_performance_report(start_date=None, end_date=None):
                     event_daily[day_str]["promoters"][promoter_id] = {
                         "sales": 0, 
                         "revenue": 0.0,
+                        "cash_revenue": 0.0,
+                        "online_revenue": 0.0,
                         "commission": 0.0,
                         "no_shows": 0
                     }
                 event_daily[day_str]["promoters"][promoter_id]["sales"] += 1
                 event_daily[day_str]["promoters"][promoter_id]["revenue"] += price
+                if sale_type == "cash":
+                    event_daily[day_str]["promoters"][promoter_id]["cash_revenue"] += price
+                else:
+                    event_daily[day_str]["promoters"][promoter_id]["online_revenue"] += price
                 event_daily[day_str]["promoters"][promoter_id]["commission"] += comm
                 
                 if is_completed and t.get("enter", 0) != 1:
@@ -321,16 +331,20 @@ def gather_performance_report(start_date=None, end_date=None):
                 
             # Merge into daily_trends
             if day_str not in daily_trends:
-                daily_trends[day_str] = {"date": day_str, "sales": 0, "revenue": 0.0, "promoters": {}, "no_shows": 0}
+                daily_trends[day_str] = {"date": day_str, "sales": 0, "revenue": 0.0, "cash_revenue": 0.0, "online_revenue": 0.0, "promoters": {}, "no_shows": 0}
             daily_trends[day_str]["sales"] += stats["sales"]
             daily_trends[day_str]["revenue"] += stats["revenue"]
+            daily_trends[day_str]["cash_revenue"] += stats.get("cash_revenue", 0.0)
+            daily_trends[day_str]["online_revenue"] += stats.get("online_revenue", 0.0)
             daily_trends[day_str]["no_shows"] += stats.get("no_shows", 0)
             
             for pid, pstats in stats.get("promoters", {}).items():
                 if pid not in daily_trends[day_str]["promoters"]:
-                    daily_trends[day_str]["promoters"][pid] = {"sales": 0, "revenue": 0.0, "events": {}}
+                    daily_trends[day_str]["promoters"][pid] = {"sales": 0, "revenue": 0.0, "cash_revenue": 0.0, "online_revenue": 0.0, "events": {}}
                 daily_trends[day_str]["promoters"][pid]["sales"] += pstats["sales"]
                 daily_trends[day_str]["promoters"][pid]["revenue"] += pstats["revenue"]
+                daily_trends[day_str]["promoters"][pid]["cash_revenue"] += pstats.get("cash_revenue", 0.0)
+                daily_trends[day_str]["promoters"][pid]["online_revenue"] += pstats.get("online_revenue", 0.0)
                 
                 if event_name not in daily_trends[day_str]["promoters"][pid]["events"]:
                     daily_trends[day_str]["promoters"][pid]["events"][event_name] = 0
@@ -343,6 +357,8 @@ def gather_performance_report(start_date=None, end_date=None):
                         "promoter_name": users_dict.get(pid, "Direct Sale / No Promoter"),
                         "total_tickets": 0,
                         "total_revenue": 0.0,
+                        "cash_revenue": 0.0,
+                        "online_revenue": 0.0,
                         "total_commission": 0.0,
                         "total_no_shows": 0,
                         "events_promoted_set": set()
@@ -351,6 +367,8 @@ def gather_performance_report(start_date=None, end_date=None):
                 pg = promoter_globals[pid]
                 pg["total_tickets"] += pstats["sales"]
                 pg["total_revenue"] += pstats["revenue"]
+                pg["cash_revenue"] += pstats.get("cash_revenue", 0.0)
+                pg["online_revenue"] += pstats.get("online_revenue", 0.0)
                 if pg["promoter_name"].lower() not in NO_COMMISSION_PROMOTERS:
                     pg["total_commission"] += pstats.get("commission", 0.0)
                 pg["total_no_shows"] += pstats.get("no_shows", 0)
@@ -404,6 +422,8 @@ def gather_performance_report(start_date=None, end_date=None):
                 "promoter_name": pname,
                 "sales": pstats["sales"],
                 "revenue": pstats["revenue"],
+                "cash_revenue": pstats.get("cash_revenue", 0.0),
+                "online_revenue": pstats.get("online_revenue", 0.0),
                 "events_sold": events_sold
             })
         promoter_list.sort(key=lambda x: x["sales"], reverse=True)
@@ -411,9 +431,14 @@ def gather_performance_report(start_date=None, end_date=None):
         
         sorted_trends.append(trend)
     
+    total_cash_revenue = sum(p["cash_revenue"] for p in results)
+    total_online_revenue = sum(p["online_revenue"] for p in results)
+
     return {
         "promoter_stats": results,
-        "daily_trends": sorted_trends
+        "daily_trends": sorted_trends,
+        "total_cash_revenue": total_cash_revenue,
+        "total_online_revenue": total_online_revenue
     }
 
 def gather_cash_report(start_date=None, end_date=None):
