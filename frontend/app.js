@@ -1949,10 +1949,16 @@ async function fetchPNLData() {
         
         let totalFvRevenue = 0;
         let totalCommissions = 0;
+        let boatPartyCosts = 0;
         
         if (perfData.success && perfData.data) {
             perfData.data.forEach(ev => {
                 totalFvRevenue += (ev.total_revenue || 0);
+                
+                // Calculate boat party costs (40 euros per ticket sold)
+                if (ev.event_name && ev.event_name.toLowerCase().includes('boat party')) {
+                    boatPartyCosts += (ev.total_tickets || 0) * 40;
+                }
             });
         }
         
@@ -1994,7 +2000,7 @@ async function fetchPNLData() {
         }
         
         // 4. Calculate Net Profit and IVA (Spain 21%)
-        const totalExpenses = metaSpent + totalCommissions + totalManualExpenses;
+        const totalExpenses = metaSpent + totalCommissions + totalManualExpenses + boatPartyCosts;
         const ivaAmount = totalFvRevenue - (totalFvRevenue / 1.21);
         const netProfit = totalFvRevenue - totalExpenses - ivaAmount;
         
@@ -2016,6 +2022,7 @@ async function fetchPNLData() {
         // Update PNL Summary Table
         document.getElementById('pnl-summary-revenue').textContent = totalFvRevenue.toFixed(2) + '€';
         document.getElementById('pnl-summary-meta').textContent = '-' + metaSpent.toFixed(2) + '€';
+        document.getElementById('pnl-summary-boat').textContent = '-' + boatPartyCosts.toFixed(2) + '€';
         document.getElementById('pnl-summary-commissions').textContent = '-' + totalCommissions.toFixed(2) + '€';
         document.getElementById('pnl-summary-manual').textContent = '-' + totalManualExpenses.toFixed(2) + '€';
         document.getElementById('pnl-summary-iva').textContent = '-' + ivaAmount.toFixed(2) + '€';
