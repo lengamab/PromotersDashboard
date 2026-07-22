@@ -1933,6 +1933,7 @@ function closeDailySalesModal() {
 // --- Profit and Loss (PNL) Logic ---
 
 let currentExpenses = [];
+let currentCashouts = [];
 
 async function fetchPNLData() {
     if (!document.getElementById('view-pnl') || document.getElementById('view-pnl').classList.contains('hidden')) return;
@@ -2015,10 +2016,15 @@ async function fetchPNLData() {
         const expData = await expRes.json();
         
         let totalManualExpenses = 0;
+        let totalManualIncomes = 0;
         if (expData.success) {
             currentExpenses = expData.data;
             currentExpenses.forEach(ex => {
-                totalManualExpenses += parseFloat(ex.amount || 0);
+                if (ex.type === 'income') {
+                    totalManualIncomes += parseFloat(ex.amount || 0);
+                } else {
+                    totalManualExpenses += parseFloat(ex.amount || 0);
+                }
             });
         }
         
@@ -2027,9 +2033,10 @@ async function fetchPNLData() {
         const cuotaAmount = cuotaInput ? parseFloat(cuotaInput.value || 0) : 300;
         
         const totalExpenses = metaSpent + totalCommissions + totalManualExpenses + boatPartyCosts;
-        const ivaAmount = totalFvRevenue - (totalFvRevenue / 1.21);
+        const totalRevenueWithIncomes = totalFvRevenue + totalManualIncomes;
+        const ivaAmount = totalRevenueWithIncomes - (totalRevenueWithIncomes / 1.21);
         
-        const netProfitBeforeTaxes = totalFvRevenue - totalExpenses - ivaAmount - cuotaAmount;
+        const netProfitBeforeTaxes = totalRevenueWithIncomes - totalExpenses - ivaAmount - cuotaAmount;
         let irpfAmount = 0;
         if (netProfitBeforeTaxes > 0) {
             irpfAmount = netProfitBeforeTaxes * 0.07;
@@ -2037,7 +2044,7 @@ async function fetchPNLData() {
         const netProfit = netProfitBeforeTaxes - irpfAmount;
         
         // Update Stat Cards
-        animateValue(document.getElementById('pnl-total-revenue'), 0, totalFvRevenue, 1000, true, '', '€');
+        animateValue(document.getElementById('pnl-total-revenue'), 0, totalRevenueWithIncomes, 1000, true, '', '€');
         animateValue(document.getElementById('pnl-total-expenses'), 0, totalExpenses, 1000, true, '', '€');
         animateValue(document.getElementById('pnl-promoter-commissions'), 0, totalCommissions, 1000, true, '', '€');
         animateValue(document.getElementById('pnl-net-profit'), 0, netProfit, 1000, true, '', '€');
@@ -2057,6 +2064,9 @@ async function fetchPNLData() {
         document.getElementById('pnl-summary-boat').textContent = '-' + boatPartyCosts.toFixed(2) + '€';
         document.getElementById('pnl-summary-commissions').textContent = '-' + totalCommissions.toFixed(2) + '€';
         document.getElementById('pnl-summary-manual').textContent = '-' + totalManualExpenses.toFixed(2) + '€';
+        if (document.getElementById('pnl-summary-manual-incomes')) {
+            document.getElementById('pnl-summary-manual-incomes').textContent = '+' + totalManualIncomes.toFixed(2) + '€';
+        }
         document.getElementById('pnl-summary-iva').textContent = '-' + ivaAmount.toFixed(2) + '€';
         document.getElementById('pnl-summary-irpf').textContent = '-' + irpfAmount.toFixed(2) + '€';
         document.getElementById('pnl-summary-cuota').textContent = '-' + cuotaAmount.toFixed(2) + '€';
@@ -2066,6 +2076,48 @@ async function fetchPNLData() {
         sumNet.style.color = netProfit < 0 ? 'var(--color-danger)' : 'var(--color-success)';
         
         renderExpensesTable();
+
+        // 5. Fetch Partner Cashouts
+        const cashRes = await fetch(`/api/cashouts${query}`);
+        const cashData = await cashRes.json();
+        
+        if (cashData.success) {
+            currentCashouts = cashData.data;
+            let julesTotal = 0;
+            let briceTotal = 0;
+            
+            currentCashouts.forEach(c => {
+                if (c.person === 'Jules') julesTotal += parseFloat(c.amount || 0);
+                if (c.person === 'Brice') briceTotal += parseFloat(c.amount || 0);
+            });
+            
+            animateValue(document.getElementById('cashout-total-jules'), 0, julesTotal, 1000, true, '', '€');
+            animateValue(document.getElementById('cashout-total-brice'), 0, briceTotal, 1000, true, '', '€');
+            
+            const julesMargin = briceTotal - julesTotal;
+            const briceMargin = julesTotal - briceTotal;
+            
+            const renderBalance = (margin, elId) => {
+                const el = document.getElementById(elId);
+                if (!el) return;
+                if (margin > 0) {
+                    el.textContent = `+${margin.toFixed(2)}€ (Available)`;
+                    el.style.color = 'var(--color-success)';
+                } else if (margin < 0) {
+                    el.textContent = `${margin.toFixed(2)}€ (Wait for partner)`;
+                    el.style.color = 'var(--color-danger)';
+                } else {
+                    el.textContent = 'Matched';
+                    el.style.color = 'var(--text-secondary)';
+                }
+            };
+            
+            renderBalance(julesMargin, 'cashout-balance-jules');
+            renderBalance(briceMargin, 'cashout-balance-brice');
+            
+            renderCashoutsTable('Jules', 'cashout-list-jules');
+            renderCashoutsTable('Brice', 'cashout-list-brice');
+        }
         
     } catch (e) {
         console.error("Failed to fetch PNL data", e);
@@ -2092,7 +2144,9 @@ function renderExpensesTable() {
             <td style="font-weight: 500;">${ex.person}</td>
             <td style="text-align: center;"><span class="status-badge" style="background: var(--surface-color); color: var(--text-primary); border: 1px solid var(--border-color);">${ex.method}</span></td>
             <td style="color: var(--text-secondary); font-size: 13px;">${ex.description || '-'}</td>
-            <td style="text-align: right; color: var(--color-danger); font-weight: 500;">${parseFloat(ex.amount).toFixed(2)}€</td>
+            <td style="text-align: right; color: ${ex.type === 'income' ? 'var(--color-success)' : 'var(--color-danger)'}; font-weight: 500;">
+                ${ex.type === 'income' ? '+' : '-'}${parseFloat(ex.amount).toFixed(2)}€
+            </td>
             <td style="text-align: center;">
                 <button class="action-btn" style="color: var(--color-danger); padding: 4px;" onclick="deleteExpense('${ex.id}')" title="Delete">
                     <i class="fa-solid fa-trash"></i>
@@ -2118,6 +2172,7 @@ function closeExpenseModal() {
 document.getElementById('expense-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    const type = document.getElementById('expense-type').value;
     const date = document.getElementById('expense-date').value;
     const person = document.getElementById('expense-person').value;
     const amount = document.getElementById('expense-amount').value;
@@ -2133,7 +2188,7 @@ document.getElementById('expense-form')?.addEventListener('submit', async (e) =>
         const res = await fetch('/api/expenses', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ date, person, amount, method, description: desc })
+            body: JSON.stringify({ type, date, person, amount, method, description: desc })
         });
         
         const data = await res.json();
@@ -2178,4 +2233,102 @@ function openCommissionBreakdownModal() {
 function closeCommissionBreakdownModal() {
     const modal = document.getElementById('commission-breakdown-modal');
     if (modal) modal.style.display = 'none';
+}
+
+// Cashout Management Logic
+function renderCashoutsTable(person, tbodyId) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    const personCashouts = currentCashouts.filter(c => c.person === person);
+    personCashouts.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    if (personCashouts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--text-secondary);">No cashouts found.</td></tr>';
+        return;
+    }
+    
+    personCashouts.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${c.date}</td>
+            <td style="color: var(--text-secondary);">${c.description || '-'}</td>
+            <td style="text-align: right; color: var(--color-success); font-weight: 500;">${parseFloat(c.amount).toFixed(2)}€</td>
+            <td style="text-align: center;">
+                <button class="action-btn" style="color: var(--color-danger); padding: 2px;" onclick="deleteCashout('${c.id}')" title="Delete">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function openCashoutModal(person) {
+    const modal = document.getElementById('cashout-modal');
+    document.getElementById('cashout-form').reset();
+    document.getElementById('cashout-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('cashout-person').value = person;
+    document.getElementById('cashout-person-display').textContent = person;
+    if (modal) modal.style.display = 'block';
+}
+
+function closeCashoutModal() {
+    const modal = document.getElementById('cashout-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+document.getElementById('cashout-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const date = document.getElementById('cashout-date').value;
+    const person = document.getElementById('cashout-person').value;
+    const amount = document.getElementById('cashout-amount').value;
+    const desc = document.getElementById('cashout-desc').value;
+    
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+    submitBtn.disabled = true;
+    
+    try {
+        const res = await fetch('/api/cashouts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date, person, amount, description: desc })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+            showToast('Cashout saved successfully', 'success');
+            closeCashoutModal();
+            fetchPNLData();
+        } else {
+            showToast(data.error || 'Failed to save cashout', 'error');
+        }
+    } catch (err) {
+        showToast('Network error', 'error');
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
+});
+
+async function deleteCashout(id) {
+    if (!confirm("Are you sure you want to delete this cashout?")) return;
+    
+    try {
+        const res = await fetch('/api/cashouts/' + id, { method: 'DELETE' });
+        const data = await res.json();
+        
+        if (data.success) {
+            showToast('Cashout deleted', 'success');
+            fetchPNLData();
+        } else {
+            showToast(data.error || 'Failed to delete', 'error');
+        }
+    } catch (err) {
+        showToast('Network error', 'error');
+    }
 }

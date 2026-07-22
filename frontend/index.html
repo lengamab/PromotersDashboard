@@ -563,6 +563,10 @@
                                     <td style="text-align: right; color: var(--color-danger);" id="pnl-summary-manual">-0.00€</td>
                                 </tr>
                                 <tr>
+                                    <td><strong>Manual Incomes</strong></td>
+                                    <td style="text-align: right; color: var(--color-success);" id="pnl-summary-manual-incomes">+0.00€</td>
+                                </tr>
+                                <tr>
                                     <td><strong>IVA (21%)</strong></td>
                                     <td style="text-align: right; color: var(--color-danger);" id="pnl-summary-iva">-0.00€</td>
                                 </tr>
@@ -589,14 +593,14 @@
                     </div>
                 </main>
 
-                <!-- Manual Expenses -->
+                <!-- Manual Records -->
                 <main class="sheet-container">
                     <div style="padding: 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
                         <h3 style="margin: 0; color: var(--text-primary);">
-                            <i class="fa-solid fa-receipt"></i> Manual Expenses
+                            <i class="fa-solid fa-receipt"></i> Manual Records
                         </h3>
                         <button class="btn btn-primary btn-sm" onclick="openExpenseModal()">
-                            <i class="fa-solid fa-plus"></i> Add Expense
+                            <i class="fa-solid fa-plus"></i> Add Record
                         </button>
                     </div>
                     <div class="table-wrapper" style="max-height: 400px; overflow-y: auto;">
@@ -619,6 +623,64 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </main>
+
+                <!-- Cashout Management -->
+                <main class="sheet-container" style="margin-top: 24px;">
+                    <div style="padding: 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0; color: var(--text-primary);">
+                            <i class="fa-solid fa-money-bill-wave"></i> Partner Cashouts
+                        </h3>
+                    </div>
+                    <div class="stats-grid" style="padding: 16px; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        <!-- Jules Card -->
+                        <div class="stat-card" style="flex-direction: column; align-items: stretch; border-top: 4px solid var(--color-primary);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <div style="font-weight: 700; font-size: 18px;">Jules</div>
+                                <button class="btn btn-primary btn-sm" onclick="openCashoutModal('Jules')"><i class="fa-solid fa-plus"></i> Add Cashout</button>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="color: var(--text-secondary);">Total Cashed Out:</span>
+                                <strong id="cashout-total-jules">0.00€</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-secondary);">Balance Status:</span>
+                                <strong id="cashout-balance-jules" style="color: var(--color-success);">Matched</strong>
+                            </div>
+                            
+                            <div style="margin-top: 16px; max-height: 150px; overflow-y: auto;">
+                                <table class="tracking-table" style="font-size: 12px;">
+                                    <tbody id="cashout-list-jules">
+                                        <!-- populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Brice Card -->
+                        <div class="stat-card" style="flex-direction: column; align-items: stretch; border-top: 4px solid var(--color-warning);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <div style="font-weight: 700; font-size: 18px;">Brice</div>
+                                <button class="btn btn-primary btn-sm" onclick="openCashoutModal('Brice')"><i class="fa-solid fa-plus"></i> Add Cashout</button>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="color: var(--text-secondary);">Total Cashed Out:</span>
+                                <strong id="cashout-total-brice">0.00€</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-secondary);">Balance Status:</span>
+                                <strong id="cashout-balance-brice" style="color: var(--color-success);">Matched</strong>
+                            </div>
+                            
+                            <div style="margin-top: 16px; max-height: 150px; overflow-y: auto;">
+                                <table class="tracking-table" style="font-size: 12px;">
+                                    <tbody id="cashout-list-brice">
+                                        <!-- populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </main>
             </div>
@@ -844,15 +906,22 @@
             </div>
         </div>
         
-        <!-- Add Expense Modal -->
+        <!-- Add Record Modal -->
         <div id="expense-modal" class="modal">
             <div class="modal-content" style="max-width: 500px;">
                 <div class="modal-header">
-                    <h2><i class="fa-solid fa-plus-circle"></i> Add Manual Expense</h2>
+                    <h2><i class="fa-solid fa-plus-circle"></i> Add Manual Record</h2>
                     <span class="close-modal" onclick="closeExpenseModal()">&times;</span>
                 </div>
                 <div class="modal-body" style="padding: 20px;">
                     <form id="expense-form" style="display: flex; flex-direction: column; gap: 15px;">
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
+                            <label for="expense-type" style="font-size: 14px; font-weight: 500;">Type</label>
+                            <select id="expense-type" required style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+                                <option value="expense">Expense</option>
+                                <option value="income">Income</option>
+                            </select>
+                        </div>
                         <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
                             <label for="expense-date" style="font-size: 14px; font-weight: 500;">Date</label>
                             <input type="date" id="expense-date" required style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
@@ -879,7 +948,7 @@
                             <input type="text" id="expense-desc" placeholder="e.g., Facebook ads, VIP table decor..." style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
                         </div>
                         <button type="submit" class="btn btn-primary" style="margin-top: 10px; width: 100%; padding: 12px; font-size: 16px;">
-                            <i class="fa-solid fa-save"></i> Save Expense
+                            <i class="fa-solid fa-save"></i> Save Record
                         </button>
                     </form>
                 </div>
@@ -908,6 +977,36 @@
                             <!-- Populated dynamically -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Cashout Modal -->
+        <div id="cashout-modal" class="modal">
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2><i class="fa-solid fa-money-bill-wave"></i> Add Cashout for <span id="cashout-person-display"></span></h2>
+                    <span class="close-modal" onclick="closeCashoutModal()">&times;</span>
+                </div>
+                <div class="modal-body" style="padding: 20px;">
+                    <form id="cashout-form" style="display: flex; flex-direction: column; gap: 15px;">
+                        <input type="hidden" id="cashout-person">
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
+                            <label for="cashout-date" style="font-size: 14px; font-weight: 500;">Date</label>
+                            <input type="date" id="cashout-date" required style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
+                            <label for="cashout-amount" style="font-size: 14px; font-weight: 500;">Amount (€)</label>
+                            <input type="number" id="cashout-amount" step="0.01" required placeholder="0.00" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
+                            <label for="cashout-desc" style="font-size: 14px; font-weight: 500;">Description (Optional)</label>
+                            <input type="text" id="cashout-desc" placeholder="e.g., Transfer to bank account" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary);">
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="margin-top: 10px; width: 100%; padding: 12px; font-size: 16px;">
+                            <i class="fa-solid fa-save"></i> Save Cashout
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

@@ -60,6 +60,26 @@ def save_expenses(data):
         print(f"Error saving expenses: {e}")
         return False
 
+CASHOUTS_PATH = os.path.join(os.path.dirname(__file__), 'cashouts.json')
+
+def load_cashouts():
+    if os.path.exists(CASHOUTS_PATH):
+        try:
+            with open(CASHOUTS_PATH, 'r') as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+def save_cashouts(data):
+    try:
+        with open(CASHOUTS_PATH, 'w') as f:
+            json.dump(data, f, indent=2)
+        return True
+    except Exception as e:
+        print(f"Error saving cashouts: {e}")
+        return False
+
 
 # Serve index.html on root route
 @app.route('/')
@@ -459,6 +479,7 @@ def add_expense():
         
         new_expense = {
             "id": expense_id,
+            "type": req_data.get('type', 'expense'),
             "date": req_data.get('date'),
             "person": req_data.get('person'),
             "amount": float(req_data.get('amount', 0)),
@@ -500,6 +521,80 @@ def delete_expense(expense_id):
             return jsonify({"success": False, "error": "Expense not found"}), 404
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+# API: Cashouts endpoints
+@app.route('/api/cashouts', methods=['GET'])
+def get_cashouts():
+    try:
+        cashouts = load_cashouts()
+        start = request.args.get('start')
+        end = request.args.get('end')
+        
+        filtered_cashouts = []
+        for cashout in cashouts:
+            cashout_date = cashout.get('date', '')
+            if start and cashout_date < start:
+                continue
+            if end and cashout_date > end:
+                continue
+            filtered_cashouts.append(cashout)
+            
+        return jsonify({"success": True, "data": filtered_cashouts})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/cashouts', methods=['POST'])
+def add_cashout():
+    try:
+        req_data = request.json or {}
+        cashouts = load_cashouts()
+        
+        import uuid
+        cashout_id = req_data.get('id') or str(uuid.uuid4())
+        
+        new_cashout = {
+            "id": cashout_id,
+            "date": req_data.get('date'),
+            "person": req_data.get('person'), # "Jules" or "Brice"
+            "amount": float(req_data.get('amount', 0)),
+            "description": req_data.get('description', '')
+        }
+        
+        # If updating, find and replace
+        updated = False
+        for i, cashout in enumerate(cashouts):
+            if cashout.get('id') == cashout_id:
+                cashouts[i] = new_cashout
+                updated = True
+                break
+                
+        if not updated:
+            cashouts.append(new_cashout)
+            
+        if save_cashouts(cashouts):
+            return jsonify({"success": True, "cashout": new_cashout})
+        else:
+            return jsonify({"success": False, "error": "Failed to save cashouts"}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/cashouts/<cashout_id>', methods=['DELETE'])
+def delete_cashout(cashout_id):
+    try:
+        cashouts = load_cashouts()
+        original_length = len(cashouts)
+        cashouts = [c for c in cashouts if c.get('id') != cashout_id]
+        
+        if len(cashouts) < original_length:
+            if save_cashouts(cashouts):
+                return jsonify({"success": True})
+            else:
+                return jsonify({"success": False, "error": "Failed to save cashouts"}), 500
+        else:
+            return jsonify({"success": False, "error": "Cashout not found"}), 404
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 5000))
