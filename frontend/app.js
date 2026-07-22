@@ -1959,8 +1959,8 @@ async function fetchPNLData() {
         // Also fetch performance (promoter stats) for commissions since event stats don't return commissions directly
         const promPerfRes = await fetch(`/api/performance${query}`);
         const promPerfData = await promPerfRes.json();
-        if (promPerfData.success && promPerfData.data) {
-            promPerfData.data.forEach(p => {
+        if (promPerfData.success && promPerfData.data && promPerfData.data.promoter_stats) {
+            promPerfData.data.promoter_stats.forEach(p => {
                 totalCommissions += (p.total_commission || 0);
             });
         }
