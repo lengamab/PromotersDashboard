@@ -51,6 +51,22 @@ with whichever has the largest cost/revenue impact.
     actual event margin). Keep prose tight — data and action, not narrative.
 12. Round currency to whole euros unless the person asks for more precision.`;
 
+const fetchWithTimeout = async (url, options = {}, timeoutMs = 30000) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (e) {
+    clearTimeout(id);
+    if (e.name === 'AbortError') {
+      throw new Error(`Request timed out after ${timeoutMs / 1000}s. Please try a narrower date range or request.`);
+    }
+    throw e;
+  }
+};
+
 const fetchCampaignHistoricalDataHandler = async ({ campaignId, since, until }) => {
   try {
     // Default to last 30 days if no dates provided
@@ -72,7 +88,7 @@ const fetchCampaignHistoricalDataHandler = async ({ campaignId, since, until }) 
         fields: 'spend,impressions,clicks,actions'
     });
 
-    const response = await fetch(`/api/meta-proxy/${campaignId}/insights?${params.toString()}`);
+    const response = await fetchWithTimeout(`/api/meta-proxy/${campaignId}/insights?${params.toString()}`);
     const data = await response.json();
     if (data.error) return { error: data.error.message };
     
@@ -115,7 +131,7 @@ const fetchAccountHistoricalDataHandler = async ({ since, until }) => {
         fields: 'spend,impressions,clicks,actions'
     });
 
-    const response = await fetch(`/api/meta-proxy/${accountId}/insights?${params.toString()}`);
+    const response = await fetchWithTimeout(`/api/meta-proxy/${accountId}/insights?${params.toString()}`);
     const data = await response.json();
     if (data.error) return { error: data.error.message };
     
@@ -137,7 +153,7 @@ const fetchAccountHistoricalDataHandler = async ({ since, until }) => {
 
 const fetchCampaignBudgetHandler = async ({ campaignId }) => {
   try {
-    const response = await fetch(`/api/meta-proxy/${campaignId}?fields=name,daily_budget,lifetime_budget`);
+    const response = await fetchWithTimeout(`/api/meta-proxy/${campaignId}?fields=name,daily_budget,lifetime_budget`);
     const data = await response.json();
     if (data.error) return { error: data.error.message };
     return data;
@@ -149,7 +165,7 @@ const fetchCampaignBudgetHandler = async ({ campaignId }) => {
 const fetchActiveCampaignsHandler = async () => {
   try {
     const accountId = 'act_911535275086772';
-    const res = await fetch(`/api/meta-proxy/${accountId}/campaigns?fields=name,status,daily_budget,lifetime_budget&effective_status=['ACTIVE']`);
+    const res = await fetchWithTimeout(`/api/meta-proxy/${accountId}/campaigns?fields=name,status,daily_budget,lifetime_budget&effective_status=['ACTIVE']`);
     const data = await res.json();
     if (data.error) return { error: data.error.message };
     return data.data.map(c => ({
@@ -171,7 +187,7 @@ const queryMetaGraphAPIHandler = async ({ endpoint, params }) => {
         queryParams.append(key, value);
       }
     }
-    const response = await fetch(`/api/meta-proxy/${endpoint}?${queryParams.toString()}`);
+    const response = await fetchWithTimeout(`/api/meta-proxy/${endpoint}?${queryParams.toString()}`);
     const data = await response.json();
     if (data.error) return { error: data.error.message };
     
@@ -188,7 +204,7 @@ const queryMetaGraphAPIHandler = async ({ endpoint, params }) => {
 
 const fetchFourvenuesPerformanceHandler = async () => {
   try {
-    const res = await fetch('/api/performance');
+    const res = await fetchWithTimeout('/api/performance');
     const data = await res.json();
     return data.success ? data.data : { error: data.error };
   } catch (e) {
@@ -198,7 +214,7 @@ const fetchFourvenuesPerformanceHandler = async () => {
 
 const fetchFourvenuesWalletHandler = async () => {
   try {
-    const res = await fetch('/api/wallet');
+    const res = await fetchWithTimeout('/api/wallet');
     const data = await res.json();
     return data.success ? data : { error: data.error };
   } catch (e) {
@@ -208,7 +224,7 @@ const fetchFourvenuesWalletHandler = async () => {
 
 const fetchPromoterProfileHandler = async ({ promoterId }) => {
   try {
-    const res = await fetch(`/api/promoter/${promoterId}`);
+    const res = await fetchWithTimeout(`/api/promoter/${promoterId}`);
     const data = await res.json();
     return data.success ? data.data : { error: data.error };
   } catch (e) {
@@ -221,7 +237,7 @@ const fetchFourvenuesEventsHandler = async ({ since, until }) => {
     const params = new URLSearchParams();
     if (since) params.append('start', since);
     if (until) params.append('end', until);
-    const res = await fetch(`/api/events/performance?${params.toString()}`);
+    const res = await fetchWithTimeout(`/api/events/performance?${params.toString()}`);
     const data = await res.json();
     return data.success ? data.data : { error: data.error };
   } catch (e) {
@@ -231,7 +247,7 @@ const fetchFourvenuesEventsHandler = async ({ since, until }) => {
 
 const fetchFourvenuesTicketPricesHandler = async () => {
   try {
-    const res = await fetch(`/api/rates`);
+    const res = await fetchWithTimeout(`/api/rates`);
     const data = await res.json();
     return data.success ? data.data : { error: data.error };
   } catch (e) {
@@ -479,7 +495,8 @@ const CopilotChatWidget = () => {
         response = result.response;
         
         let loopText = "";
-        try { loopText = response.text(); } catch (e) {}
+        let textErr = null;
+        try { loopText = response.text(); } catch (e) { textErr = e; }
         if (loopText) {
             setMessages(prev => {
                 const last = prev[prev.length - 1];
@@ -499,9 +516,20 @@ const CopilotChatWidget = () => {
       // Handle cases where the response stopped unexpectedly and no text was streamed
       if (!initialText && (!calls || calls.length === 0)) {
         const candidate = response.candidates?.[0];
-        if (candidate && candidate.finishReason !== 'STOP') {
-            setMessages(prev => [...prev, { role: 'model', parts: [{ text: `*Notice: Response stopped due to ${candidate.finishReason}*` }] }]);
-        }
+        const reason = candidate?.finishReason || "Unknown";
+        const errNote = textErr ? ` (${textErr.message || textErr})` : '';
+        setMessages(prev => {
+            const last = prev[prev.length - 1];
+            // Check if the last model message ONLY contains analyzing tool bubbles without any actual answer text
+            if (last && last.role === 'model' && last.parts[0].text.trim().endsWith('*')) {
+                const newMessages = [...prev];
+                newMessages[newMessages.length - 1].parts[0].text += `\n\n*Notice: The AI finished analyzing the data (Finish reason: ${reason}${errNote}) but did not output a text summary. Please ask a follow-up question.*`;
+                return newMessages;
+            } else if (candidate && candidate.finishReason !== 'STOP') {
+                return [...prev, { role: 'model', parts: [{ text: `*Notice: Response stopped due to ${reason}${errNote}*` }] }];
+            }
+            return prev;
+        });
       }
     } catch (err) {
       console.error(err);

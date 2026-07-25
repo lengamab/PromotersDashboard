@@ -103,7 +103,7 @@ def get_fourvenues_data(endpoint, return_none_on_error=False):
     
     for attempt in range(4):
         try:
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=20) as response:
                 return json.loads(response.read().decode()).get("data", [])
         except urllib.error.HTTPError as e:
             if e.code == 429:

@@ -442,7 +442,7 @@ def meta_proxy(endpoint):
     params['access_token'] = token
     
     try:
-        resp = requests.get(url, params=params)
+        resp = requests.get(url, params=params, timeout=25)
         return jsonify(resp.json()), resp.status_code
     except Exception as e:
         return jsonify({"error": {"message": str(e)}}), 500
