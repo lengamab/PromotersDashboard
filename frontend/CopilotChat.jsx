@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm';
 // Gemini client is initialized dynamically by fetching the key from the backend (/api/gemini-config)
 // to support Cloud Run secret injection without hardcoding secrets in client bundles.
 
-const SYSTEM_INSTRUCTION = `You are an elite digital marketing analyst for La French Barcelona.
+const SYSTEM_INSTRUCTION = `You are La French AI, an elite digital marketing and nightlife business analyst for La French Barcelona.
 
 ═══ ATTRIBUTION & DATA INTEGRITY (non-negotiable) ═══
 1. Meta's "Purchases" metric is unreliable. Always cross-reference Meta spend against
@@ -21,6 +21,7 @@ const SYSTEM_INSTRUCTION = `You are an elite digital marketing analyst for La Fr
    sold/revenue, and fetchFourvenuesTicketPrices for exact rates. If a tool call
    returns no data or the Dest Link is ambiguous, say so explicitly — do not
    estimate or fill the gap with an assumption.
+5. When the user is in the Main Dashboard asking about nightlife operations, cash tracking, promoter balances, manual expenses, or sales, use your Fourvenues tools (fetchFourvenuesCashTracking, fetchFourvenuesSalesHistory, fetchFourvenuesExpenses, fetchFourvenuesCashouts, fetchFourvenuesEvents, fetchFourvenuesPerformance, fetchFourvenuesWallet, fetchPromoterProfile) to answer precisely and accurately.
 
 ═══ CAMPAIGN HEALTH CHECKS (run all four before any recommendation) ═══
 5. Learning phase: active < 4 days OR last significant change < 3 days ago.
@@ -255,6 +256,63 @@ const fetchFourvenuesTicketPricesHandler = async () => {
   }
 };
 
+const fetchFourvenuesCashTrackingHandler = async ({ start, end }) => {
+  try {
+    const params = new URLSearchParams();
+    if (start) params.append('start', start);
+    if (end) params.append('end', end);
+    const res = await fetchWithTimeout(`/api/data?${params.toString()}`);
+    const data = await res.json();
+    return data.success ? data.data : { error: data.error };
+  } catch (e) {
+    return { error: e.message };
+  }
+};
+
+const fetchFourvenuesSalesHistoryHandler = async ({ start, end }) => {
+  try {
+    const params = new URLSearchParams();
+    if (start) params.append('start', start);
+    if (end) params.append('end', end);
+    const res = await fetchWithTimeout(`/api/sales?${params.toString()}`);
+    const data = await res.json();
+    if (!data.success) return { error: data.error };
+    let list = data.data;
+    if (Array.isArray(list) && list.length > 50) {
+      list = list.slice(0, 50);
+    }
+    return list;
+  } catch (e) {
+    return { error: e.message };
+  }
+};
+
+const fetchFourvenuesExpensesHandler = async ({ start, end }) => {
+  try {
+    const params = new URLSearchParams();
+    if (start) params.append('start', start);
+    if (end) params.append('end', end);
+    const res = await fetchWithTimeout(`/api/expenses?${params.toString()}`);
+    const data = await res.json();
+    return data.success ? data.data : { error: data.error };
+  } catch (e) {
+    return { error: e.message };
+  }
+};
+
+const fetchFourvenuesCashoutsHandler = async ({ start, end }) => {
+  try {
+    const params = new URLSearchParams();
+    if (start) params.append('start', start);
+    if (end) params.append('end', end);
+    const res = await fetchWithTimeout(`/api/cashouts?${params.toString()}`);
+    const data = await res.json();
+    return data.success ? data.data : { error: data.error };
+  } catch (e) {
+    return { error: e.message };
+  }
+};
+
 const tools = [
   {
     functionDeclarations: [
@@ -333,6 +391,50 @@ const tools = [
         description: "Fetch the current wallet balance from Fourvenues.",
       },
       {
+        name: "fetchFourvenuesCashTracking",
+        description: "Fetch the main cash tracking report from Fourvenues, showing how many cash tickets/entrances each promoter generated, how much cash was collected, and their current outstanding balance due (who owes money).",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            start: { type: "STRING", description: "Start date in YYYY-MM-DD format (optional)." },
+            end: { type: "STRING", description: "End date in YYYY-MM-DD format (optional)." }
+          }
+        }
+      },
+      {
+        name: "fetchFourvenuesSalesHistory",
+        description: "Fetch recent sales history (ticket sales and PR lists) from Fourvenues.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            start: { type: "STRING", description: "Start date in YYYY-MM-DD format (optional)." },
+            end: { type: "STRING", description: "End date in YYYY-MM-DD format (optional)." }
+          }
+        }
+      },
+      {
+        name: "fetchFourvenuesExpenses",
+        description: "Fetch manual expenses recorded for Profit & Loss calculation.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            start: { type: "STRING", description: "Start date in YYYY-MM-DD format (optional)." },
+            end: { type: "STRING", description: "End date in YYYY-MM-DD format (optional)." }
+          }
+        }
+      },
+      {
+        name: "fetchFourvenuesCashouts",
+        description: "Fetch recorded promoter cashouts (when promoters turned in cash).",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            start: { type: "STRING", description: "Start date in YYYY-MM-DD format (optional)." },
+            end: { type: "STRING", description: "End date in YYYY-MM-DD format (optional)." }
+          }
+        }
+      },
+      {
         name: "fetchPromoterProfile",
         description: "Fetch specific data about a single promoter by their ID.",
         parameters: {
@@ -358,6 +460,10 @@ const dispatchToolCall = async (call) => {
     case 'fetchFourvenuesTicketPrices': return await fetchFourvenuesTicketPricesHandler();
     case 'fetchFourvenuesPerformance': return await fetchFourvenuesPerformanceHandler();
     case 'fetchFourvenuesWallet': return await fetchFourvenuesWalletHandler();
+    case 'fetchFourvenuesCashTracking': return await fetchFourvenuesCashTrackingHandler(call.args);
+    case 'fetchFourvenuesSalesHistory': return await fetchFourvenuesSalesHistoryHandler(call.args);
+    case 'fetchFourvenuesExpenses': return await fetchFourvenuesExpensesHandler(call.args);
+    case 'fetchFourvenuesCashouts': return await fetchFourvenuesCashoutsHandler(call.args);
     case 'fetchPromoterProfile': return await fetchPromoterProfileHandler(call.args);
     default: return { error: `Unknown tool: ${call.name}` };
   }
@@ -366,7 +472,7 @@ const dispatchToolCall = async (call) => {
 const CopilotChatWidget = () => {
   const [contextData, setContextData] = useState("No data selected yet.");
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([{ role: 'model', parts: [{ text: "Hello! Click 'Analyze Campaign' or ask me a question about your ads." }] }]);
+  const [messages, setMessages] = useState([{ role: 'model', parts: [{ text: "Hello! I am La French AI. Click 'Analyze Campaign' in Meta Ads, or ask me any question about your Fourvenues nightlife data, ticket sales, promoter performance, or cash tracking." }] }]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   

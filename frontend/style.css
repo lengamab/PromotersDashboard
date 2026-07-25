@@ -1451,3 +1451,9 @@ body {
 @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 0.3; } 100% { opacity: 0.6; } }
 .stagger-in { animation: fadeIn 0.3s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.ai-assistant-btn:hover {
+    background: linear-gradient(135deg, #2d1b4e, #3b0764) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(147, 51, 234, 0.3) !important;
+}

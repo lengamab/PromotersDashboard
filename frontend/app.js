@@ -213,6 +213,8 @@ function updateStats(data) {
     animateValue(statNetDue, 0, data.total_net_due || 0, 1500, true);
     animateValue(statReturned, 0, data.total_returned || 0, 1500, true);
     animateValue(statPending, 0, data.total_pending || 0, 1500, true);
+    
+    window.currentFourvenuesContext = `CURRENT DASHBOARD: Main Cash Tracking Tab.\nTotal Cash Gathered: ${data.total_gathered || 0}€ | Total Commission: ${data.total_commission || 0}€ | Total Net Due: ${data.total_net_due || 0}€ | Cash Returned: ${data.total_returned || 0}€ | Pending Balance: ${data.total_pending || 0}€.\nActive promoters in list: ${(data.items || []).length}.\nYou can use your Fourvenues tools (fetchFourvenuesCashTracking, fetchFourvenuesEvents, etc.) if the user asks for detailed breakdowns or specific promoter figures.`;
 }
 
 // Update stats metrics for online tracking
