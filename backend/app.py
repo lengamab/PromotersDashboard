@@ -1,7 +1,7 @@
 import os
 import json
 from flask import Flask, jsonify, request, send_from_directory
-from email_sender import (gather_cash_report, build_email_body, send_email, DB_PATH, 
+from email_sender import (gather_cash_report, build_email_body, send_email, DB_PATH, DATA_DIR,
                           gather_performance_report, gather_online_report, gather_promoter_profile,
                           gather_sales_history, gather_events_performance)
 from datetime import datetime, timedelta
@@ -40,7 +40,7 @@ def save_db(data):
         print(f"Error saving to DB: {e}")
         return False
 
-EXPENSES_PATH = os.path.join(os.path.dirname(__file__), 'expenses.json')
+EXPENSES_PATH = os.path.join(DATA_DIR, 'expenses.json')
 
 def load_expenses():
     if os.path.exists(EXPENSES_PATH):
@@ -60,7 +60,7 @@ def save_expenses(data):
         print(f"Error saving expenses: {e}")
         return False
 
-CASHOUTS_PATH = os.path.join(os.path.dirname(__file__), 'cashouts.json')
+CASHOUTS_PATH = os.path.join(DATA_DIR, 'cashouts.json')
 
 def load_cashouts():
     if os.path.exists(CASHOUTS_PATH):
@@ -446,6 +446,13 @@ def meta_proxy(endpoint):
         return jsonify(resp.json()), resp.status_code
     except Exception as e:
         return jsonify({"error": {"message": str(e)}}), 500
+
+@app.route('/api/gemini-config', methods=['GET'])
+def get_gemini_config():
+    key = os.getenv("GEMINI_API_KEY", "")
+    if not key:
+        return jsonify({"success": False, "error": "GEMINI_API_KEY not configured in backend environment"}), 500
+    return jsonify({"success": True, "apiKey": key})
 
 # API: Expenses endpoints
 @app.route('/api/expenses', methods=['GET'])

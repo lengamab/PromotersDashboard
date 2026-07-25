@@ -3,10 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-// NOTE: Hardcoding the API key as it was previously hardcoded in the server.js
-// Since this is an internal dashboard, we keep it here to avoid .env complexities on the client.
-const API_KEY = 'AQ.Ab8RN6IgzUweVqfl0oB-C7TVuYVTm90clJZKEnYxblYv2trAqA';
-const genAI = new GoogleGenerativeAI(API_KEY);
+// Gemini client is initialized dynamically by fetching the key from the backend (/api/gemini-config)
+// to support Cloud Run secret injection without hardcoding secrets in client bundles.
 
 const SYSTEM_INSTRUCTION = `You are an elite digital marketing analyst for La French Barcelona.
 
@@ -356,8 +354,21 @@ const CopilotChatWidget = () => {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
+  const [genAIInstance, setGenAIInstance] = useState(null);
+  
   const chatSessionRef = useRef(null);
   const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    fetch('/api/gemini-config')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.apiKey) {
+          setGenAIInstance(new GoogleGenerativeAI(data.apiKey));
+        }
+      })
+      .catch(err => console.error("Error loading Gemini API key from server:", err));
+  }, []);
 
   useEffect(() => {
     window.updateCopilotContext = (data, customPrompt) => {
@@ -381,8 +392,25 @@ const CopilotChatWidget = () => {
     setInputValue("");
     setIsLoading(true);
 
+    let ai = genAIInstance;
+    if (!ai) {
+      try {
+        const res = await fetch('/api/gemini-config');
+        const data = await res.json();
+        if (!data || !data.apiKey) {
+          throw new Error(data?.error || "GEMINI_API_KEY not configured on server.");
+        }
+        ai = new GoogleGenerativeAI(data.apiKey);
+        setGenAIInstance(ai);
+      } catch (err) {
+        setMessages(prev => [...prev, { role: 'model', parts: [{ text: `*Configuration Error:* Could not initialize AI service. ${err.message}` }] }]);
+        setIsLoading(false);
+        return;
+      }
+    }
+
     try {
-      const model = genAI.getGenerativeModel({
+      const model = ai.getGenerativeModel({
         model: "gemini-3.5-flash",
         systemInstruction: `${SYSTEM_INSTRUCTION}\n\nCURRENT DASHBOARD CONTEXT DATA:\n${activeContext}`,
         tools: tools

@@ -5,6 +5,7 @@ __pycache__/
 .venv/
 venv/
 env/
+node_modules/
 
 # Environment variables (contains secrets!)
 .env
@@ -13,6 +14,8 @@ env/
 backend/tracking.json
 backend/commissions.json
 backend/performance_cache.json
+backend/expenses.json
+backend/cashouts.json
 
 # IDE
 .vscode/

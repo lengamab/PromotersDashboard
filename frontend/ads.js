@@ -1,5 +1,4 @@
 const META_ACCOUNT_ID = 'act_911535275086772';
-let GEMINI_API_KEY = 'AQ.Ab8RN6IgzUweVqfl0oB-C7TVuYVTm90clJZKEnYxblYv2trAqA';
 
 window.getMetaStatusDetails = function(status, effectiveStatus, endTime) {
     let finalStatus = effectiveStatus || status || 'UNKNOWN';
