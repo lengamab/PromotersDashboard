@@ -548,7 +548,8 @@ const CopilotChatWidget = () => {
       let response = result.response;
       
       let initialText = "";
-      try { initialText = response.text(); } catch (e) {}
+      let textErr = null;
+      try { initialText = response.text(); } catch (e) { textErr = e; }
       if (initialText) {
           setMessages(prev => [...prev, { role: 'model', parts: [{ text: initialText }] }]);
       }
@@ -601,7 +602,7 @@ const CopilotChatWidget = () => {
         response = result.response;
         
         let loopText = "";
-        let textErr = null;
+        textErr = null;
         try { loopText = response.text(); } catch (e) { textErr = e; }
         if (loopText) {
             setMessages(prev => {
