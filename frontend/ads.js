@@ -147,6 +147,7 @@ async function fetchAdsData() {
             }).toString()}`),
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/campaigns?${new URLSearchParams({
                 limit: 500,
+                effective_status: JSON.stringify(['ACTIVE', 'PAUSED', 'DELETED', 'ARCHIVED', 'IN_PROCESS', 'WITH_ISSUES', 'PENDING_REVIEW', 'CAMPAIGN_PAUSED', 'ADSET_PAUSED', 'DISAPPROVED']),
                 fields: 'id,name,daily_budget,lifetime_budget,status,effective_status,start_time,stop_time,updated_time,objective'
             }).toString()}`),
             fetch(`${url}?${new URLSearchParams({
@@ -157,10 +158,12 @@ async function fetchAdsData() {
             }).toString()}`),
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/ads?${new URLSearchParams({
                 limit: 1000,
+                effective_status: JSON.stringify(['ACTIVE', 'PAUSED', 'DELETED', 'ARCHIVED', 'IN_PROCESS', 'WITH_ISSUES', 'PENDING_REVIEW', 'CAMPAIGN_PAUSED', 'ADSET_PAUSED', 'DISAPPROVED']),
                 fields: 'id,name,status,effective_status,adset_id,campaign_id,creative{body,title,object_story_spec,asset_feed_spec}'
             }).toString()}`),
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/adsets?${new URLSearchParams({
                 limit: 500,
+                effective_status: JSON.stringify(['ACTIVE', 'PAUSED', 'DELETED', 'ARCHIVED', 'IN_PROCESS', 'WITH_ISSUES', 'PENDING_REVIEW', 'CAMPAIGN_PAUSED', 'ADSET_PAUSED', 'DISAPPROVED']),
                 fields: 'id,name,status,effective_status,end_time,targeting,campaign_id,optimization_goal,billing_event,daily_budget,lifetime_budget'
             }).toString()}`)
         ]);
@@ -213,12 +216,35 @@ async function fetchAdsData() {
             });
         }
         
+        const existingCampIds = new Set(currentCampaignsData.map(c => c.campaign_id));
+        if (budgetJson && budgetJson.data) {
+            budgetJson.data.forEach(c => {
+                const status = c.effective_status || c.status || '';
+                const isInactive = ['ARCHIVED', 'DELETED', 'COMPLETED'].includes(status);
+                if (!existingCampIds.has(c.id) && !isInactive) {
+                    currentCampaignsData.push({
+                        campaign_id: c.id,
+                        campaign_name: c.name,
+                        spend: "0",
+                        impressions: "0",
+                        clicks: "0",
+                        actions: [],
+                        reach: "0",
+                        frequency: "0",
+                        budget_info: c
+                    });
+                }
+            });
+        }
+
         currentCampaignsData.forEach(c => {
             if (budgetMap[c.campaign_id]) {
                 c.budget_info = budgetMap[c.campaign_id];
             }
         });
-        
+
+        currentCampaignsData.sort((a, b) => parseFloat(b.spend || 0) - parseFloat(a.spend || 0));
+
         processAndRenderAds();
     } catch (e) {
         console.error("Failed to fetch ads", e);
