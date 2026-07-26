@@ -177,6 +177,7 @@
             font-size: 0.85em;
             color: var(--text-secondary);
             font-weight: 400;
+            flex-wrap: wrap;
         }
         .adset-body {
             display: none;
@@ -438,7 +439,7 @@
                     Status: <span id="modal-camp-status" style="font-weight: bold; color: white;"></span> &nbsp;|&nbsp; 
                     Dates: <span id="modal-camp-dates" style="color: white;"></span>
                 </div>
-                <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px;">
+                <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px;">
                     <div class="stat-card" style="padding: 15px;">
                         <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Daily Budget</h4>
                         <p id="modal-daily-budget" style="font-size: 1.4em; font-weight: 700; margin: 0; color: #20c997;">0€</p>
@@ -446,6 +447,14 @@
                     <div class="stat-card" style="padding: 15px;">
                         <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Spend</h4>
                         <p id="modal-camp-spend" style="font-size: 1.4em; font-weight: 700; margin: 0;">0€</p>
+                    </div>
+                    <div class="stat-card" style="padding: 15px;">
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Impressions</h4>
+                        <p id="modal-camp-impressions" style="font-size: 1.4em; font-weight: 700; margin: 0;">0</p>
+                    </div>
+                    <div class="stat-card" style="padding: 15px;">
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Clicks</h4>
+                        <p id="modal-camp-clicks" style="font-size: 1.4em; font-weight: 700; margin: 0;">0</p>
                     </div>
                     <div class="stat-card" style="padding: 15px;">
                         <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Purchases</h4>

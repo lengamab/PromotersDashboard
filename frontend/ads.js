@@ -673,6 +673,10 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
     document.getElementById('modal-camp-cpa').textContent = cpa + '€';
     document.getElementById('modal-camp-cpc').textContent = cpc + '€';
     document.getElementById('modal-camp-ctr').textContent = ctr + '%';
+    const impEl = document.getElementById('modal-camp-impressions');
+    if (impEl) impEl.textContent = imp.toLocaleString();
+    const clicksEl = document.getElementById('modal-camp-clicks');
+    if (clicksEl) clicksEl.textContent = clicks.toLocaleString();
     
     const adsetsContainer = document.getElementById('modal-adsets-container');
     if (adsetsContainer) {
@@ -755,6 +759,8 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                         <div class="adset-stats">
                             ${asBudgetText}
                             <span>Spend: ${adset.spend.toFixed(2)}€</span>
+                            <span>Imp: ${adset.imp.toLocaleString()}</span>
+                            <span>Clicks: ${adset.clicks.toLocaleString()}</span>
                             <span>Purchases: ${adset.purchases}</span>
                             <span>CPA: ${asCpa}€</span>
                             <span>CPC: ${asCpc}€</span>
