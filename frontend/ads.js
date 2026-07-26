@@ -147,7 +147,7 @@ async function fetchAdsData() {
             }).toString()}`),
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/campaigns?${new URLSearchParams({
                 limit: 500,
-                effective_status: JSON.stringify(['ACTIVE', 'PAUSED', 'DELETED', 'ARCHIVED', 'IN_PROCESS', 'WITH_ISSUES', 'PENDING_REVIEW', 'CAMPAIGN_PAUSED', 'ADSET_PAUSED', 'DISAPPROVED']),
+                effective_status: JSON.stringify(['ACTIVE', 'PAUSED', 'ARCHIVED', 'IN_PROCESS', 'WITH_ISSUES', 'PENDING_REVIEW', 'CAMPAIGN_PAUSED', 'ADSET_PAUSED', 'DISAPPROVED']),
                 fields: 'id,name,daily_budget,lifetime_budget,status,effective_status,start_time,stop_time,updated_time,objective'
             }).toString()}`),
             fetch(`${url}?${new URLSearchParams({
@@ -158,12 +158,12 @@ async function fetchAdsData() {
             }).toString()}`),
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/ads?${new URLSearchParams({
                 limit: 1000,
-                effective_status: JSON.stringify(['ACTIVE', 'PAUSED', 'DELETED', 'ARCHIVED', 'IN_PROCESS', 'WITH_ISSUES', 'PENDING_REVIEW', 'CAMPAIGN_PAUSED', 'ADSET_PAUSED', 'DISAPPROVED']),
+                effective_status: JSON.stringify(['ACTIVE', 'PAUSED', 'ARCHIVED', 'IN_PROCESS', 'WITH_ISSUES', 'PENDING_REVIEW', 'CAMPAIGN_PAUSED', 'ADSET_PAUSED', 'DISAPPROVED']),
                 fields: 'id,name,status,effective_status,adset_id,campaign_id,creative{body,title,object_story_spec,asset_feed_spec}'
             }).toString()}`),
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/adsets?${new URLSearchParams({
                 limit: 500,
-                effective_status: JSON.stringify(['ACTIVE', 'PAUSED', 'DELETED', 'ARCHIVED', 'IN_PROCESS', 'WITH_ISSUES', 'PENDING_REVIEW', 'CAMPAIGN_PAUSED', 'ADSET_PAUSED', 'DISAPPROVED']),
+                effective_status: JSON.stringify(['ACTIVE', 'PAUSED', 'ARCHIVED', 'IN_PROCESS', 'WITH_ISSUES', 'PENDING_REVIEW', 'CAMPAIGN_PAUSED', 'ADSET_PAUSED', 'DISAPPROVED']),
                 fields: 'id,name,status,effective_status,end_time,targeting,campaign_id,optimization_goal,billing_event,daily_budget,lifetime_budget'
             }).toString()}`)
         ]);
