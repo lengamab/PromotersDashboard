@@ -18,6 +18,16 @@ Chart.defaults.plugins.tooltip.borderWidth = 1;
 Chart.defaults.plugins.tooltip.padding = 12;
 Chart.defaults.plugins.tooltip.cornerRadius = 8;
 
+// Shimmer skeleton row helper for tables
+window.makeSkeletonRow = (cols) => `
+    <tr class="stagger-in">
+        <td colspan="${cols}" style="padding: 24px 16px;">
+            <div style="display: flex; gap: 14px; align-items: center; justify-content: space-between;">
+                ${Array(cols).fill(0).map(() => `<div class="skeleton-loader" style="height: 22px; flex: 1;"></div>`).join('')}
+            </div>
+        </td>
+    </tr>
+`;
 
 // Elite Animations Utility
 function animateValue(obj, start, end, duration, isCurrency = false, prefix = '', suffix = '') {
@@ -180,9 +190,9 @@ function initDateDefaults() {
 
 // Fetch and Load initial data
 async function loadData(forceSync = false) {
-    tableBody.innerHTML = '<tr><td colspan="9" class="loading-state"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading cash data...</td></tr>';
-    onlineTableBody.innerHTML = '<tr><td colspan="7" class="loading-state"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading online data...</td></tr>';
-    performanceTableBody.innerHTML = '<tr><td colspan="6" class="loading-state"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading performance data...</td></tr>';
+    tableBody.innerHTML = window.makeSkeletonRow(9);
+    onlineTableBody.innerHTML = window.makeSkeletonRow(7);
+    performanceTableBody.innerHTML = window.makeSkeletonRow(6);
     
     // Also load wallet balance
     fetchWalletBalance();    
@@ -1941,7 +1951,7 @@ async function fetchPNLData() {
     if (!document.getElementById('view-pnl') || document.getElementById('view-pnl').classList.contains('hidden')) return;
     
     // Show loading states
-    document.getElementById('pnl-expenses-body').innerHTML = '<tr><td colspan="6" class="loading-state"><i class="fa-solid fa-spinner fa-spin"></i> Loading PNL data...</td></tr>';
+    document.getElementById('pnl-expenses-body').innerHTML = window.makeSkeletonRow(6);
     
     const query = getDateQueryString();
     
