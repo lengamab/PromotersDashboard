@@ -116,27 +116,16 @@ window.renderSparklineAndTrend = function({
             return { x, y };
         });
 
-        const tension = 0.25;
+        const tension = 0.18;
         let pathD = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
-        const tangents = pts.map((pt, i) => {
-            if (i === 0) return { x: (pts[1].x - pt.x) * tension, y: (pts[1].y - pt.y) * tension };
-            if (i === pts.length - 1) return { x: (pt.x - pts[i - 1].x) * tension, y: (pt.y - pts[i - 1].y) * tension };
-            if ((pts[i - 1].y <= pt.y && pt.y <= pts[i + 1].y) || (pts[i - 1].y >= pt.y && pt.y >= pts[i + 1].y)) {
-                return { x: (pts[i + 1].x - pts[i - 1].x) * tension, y: (pts[i + 1].y - pts[i - 1].y) * tension };
-            } else {
-                return { x: (pts[i + 1].x - pts[i - 1].x) * tension, y: 0 };
-            }
-        });
-
         for (let i = 0; i < pts.length - 1; i++) {
             const p0 = pts[i];
             const p1 = pts[i + 1];
-            const t0 = tangents[i];
-            const t1 = tangents[i + 1];
-            const cp1x = p0.x + t0.x;
-            const cp1y = Math.max(2, Math.min(height - 2, p0.y + t0.y));
-            const cp2x = p1.x - t1.x;
-            const cp2y = Math.max(2, Math.min(height - 2, p1.y - t1.y));
+            const segDx = p1.x - p0.x;
+            const cp1x = p0.x + segDx * tension;
+            const cp1y = p0.y + (p1.y - p0.y) * tension;
+            const cp2x = p1.x - segDx * tension;
+            const cp2y = p1.y - (p1.y - p0.y) * tension;
             pathD += ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p1.x.toFixed(1)},${p1.y.toFixed(1)}`;
         }
 
