@@ -412,12 +412,17 @@
                 <table class="data-table" style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-color); text-align: left;">
-                            <th style="padding: 15px 20px; color: var(--text-secondary); font-weight: 500;">Campaign Name</th>
-                            <th style="padding: 15px 20px; color: var(--text-secondary); font-weight: 500;">Status</th>
-                            <th style="padding: 15px 20px; color: var(--text-secondary); font-weight: 500;">Spend</th>
-                            <th style="padding: 15px 20px; color: var(--text-secondary); font-weight: 500;">Impressions</th>
-                            <th style="padding: 15px 20px; color: var(--text-secondary); font-weight: 500;">Clicks</th>
-                            <th style="padding: 15px 20px; color: var(--text-secondary); font-weight: 500;">Purchases</th>
+                            <th style="padding: 15px 12px; color: var(--text-secondary); font-weight: 500;">Campaign Name</th>
+                            <th style="padding: 15px 12px; color: var(--text-secondary); font-weight: 500;">Status</th>
+                            <th style="padding: 15px 12px; color: var(--text-secondary); font-weight: 500; text-align: right;">Spend</th>
+                            <th style="padding: 15px 12px; color: var(--text-secondary); font-weight: 500; text-align: right;">Imp</th>
+                            <th style="padding: 15px 12px; color: var(--text-secondary); font-weight: 500; text-align: right;">Clicks</th>
+                            <th style="padding: 15px 12px; color: var(--text-secondary); font-weight: 500; text-align: right;">CTR</th>
+                            <th style="padding: 15px 12px; color: var(--text-secondary); font-weight: 500; text-align: right;">CPC</th>
+                            <th style="padding: 15px 12px; color: var(--text-secondary); font-weight: 500; text-align: right;">LPV</th>
+                            <th style="padding: 15px 12px; color: var(--text-secondary); font-weight: 500; text-align: right;">CPLPV</th>
+                            <th style="padding: 15px 12px; color: var(--text-secondary); font-weight: 500; text-align: right;">Purchases</th>
+                            <th style="padding: 15px 12px; color: var(--text-secondary); font-weight: 500; text-align: right;">CPA</th>
                         </tr>
                     </thead>
                     <tbody id="campaigns-table-body">
@@ -439,38 +444,46 @@
                     Status: <span id="modal-camp-status" style="font-weight: bold; color: white;"></span> &nbsp;|&nbsp; 
                     Dates: <span id="modal-camp-dates" style="color: white;"></span>
                 </div>
-                <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px;">
+                <div class="stats-grid" style="grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 25px;">
                     <div class="stat-card" style="padding: 15px;">
-                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Daily Budget</h4>
-                        <p id="modal-daily-budget" style="font-size: 1.4em; font-weight: 700; margin: 0; color: #20c997;">0€</p>
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.85em;">Daily Budget</h4>
+                        <p id="modal-daily-budget" class="tabular-nums" style="font-size: 1.3em; font-weight: 700; margin: 0; color: #10b981;">0€</p>
                     </div>
                     <div class="stat-card" style="padding: 15px;">
-                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Spend</h4>
-                        <p id="modal-camp-spend" style="font-size: 1.4em; font-weight: 700; margin: 0;">0€</p>
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.85em;">Spend</h4>
+                        <p id="modal-camp-spend" class="tabular-nums" style="font-size: 1.3em; font-weight: 700; margin: 0;">0€</p>
                     </div>
                     <div class="stat-card" style="padding: 15px;">
-                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Impressions</h4>
-                        <p id="modal-camp-impressions" style="font-size: 1.4em; font-weight: 700; margin: 0;">0</p>
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.85em;">Impressions</h4>
+                        <p id="modal-camp-impressions" class="tabular-nums" style="font-size: 1.3em; font-weight: 700; margin: 0;">0</p>
                     </div>
                     <div class="stat-card" style="padding: 15px;">
-                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Clicks</h4>
-                        <p id="modal-camp-clicks" style="font-size: 1.4em; font-weight: 700; margin: 0;">0</p>
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.85em;">Clicks</h4>
+                        <p id="modal-camp-clicks" class="tabular-nums" style="font-size: 1.3em; font-weight: 700; margin: 0;">0</p>
                     </div>
                     <div class="stat-card" style="padding: 15px;">
-                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">Purchases</h4>
-                        <p id="modal-camp-purchases" style="font-size: 1.4em; font-weight: 700; margin: 0;">0</p>
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.85em;">CTR</h4>
+                        <p id="modal-camp-ctr" class="tabular-nums" style="font-size: 1.3em; font-weight: 700; margin: 0;">0%</p>
                     </div>
                     <div class="stat-card" style="padding: 15px;">
-                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">CPA</h4>
-                        <p id="modal-camp-cpa" style="font-size: 1.4em; font-weight: 700; margin: 0;">0€</p>
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.85em;">CPC</h4>
+                        <p id="modal-camp-cpc" class="tabular-nums" style="font-size: 1.3em; font-weight: 700; margin: 0;">0€</p>
                     </div>
                     <div class="stat-card" style="padding: 15px;">
-                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">CPC</h4>
-                        <p id="modal-camp-cpc" style="font-size: 1.4em; font-weight: 700; margin: 0;">0€</p>
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.85em;">LPV</h4>
+                        <p id="modal-camp-lpv" class="tabular-nums" style="font-size: 1.3em; font-weight: 700; margin: 0;">0</p>
                     </div>
                     <div class="stat-card" style="padding: 15px;">
-                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.9em;">CTR</h4>
-                        <p id="modal-camp-ctr" style="font-size: 1.4em; font-weight: 700; margin: 0;">0%</p>
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.85em;">CPLPV</h4>
+                        <p id="modal-camp-cplpv" class="tabular-nums" style="font-size: 1.3em; font-weight: 700; margin: 0;">0€</p>
+                    </div>
+                    <div class="stat-card" style="padding: 15px;">
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.85em;">Purchases</h4>
+                        <p id="modal-camp-purchases" class="tabular-nums" style="font-size: 1.3em; font-weight: 700; margin: 0;">0</p>
+                    </div>
+                    <div class="stat-card" style="padding: 15px;">
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.85em;">CPA</h4>
+                        <p id="modal-camp-cpa" class="tabular-nums" style="font-size: 1.3em; font-weight: 700; margin: 0; color: var(--color-primary);">0€</p>
                     </div>
                 </div>
                 

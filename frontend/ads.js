@@ -9,25 +9,31 @@ window.getMetaStatusDetails = function(status, effectiveStatus, endTime) {
         }
     }
     const colors = {
-        ACTIVE: '#28a745',
-        PAUSED: '#ffc107',
+        ACTIVE: '#10b981',
+        PAUSED: '#f59e0b',
         ARCHIVED: '#6c757d',
-        CAMPAIGN_PAUSED: '#ffc107',
-        ADSET_PAUSED: '#ffc107',
+        CAMPAIGN_PAUSED: '#f59e0b',
+        ADSET_PAUSED: '#f59e0b',
         COMPLETED: '#6c757d',
         INACTIVE: '#6c757d',
-        DELETED: '#dc3545',
-        PENDING_REVIEW: '#17a2b8',
-        DISAPPROVED: '#dc3545',
-        PREAPPROVED: '#28a745',
-        PENDING_BILLING_INFO: '#dc3545',
-        WITH_ISSUES: '#dc3545',
-        IN_PROCESS: '#17a2b8'
+        DELETED: '#ef4444',
+        PENDING_REVIEW: '#f59e0b',
+        DISAPPROVED: '#ef4444',
+        PREAPPROVED: '#10b981',
+        PENDING_BILLING_INFO: '#ef4444',
+        WITH_ISSUES: '#ef4444',
+        IN_PROCESS: '#f59e0b'
     };
     let displayText = finalStatus;
     if (finalStatus === 'CAMPAIGN_PAUSED') displayText = 'PAUSED';
     if (finalStatus === 'ADSET_PAUSED') displayText = 'PAUSED';
-    return { text: displayText, color: colors[finalStatus] || '#6c757d' };
+    
+    let pillClass = 'paused';
+    if (['ACTIVE', 'PREAPPROVED'].includes(finalStatus)) pillClass = 'active';
+    else if (['PENDING_REVIEW', 'IN_PROCESS'].includes(finalStatus)) pillClass = 'learning';
+    else if (['DELETED', 'DISAPPROVED', 'PENDING_BILLING_INFO', 'WITH_ISSUES'].includes(finalStatus)) pillClass = 'error';
+    
+    return { text: displayText, color: colors[finalStatus] || '#6c757d', pillClass };
 };
 
 let adsChartInstance = null;
@@ -104,6 +110,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function fetchAdsData() {
     if (!META_ACCOUNT_ID) return;
+
+    const tbody = document.getElementById('campaigns-table-body');
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="11" style="padding: 25px;">
+                    <div class="skeleton-loader" style="height: 36px; margin-bottom: 12px; width: 100%;"></div>
+                    <div class="skeleton-loader" style="height: 36px; margin-bottom: 12px; width: 92%;"></div>
+                    <div class="skeleton-loader" style="height: 36px; width: 85%;"></div>
+                </td>
+            </tr>
+        `;
+    }
 
     const fromDate = document.getElementById('date-from').value;
     const toDate = document.getElementById('date-to').value;
@@ -523,12 +542,21 @@ function processAndRenderAds() {
             const imp = parseInt(camp.impressions || 0);
             const clicks = parseInt(camp.clicks || 0);
             let purchases = 0;
+            let lpv = 0;
             if (camp.actions) {
                 const purchaseAction = camp.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
                 if (purchaseAction) {
                     purchases = parseInt(purchaseAction.value);
                 }
+                const lpvAction = camp.actions.find(a => a.action_type === 'landing_page_view');
+                if (lpvAction) {
+                    lpv = parseInt(lpvAction.value);
+                }
             }
+            const cpa = purchases > 0 ? (spend / purchases).toFixed(2) : '0.00';
+            const cpc = clicks > 0 ? (spend / clicks).toFixed(2) : '0.00';
+            const ctr = imp > 0 ? ((clicks / imp) * 100).toFixed(2) : '0.00';
+            const cplpv = lpv > 0 ? (spend / lpv).toFixed(2) : '0.00';
 
             const campStatusDetails = window.getMetaStatusDetails(
                 camp.budget_info?.status,
@@ -541,22 +569,25 @@ function processAndRenderAds() {
             const tr = document.createElement('tr');
             tr.style.borderBottom = '1px solid var(--border-color)';
             tr.style.cursor = 'pointer';
-            tr.onmouseover = () => tr.style.background = 'rgba(255,255,255,0.05)';
-            tr.onmouseout = () => tr.style.background = 'transparent';
             
             const isLearning = window.isLearningPhase(camp);
             const learningBadge = isLearning ? `<span class="learning-badge"><i class="fa-solid fa-graduation-cap"></i>Learning</span>` : '';
 
             tr.innerHTML = `
-                <td style="padding: 15px 20px; font-weight: 500;">${camp.campaign_name} ${learningBadge}</td>
-                <td style="padding: 15px 20px;"><span style="color: ${statusColor}; font-size: 0.85em; border: 1px solid ${statusColor}; padding: 2px 8px; border-radius: 12px; font-weight: 600;">${statusText}</span></td>
-                <td style="padding: 15px 20px; color: var(--text-secondary);">${spend.toFixed(2)}€</td>
-                <td style="padding: 15px 20px; color: var(--text-secondary);">${imp.toLocaleString()}</td>
-                <td style="padding: 15px 20px; color: var(--text-secondary);">${clicks.toLocaleString()}</td>
-                <td style="padding: 15px 20px; color: var(--text-secondary);">${purchases.toLocaleString()}</td>
+                <td style="padding: 15px 12px; font-weight: 500;">${camp.campaign_name} ${learningBadge}</td>
+                <td style="padding: 15px 12px;"><span class="status-pill ${campStatusDetails.pillClass || 'paused'}"><span class="status-dot"></span>${statusText}</span></td>
+                <td class="tabular-nums" style="padding: 15px 12px; color: var(--text-primary); font-weight: 600; text-align: right;">${spend.toFixed(2)}€</td>
+                <td class="tabular-nums" style="padding: 15px 12px; color: var(--text-secondary); text-align: right;">${imp.toLocaleString()}</td>
+                <td class="tabular-nums" style="padding: 15px 12px; color: var(--text-secondary); text-align: right;">${clicks.toLocaleString()}</td>
+                <td class="tabular-nums" style="padding: 15px 12px; color: var(--text-secondary); text-align: right;">${ctr}%</td>
+                <td class="tabular-nums" style="padding: 15px 12px; color: var(--text-secondary); text-align: right;">${cpc}€</td>
+                <td class="tabular-nums" style="padding: 15px 12px; color: var(--text-secondary); text-align: right;">${lpv.toLocaleString()}</td>
+                <td class="tabular-nums" style="padding: 15px 12px; color: var(--text-secondary); text-align: right;">${cplpv}€</td>
+                <td class="tabular-nums" style="padding: 15px 12px; color: var(--text-secondary); text-align: right;">${purchases.toLocaleString()}</td>
+                <td class="tabular-nums" style="padding: 15px 12px; color: var(--color-primary); font-weight: 600; text-align: right;">${cpa}€</td>
             `;
 
-            tr.onclick = () => openCampaignModal(camp, spend, imp, clicks, purchases);
+            tr.onclick = () => openCampaignModal(camp, spend, imp, clicks, purchases, lpv);
             tbody.appendChild(tr);
         });
     }
@@ -682,8 +713,8 @@ async function analyzeWithAI() {
 
 let currentSelectedCampaign = null;
 
-function openCampaignModal(camp, spend, imp, clicks, purchases) {
-    currentSelectedCampaign = { camp, spend, imp, clicks, purchases };
+function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
+    currentSelectedCampaign = { camp, spend, imp, clicks, purchases, lpv };
     const isLearning = window.isLearningPhase(camp);
     const learningBadge = isLearning ? `<span class="learning-badge"><i class="fa-solid fa-graduation-cap"></i>Learning</span>` : '';
     document.getElementById('modal-campaign-name').innerHTML = camp.campaign_name + ' ' + learningBadge;
@@ -700,8 +731,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
     
     const statusEl = document.getElementById('modal-camp-status');
     if (statusEl) {
-        statusEl.textContent = statusText;
-        statusEl.style.color = statusColor;
+        statusEl.innerHTML = `<span class="status-pill ${campStatusDetails.pillClass || 'paused'}"><span class="status-dot"></span>${statusText}</span>`;
     }
 
     let datesText = 'Ongoing';
@@ -729,6 +759,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
     const cpa = purchases > 0 ? (spend / purchases).toFixed(2) : 0;
     const cpc = clicks > 0 ? (spend / clicks).toFixed(2) : 0;
     const ctr = imp > 0 ? ((clicks / imp) * 100).toFixed(2) : 0;
+    const cplpv = lpv > 0 ? (spend / lpv).toFixed(2) : 0;
     
     document.getElementById('modal-camp-cpa').textContent = cpa + '€';
     document.getElementById('modal-camp-cpc').textContent = cpc + '€';
@@ -737,6 +768,10 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
     if (impEl) impEl.textContent = imp.toLocaleString();
     const clicksEl = document.getElementById('modal-camp-clicks');
     if (clicksEl) clicksEl.textContent = clicks.toLocaleString();
+    const lpvEl = document.getElementById('modal-camp-lpv');
+    if (lpvEl) lpvEl.textContent = lpv.toLocaleString();
+    const cplpvEl = document.getElementById('modal-camp-cplpv');
+    if (cplpvEl) cplpvEl.textContent = cplpv + '€';
     
     const adsetsContainer = document.getElementById('modal-meta-groups-container') || document.getElementById('modal-adsets-container');
     if (adsetsContainer) {
@@ -746,7 +781,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
         // 1. Get all Ad Sets for this campaign from TargetingMap
         Object.values(currentAdSetsTargetingMap).forEach(as => {
             if (as.campaign_id === camp.campaign_id) {
-                adSetMap[as.id] = { name: as.name, spend: 0, imp: 0, clicks: 0, purchases: 0, ads: [] };
+                adSetMap[as.id] = { name: as.name, spend: 0, imp: 0, clicks: 0, purchases: 0, lpv: 0, ads: [] };
             }
         });
         
@@ -775,11 +810,15 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                 adSetMap[adsetId].clicks += combinedAd.clicks;
                 
                 let p = 0;
+                let l = 0;
                 if (combinedAd.actions) {
                     const pa = combinedAd.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
                     if (pa) p = parseInt(pa.value);
+                    const la = combinedAd.actions.find(a => a.action_type === 'landing_page_view');
+                    if (la) l = parseInt(la.value);
                 }
                 adSetMap[adsetId].purchases += p;
+                adSetMap[adsetId].lpv += l;
             }
         });
 
@@ -788,6 +827,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                 const asCpa = adset.purchases > 0 ? (adset.spend / adset.purchases).toFixed(2) : 0;
                 const asCpc = adset.clicks > 0 ? (adset.spend / adset.clicks).toFixed(2) : 0;
                 const asCtr = adset.imp > 0 ? ((adset.clicks / adset.imp) * 100).toFixed(2) : 0;
+                const asCplpv = adset.lpv > 0 ? (adset.spend / adset.lpv).toFixed(2) : 0;
                 
                 const adsetTargeting = currentAdSetsTargetingMap[adsetId] || {};
                 const asStatusObj = window.getMetaStatusDetails(
@@ -796,7 +836,6 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                     adsetTargeting.end_time || camp.budget_info?.stop_time
                 );
                 const asStatus = asStatusObj.text;
-                const asStatusColor = asStatusObj.color;
                 
                 let asBudgetText = '';
                 if (adsetTargeting.daily_budget) {
@@ -820,19 +859,21 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                 header.className = 'meta-group-header';
                 header.innerHTML = `
                     <div>
-                        <div style="margin-bottom: 5px; font-size: 1.05em; color: white;">
-                            <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${asStatusColor}; margin-right: 8px;" title="${asStatus}"></span>
+                        <div style="margin-bottom: 8px; font-size: 1.05em; color: white; display: flex; align-items: center; gap: 8px;">
+                            <span class="status-pill ${asStatusObj.pillClass || 'paused'}"><span class="status-dot"></span>${asStatus}</span>
                             ${adset.name || 'Unknown Ad Set'}
                         </div>
-                        <div class="meta-group-stats">
+                        <div class="meta-group-stats tabular-nums">
                             ${asBudgetText} ${asBidText}
                             <span>Spend: ${adset.spend.toFixed(2)}€</span>
                             <span>Imp: ${adset.imp.toLocaleString()}</span>
                             <span>Clicks: ${adset.clicks.toLocaleString()}</span>
+                            <span>CTR: ${asCtr}%</span>
+                            <span>CPC: ${asCpc}€</span>
+                            <span>LPV: ${adset.lpv.toLocaleString()}</span>
+                            <span>CPLPV: ${asCplpv}€</span>
                             <span>Purchases: ${adset.purchases}</span>
                             <span>CPA: ${asCpa}€</span>
-                            <span>CPC: ${asCpc}€</span>
-                            <span>CTR: ${asCtr}%</span>
                         </div>
                     </div>
                     <i class="fa-solid fa-chevron-down"></i>
@@ -861,38 +902,43 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                         const adImp = parseInt(ad.impressions || 0);
                         const adClicks = parseInt(ad.clicks || 0);
                         let adPurchases = 0;
+                        let adLpv = 0;
                         if (ad.actions) {
                             const pa = ad.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
                             if (pa) adPurchases = parseInt(pa.value);
+                            const la = ad.actions.find(a => a.action_type === 'landing_page_view');
+                            if (la) adLpv = parseInt(la.value);
                         }
                         const adCpa = adPurchases > 0 ? (adSpend / adPurchases).toFixed(2) : 0;
                         const adCpc = adClicks > 0 ? (adSpend / adClicks).toFixed(2) : 0;
                         const adCtr = adImp > 0 ? ((adClicks / adImp) * 100).toFixed(2) : 0;
+                        const adCplpv = adLpv > 0 ? (adSpend / adLpv).toFixed(2) : 0;
                         
                         const adStatusObj = window.getMetaStatusDetails(
                             adData.status,
                             adData.effective_status
                         );
                         const adStatus = adStatusObj.text;
-                        const adStatusColor = adStatusObj.color;
                         
                         const adEl = document.createElement('div');
                         adEl.className = 'meta-creative-item';
                         adEl.innerHTML = `
                             <div class="meta-creative-header">
-                                <div>
-                                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${adStatusColor}; margin-right: 6px;" title="${adStatus}"></span>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="status-pill ${adStatusObj.pillClass || 'paused'}"><span class="status-dot"></span>${adStatus}</span>
                                     ${ad.ad_name || ad.ad_id}
                                 </div>
                             </div>
-                            <div class="meta-creative-stats">
+                            <div class="meta-creative-stats tabular-nums">
                                 <span>Spend: ${adSpend.toFixed(2)}€</span>
-                                <span>Imp: ${adImp}</span>
-                                <span>Clicks: ${adClicks}</span>
+                                <span>Imp: ${adImp.toLocaleString()}</span>
+                                <span>Clicks: ${adClicks.toLocaleString()}</span>
+                                <span>CTR: ${adCtr}%</span>
+                                <span>CPC: ${adCpc}€</span>
+                                <span>LPV: ${adLpv.toLocaleString()}</span>
+                                <span>CPLPV: ${adCplpv}€</span>
                                 <span>Purchases: ${adPurchases}</span>
                                 <span>CPA: ${adCpa}€</span>
-                                <span>CPC: ${adCpc}€</span>
-                                <span>CTR: ${adCtr}%</span>
                             </div>
                             <div class="meta-creative-details">
                                 <p><strong>Title:</strong> ${titleText}</p>
