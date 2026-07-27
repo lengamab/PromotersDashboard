@@ -51,15 +51,36 @@ let currentSummary = {};
 document.addEventListener('DOMContentLoaded', () => {
     // Helper for Learning Phase
     window.isLearningPhase = function(camp) {
-        if (!camp || !camp.budget_info) return false;
-        const now = new Date();
-        if (camp.budget_info.updated_time) {
-            const updated = new Date(camp.budget_info.updated_time);
-            if (Math.abs(now - updated) / (1000 * 60 * 60 * 24) < 4) return true;
+        if (!camp) return false;
+        const status = camp.budget_info?.effective_status || camp.budget_info?.status || '';
+        if (!['ACTIVE', 'IN_PROCESS'].includes(status)) return false;
+        if (status === 'IN_PROCESS') return true;
+        
+        if (window.currentAdSetsTargetingMap && Object.keys(window.currentAdSetsTargetingMap).length > 0) {
+            const adsets = Object.values(window.currentAdSetsTargetingMap).filter(as => as.campaign_id === camp.campaign_id);
+            if (adsets.length > 0) {
+                return adsets.some(as => {
+                    const asStatus = as.effective_status || as.status || '';
+                    if (!['ACTIVE', 'IN_PROCESS'].includes(asStatus)) return false;
+                    if (asStatus === 'IN_PROCESS') return true;
+                    if (as.learning_stage_info && as.learning_stage_info.status === 'LEARNING') return true;
+                    return false;
+                });
+            }
         }
-        if (camp.budget_info.start_time) {
+        
+        if (camp.budget_info && camp.budget_info.start_time) {
             const start = new Date(camp.budget_info.start_time);
-            if (Math.abs(now - start) / (1000 * 60 * 60 * 24) < 4) return true;
+            const now = new Date();
+            const hoursSinceStart = (now - start) / (1000 * 60 * 60);
+            if (hoursSinceStart >= 0 && hoursSinceStart < 72) {
+                let purchases = 0;
+                if (camp.actions) {
+                    const pa = camp.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+                    if (pa) purchases = parseInt(pa.value);
+                }
+                if (purchases < 50) return true;
+            }
         }
         return false;
     };
@@ -183,7 +204,7 @@ async function fetchAdsData() {
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/adsets?${new URLSearchParams({
                 limit: 500,
                 effective_status: JSON.stringify(['ACTIVE', 'PAUSED', 'ARCHIVED', 'IN_PROCESS', 'WITH_ISSUES', 'PENDING_REVIEW', 'CAMPAIGN_PAUSED', 'ADSET_PAUSED', 'DISAPPROVED']),
-                fields: 'id,name,status,effective_status,end_time,targeting,campaign_id,optimization_goal,billing_event,daily_budget,lifetime_budget,bid_strategy,bid_amount'
+                fields: 'id,name,status,effective_status,end_time,targeting,campaign_id,optimization_goal,billing_event,daily_budget,lifetime_budget,bid_strategy,bid_amount,learning_stage_info'
             }).toString()}`)
         ]);
         
