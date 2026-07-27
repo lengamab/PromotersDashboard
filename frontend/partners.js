@@ -1,6 +1,112 @@
 const API_KEY = "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";
 const BASE_URL = "https://channels-service.fourvenues.com";
 
+window.renderSparklineAndTrend = function({
+    statId,
+    data,
+    colorHex = '#3b82f6',
+    inverseTrend = false,
+    labelSuffix = 'vs 7d ago'
+}) {
+    const statEl = document.getElementById(statId);
+    if (!statEl) return;
+
+    let containerEl = statEl.parentElement;
+    if (!containerEl || !containerEl.classList.contains('stat-value-container')) {
+        containerEl = document.createElement('div');
+        containerEl.className = 'stat-value-container';
+        statEl.parentNode.insertBefore(containerEl, statEl);
+        containerEl.appendChild(statEl);
+    }
+
+    let badgeEl = document.getElementById(`${statId}-trend`);
+    if (!badgeEl) {
+        badgeEl = document.createElement('span');
+        badgeEl.id = `${statId}-trend`;
+        badgeEl.className = 'trend-badge badge-neutral';
+        containerEl.appendChild(badgeEl);
+    }
+
+    const cardEl = statEl.closest('.stat-card');
+    let sparkEl = document.getElementById(`${statId}-sparkline`);
+    if (cardEl && !sparkEl) {
+        sparkEl = document.createElement('div');
+        sparkEl.id = `${statId}-sparkline`;
+        sparkEl.className = 'stat-sparkline-container';
+        cardEl.appendChild(sparkEl);
+    }
+
+    if (!data || !Array.isArray(data) || data.length < 2) {
+        if (badgeEl) badgeEl.innerHTML = `<i class="fa-solid fa-minus"></i> 0% ${labelSuffix}`;
+        if (sparkEl) sparkEl.innerHTML = '';
+        return;
+    }
+
+    const validData = data.map(v => parseFloat(v) || 0);
+    if (validData.length < 2) return;
+
+    const currentVal = validData[validData.length - 1];
+    const compareIdx = validData.length >= 8 ? validData.length - 8 : 0;
+    const priorVal = validData[compareIdx];
+
+    let diffPct = 0;
+    if (priorVal > 0) {
+        diffPct = ((currentVal - priorVal) / priorVal) * 100;
+    } else if (currentVal > 0) {
+        diffPct = 100.0;
+    }
+
+    let isPositive = diffPct > 0.05;
+    let isNegative = diffPct < -0.05;
+
+    let badgeClass = 'badge-neutral';
+    if (isPositive) {
+        badgeClass = inverseTrend ? 'badge-danger' : 'badge-success';
+    } else if (isNegative) {
+        badgeClass = inverseTrend ? 'badge-success' : 'badge-danger';
+    }
+
+    const sign = diffPct > 0 ? '+' : '';
+    const arrow = diffPct > 0.05 ? '▲' : (diffPct < -0.05 ? '▼' : '<i class="fa-solid fa-minus"></i>');
+    const displayPct = Math.abs(diffPct) < 0.05 ? '0%' : `${sign}${diffPct.toFixed(1)}%`;
+
+    if (badgeEl) {
+        badgeEl.className = `trend-badge ${badgeClass}`;
+        badgeEl.innerHTML = `${arrow} ${displayPct} ${labelSuffix}`;
+    }
+
+    if (sparkEl) {
+        const height = 38;
+        const width = 200;
+        const min = Math.min(...validData);
+        const max = Math.max(...validData);
+        const range = (max - min) || 1;
+
+        const points = validData.map((val, idx) => {
+            const x = (idx / (validData.length - 1)) * width;
+            const y = height - ((val - min) / range) * (height - 10) - 5;
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(' ');
+
+        const polygonPoints = `0,${height} ${points} ${width},${height}`;
+        const gradId = `grad-${statId.replace(/[^a-zA-Z0-9]/g, '-')}`;
+
+        sparkEl.innerHTML = `
+            <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="${gradId}" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="${colorHex}" stop-opacity="0.35" />
+                        <stop offset="100%" stop-color="${colorHex}" stop-opacity="0.0" />
+                    </linearGradient>
+                </defs>
+                <polygon points="${polygonPoints}" fill="url(#${gradId})" />
+                <polyline fill="none" stroke="${colorHex}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" points="${points}" />
+                <circle cx="${width}" cy="${height - ((currentVal - min) / range) * (height - 10) - 5}" r="3.5" fill="${colorHex}" stroke="#ffffff" stroke-width="1.5" />
+            </svg>
+        `;
+    }
+};
+
 let globalPartners = [];
 // Array of all raw events fetched from Fourvenues
 let globalEvents = [];
@@ -310,6 +416,19 @@ function processAndRender() {
     document.getElementById('stat-total-revenue').innerText = totalRevenue.toFixed(2) + '€';
     document.getElementById('stat-avg-noshow').innerText = `${avgNoShow}%`;
     
+    if (window.renderSparklineAndTrend) {
+        const dates = Object.keys(chartDataByDate).sort();
+        const revSeries = dates.map(d => chartDataByDate[d].revenue);
+        const tixSeries = dates.map(d => chartDataByDate[d].tickets);
+        const noShowSeries = dates.map(d => {
+            const dd = chartDataByDate[d];
+            return dd.totalFor > 0 ? ((dd.totalFor - dd.totalEnter) / dd.totalFor * 100) : 0;
+        });
+        window.renderSparklineAndTrend({ statId: 'stat-total-revenue', data: revSeries, colorHex: '#10b981' });
+        window.renderSparklineAndTrend({ statId: 'stat-total-tickets', data: tixSeries, colorHex: '#3b82f6' });
+        window.renderSparklineAndTrend({ statId: 'stat-avg-noshow', data: noShowSeries, colorHex: '#ef4444', inverseTrend: true });
+    }
+
     renderPartnersTable(partnerData);
     renderChart('overviewChart', chartDataByDate, true);
 }

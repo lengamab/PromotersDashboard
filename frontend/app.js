@@ -29,6 +29,151 @@ window.makeSkeletonRow = (cols) => `
     </tr>
 `;
 
+window.renderSparklineAndTrend = function({
+    statId,
+    data,
+    colorHex = '#3b82f6',
+    inverseTrend = false,
+    labelSuffix = 'vs 7d ago'
+}) {
+    const statEl = document.getElementById(statId);
+    if (!statEl) return;
+
+    let containerEl = statEl.parentElement;
+    if (!containerEl || !containerEl.classList.contains('stat-value-container')) {
+        containerEl = document.createElement('div');
+        containerEl.className = 'stat-value-container';
+        statEl.parentNode.insertBefore(containerEl, statEl);
+        containerEl.appendChild(statEl);
+    }
+
+    let badgeEl = document.getElementById(`${statId}-trend`);
+    if (!badgeEl) {
+        badgeEl = document.createElement('span');
+        badgeEl.id = `${statId}-trend`;
+        badgeEl.className = 'trend-badge badge-neutral';
+        containerEl.appendChild(badgeEl);
+    }
+
+    const cardEl = statEl.closest('.stat-card');
+    let sparkEl = document.getElementById(`${statId}-sparkline`);
+    if (cardEl && !sparkEl) {
+        sparkEl = document.createElement('div');
+        sparkEl.id = `${statId}-sparkline`;
+        sparkEl.className = 'stat-sparkline-container';
+        cardEl.appendChild(sparkEl);
+    }
+
+    if (!data || !Array.isArray(data) || data.length < 2) {
+        if (badgeEl) badgeEl.innerHTML = `<i class="fa-solid fa-minus"></i> 0% ${labelSuffix}`;
+        if (sparkEl) sparkEl.innerHTML = '';
+        return;
+    }
+
+    const validData = data.map(v => parseFloat(v) || 0);
+    if (validData.length < 2) return;
+
+    const currentVal = validData[validData.length - 1];
+    const compareIdx = validData.length >= 8 ? validData.length - 8 : 0;
+    const priorVal = validData[compareIdx];
+
+    let diffPct = 0;
+    if (priorVal > 0) {
+        diffPct = ((currentVal - priorVal) / priorVal) * 100;
+    } else if (currentVal > 0) {
+        diffPct = 100.0;
+    }
+
+    let isPositive = diffPct > 0.05;
+    let isNegative = diffPct < -0.05;
+
+    let badgeClass = 'badge-neutral';
+    if (isPositive) {
+        badgeClass = inverseTrend ? 'badge-danger' : 'badge-success';
+    } else if (isNegative) {
+        badgeClass = inverseTrend ? 'badge-success' : 'badge-danger';
+    }
+
+    const sign = diffPct > 0 ? '+' : '';
+    const arrow = diffPct > 0.05 ? '▲' : (diffPct < -0.05 ? '▼' : '<i class="fa-solid fa-minus"></i>');
+    const displayPct = Math.abs(diffPct) < 0.05 ? '0%' : `${sign}${diffPct.toFixed(1)}%`;
+
+    if (badgeEl) {
+        badgeEl.className = `trend-badge ${badgeClass}`;
+        badgeEl.innerHTML = `${arrow} ${displayPct} ${labelSuffix}`;
+    }
+
+    if (sparkEl) {
+        const height = 38;
+        const width = 200;
+        const min = Math.min(...validData);
+        const max = Math.max(...validData);
+        const range = (max - min) || 1;
+
+        const points = validData.map((val, idx) => {
+            const x = (idx / (validData.length - 1)) * width;
+            const y = height - ((val - min) / range) * (height - 10) - 5;
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(' ');
+
+        const polygonPoints = `0,${height} ${points} ${width},${height}`;
+        const gradId = `grad-${statId.replace(/[^a-zA-Z0-9]/g, '-')}`;
+
+        sparkEl.innerHTML = `
+            <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="${gradId}" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="${colorHex}" stop-opacity="0.35" />
+                        <stop offset="100%" stop-color="${colorHex}" stop-opacity="0.0" />
+                    </linearGradient>
+                </defs>
+                <polygon points="${polygonPoints}" fill="url(#${gradId})" />
+                <polyline fill="none" stroke="${colorHex}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" points="${points}" />
+                <circle cx="${width}" cy="${height - ((currentVal - min) / range) * (height - 10) - 5}" r="3.5" fill="${colorHex}" stroke="#ffffff" stroke-width="1.5" />
+            </svg>
+        `;
+    }
+};
+
+window.renderFourvenuesSparklines = function(items, isOnline = false) {
+    if (!window.renderSparklineAndTrend) return;
+    const itemsByDate = {};
+    (items || []).forEach(item => {
+        const d = item.event_date || 'Unknown';
+        if (!itemsByDate[d]) itemsByDate[d] = { total: 0, comm: 0, net: 0, ret: 0, pend: 0 };
+        const amount = parseFloat(item.amount || 0);
+        const comm = parseFloat(item.commission || item.commission_owed || 0);
+        if (isOnline) {
+            const paid = parseFloat(item.paid_amount || 0);
+            itemsByDate[d].total += amount;
+            itemsByDate[d].comm += comm;
+            itemsByDate[d].net += comm;
+            itemsByDate[d].ret += paid;
+            itemsByDate[d].pend += (comm - paid);
+        } else {
+            const net = parseFloat(item.net_due || 0);
+            const ret = parseFloat(item.returned_amount || 0);
+            itemsByDate[d].total += amount;
+            itemsByDate[d].comm += comm;
+            itemsByDate[d].net += net;
+            itemsByDate[d].ret += ret;
+            itemsByDate[d].pend += (net - ret);
+        }
+    });
+    const sortedDates = Object.keys(itemsByDate).sort();
+    const totalSeries = sortedDates.map(d => itemsByDate[d].total);
+    const commSeries = sortedDates.map(d => itemsByDate[d].comm);
+    const netSeries = sortedDates.map(d => itemsByDate[d].net);
+    const retSeries = sortedDates.map(d => itemsByDate[d].ret);
+    const pendSeries = sortedDates.map(d => itemsByDate[d].pend);
+
+    window.renderSparklineAndTrend({ statId: 'stat-total', data: totalSeries, colorHex: '#3b82f6' });
+    window.renderSparklineAndTrend({ statId: 'stat-commission', data: commSeries, colorHex: '#8b5cf6' });
+    window.renderSparklineAndTrend({ statId: 'stat-net-due', data: netSeries, colorHex: '#10b981' });
+    window.renderSparklineAndTrend({ statId: 'stat-returned', data: retSeries, colorHex: '#06b6d4' });
+    window.renderSparklineAndTrend({ statId: 'stat-pending', data: pendSeries, colorHex: '#f59e0b', inverseTrend: true });
+};
+
 // Elite Animations Utility
 function animateValue(obj, start, end, duration, isCurrency = false, prefix = '', suffix = '') {
     if (!obj) return;
@@ -224,6 +369,10 @@ function updateStats(data) {
     animateValue(statReturned, 0, data.total_returned || 0, 1500, true);
     animateValue(statPending, 0, data.total_pending || 0, 1500, true);
     
+    if (window.renderFourvenuesSparklines) {
+        window.renderFourvenuesSparklines(data.items || [], false);
+    }
+
     window.currentFourvenuesContext = `CURRENT DASHBOARD: Main Cash Tracking Tab.\nTotal Cash Gathered: ${data.total_gathered || 0}€ | Total Commission: ${data.total_commission || 0}€ | Total Net Due: ${data.total_net_due || 0}€ | Cash Returned: ${data.total_returned || 0}€ | Pending Balance: ${data.total_pending || 0}€.\nActive promoters in list: ${(data.items || []).length}.\nYou can use your Fourvenues tools (fetchFourvenuesCashTracking, fetchFourvenuesEvents, etc.) if the user asks for detailed breakdowns or specific promoter figures.`;
 }
 
@@ -234,6 +383,10 @@ function updateOnlineStats(data) {
     animateValue(statNetDue, 0, data.total_commission_owed || 0, 1500, true);
     animateValue(statReturned, 0, data.total_paid || 0, 1500, true);
     animateValue(statPending, 0, data.total_pending || 0, 1500, true);
+
+    if (window.renderFourvenuesSparklines) {
+        window.renderFourvenuesSparklines(data.items || [], true);
+    }
 }
 
 // Switch stat card labels between cash and online contexts
