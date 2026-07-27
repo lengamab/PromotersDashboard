@@ -3,6 +3,7 @@ const META_ACCOUNT_ID = 'act_911535275086772';
 window.renderSparklineAndTrend = function({
     statId,
     data,
+    dates = null,
     colorHex = '#3b82f6',
     inverseTrend = false,
     labelSuffix = 'vs 7d ago'
@@ -23,10 +24,13 @@ window.renderSparklineAndTrend = function({
         badgeEl = document.createElement('span');
         badgeEl.id = `${statId}-trend`;
         badgeEl.className = 'trend-badge badge-neutral';
-        containerEl.appendChild(badgeEl);
+        const cardEl = containerEl.parentElement;
+        if (cardEl) {
+            cardEl.appendChild(badgeEl);
+        }
     }
 
-    const cardEl = statEl.closest('.stat-card');
+    const cardEl = containerEl.parentElement;
     let sparkEl = document.getElementById(`${statId}-sparkline`);
     if (cardEl && !sparkEl) {
         sparkEl = document.createElement('div');
@@ -104,6 +108,7 @@ window.renderSparklineAndTrend = function({
         const gradId = `grad-${statId.replace(/[^a-zA-Z0-9]/g, '-')}`;
         const endTopPct = (pts[pts.length - 1].y / height) * 100;
 
+        sparkEl.style.position = 'relative';
         sparkEl.innerHTML = `
             <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" style="width: 100%; height: 100%; display: block; overflow: visible;">
                 <defs>
@@ -115,8 +120,43 @@ window.renderSparklineAndTrend = function({
                 <path d="${polygonD}" fill="url(#${gradId})" />
                 <path d="${pathD}" fill="none" stroke="${colorHex}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
             </svg>
-            <div style="position: absolute; right: 1px; top: ${endTopPct.toFixed(1)}%; width: 7px; height: 7px; border-radius: 50%; background: ${colorHex}; border: 1.5px solid #fff; box-shadow: 0 0 6px ${colorHex}; transform: translateY(-50%); z-index: 2; pointer-events: none;"></div>
+            <div class="sparkline-end-dot" style="position: absolute; right: 1px; top: ${endTopPct.toFixed(1)}%; width: 7px; height: 7px; border-radius: 50%; background: ${colorHex}; border: 1.5px solid #fff; box-shadow: 0 0 6px ${colorHex}; transform: translateY(-50%); z-index: 2; pointer-events: none; transition: opacity 0.15s ease;"></div>
+            <div class="sparkline-hover-dot" style="position: absolute; width: 9px; height: 9px; border-radius: 50%; background: #fff; border: 2.5px solid ${colorHex}; box-shadow: 0 0 10px ${colorHex}; transform: translate(-50%, -50%); z-index: 5; pointer-events: none; display: none;"></div>
+            <div class="sparkline-tooltip" style="position: absolute; bottom: 85%; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255, 255, 255, 0.2); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; color: #fff; pointer-events: none; white-space: nowrap; z-index: 10; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.6); font-family: 'Inter', sans-serif;"></div>
         `;
+
+        const endDot = sparkEl.querySelector('.sparkline-end-dot');
+        const hoverDot = sparkEl.querySelector('.sparkline-hover-dot');
+        const tooltip = sparkEl.querySelector('.sparkline-tooltip');
+
+        sparkEl.style.cursor = 'crosshair';
+        sparkEl.onmousemove = (e) => {
+            const rect = sparkEl.getBoundingClientRect();
+            const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            const idx = Math.round(ratio * (validData.length - 1));
+            const pt = pts[idx];
+            if (!pt) return;
+
+            const valStr = typeof validData[idx] === 'number' ? validData[idx].toLocaleString(undefined, { maximumFractionDigits: 2 }) : validData[idx];
+            const dateStr = (dates && dates[idx]) ? dates[idx] : `Point ${idx + 1}`;
+
+            const leftPct = (pt.x / width) * 100;
+            const topPct = (pt.y / height) * 100;
+
+            if (endDot) endDot.style.opacity = '0.2';
+            hoverDot.style.left = `${leftPct.toFixed(1)}%`;
+            hoverDot.style.top = `${topPct.toFixed(1)}%`;
+            hoverDot.style.display = 'block';
+
+            tooltip.innerHTML = `<span style="color: #94a3b8; font-size: 0.68rem; display: block;">${dateStr}</span><strong style="color: ${colorHex}; font-size: 0.82rem;">${valStr}</strong>`;
+            tooltip.style.left = `${Math.max(15, Math.min(85, leftPct)).toFixed(1)}%`;
+            tooltip.style.display = 'block';
+        };
+        sparkEl.onmouseleave = () => {
+            if (endDot) endDot.style.opacity = '1';
+            hoverDot.style.display = 'none';
+            tooltip.style.display = 'none';
+        };
     }
 };
 
@@ -437,6 +477,23 @@ function processAndRenderAds() {
     });
 
     const todayStr = new Date().toISOString().split('T')[0];
+    let liveSpendToday = 0;
+    let liveImpToday = 0;
+    let liveClicksToday = 0;
+    let livePurchasesToday = 0;
+    if (currentHourlyData && currentHourlyData.length) {
+        currentHourlyData.forEach(hour => {
+            if (hour.date_start === todayStr) {
+                liveSpendToday += parseFloat(hour.spend || 0);
+                liveImpToday += parseInt(hour.impressions || 0);
+                liveClicksToday += parseInt(hour.clicks || 0);
+                if (hour.actions) {
+                    const pu = hour.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+                    if (pu) livePurchasesToday += parseInt(pu.value || 0);
+                }
+            }
+        });
+    }
 
     for (let d = new Date(fromDateObj); d <= toDateObj; d.setDate(d.getDate() + 1)) {
         const dateStr = d.toISOString().split('T')[0];
@@ -444,9 +501,9 @@ function processAndRenderAds() {
         
         const day = dataByDate[dateStr] || { spend: 0, impressions: 0, clicks: 0, actions: [] };
         
-        const spend = parseFloat(day.spend || 0);
-        const imp = parseInt(day.impressions || 0);
-        const clicks = parseInt(day.clicks || 0);
+        let spend = parseFloat(day.spend || 0);
+        let imp = parseInt(day.impressions || 0);
+        let clicks = parseInt(day.clicks || 0);
         
         let purchases = 0;
         if (day.actions) {
@@ -456,22 +513,25 @@ function processAndRenderAds() {
             }
         }
 
+        if (dateStr === todayStr) {
+            if (spend < liveSpendToday) spend = liveSpendToday;
+            if (imp < liveImpToday) imp = liveImpToday;
+            if (clicks < liveClicksToday) clicks = liveClicksToday;
+            if (purchases < livePurchasesToday) purchases = livePurchasesToday;
+        }
+
         totalSpend += spend;
         totalImpressions += imp;
         totalClicks += clicks;
         totalPurchases += purchases;
 
-        if (dateStr !== todayStr) {
-            spendData.push(spend);
-            clicksData.push(clicks);
-            purchasesData.push(purchases);
-            impressionsData.push(imp);
-            cpcData.push(clicks > 0 ? spend / clicks : 0);
-            cpaData.push(purchases > 0 ? spend / purchases : 0);
-            ctrData.push(imp > 0 ? (clicks / imp) * 100 : 0);
-        } else {
-            labels.pop(); // Remove today's label if it was pushed
-        }
+        spendData.push(spend);
+        clicksData.push(clicks);
+        purchasesData.push(purchases);
+        impressionsData.push(imp);
+        cpcData.push(clicks > 0 ? spend / clicks : 0);
+        cpaData.push(purchases > 0 ? spend / purchases : 0);
+        ctrData.push(imp > 0 ? (clicks / imp) * 100 : 0);
     }
 
     // Update Cards
@@ -491,16 +551,17 @@ function processAndRenderAds() {
 
     if (window.renderSparklineAndTrend) {
         const hourlySpendSeries = currentHourlyData ? currentHourlyData.map(h => parseFloat(h.spend || 0)) : [0, 0];
+        const hourlyDates = currentHourlyData ? currentHourlyData.map(h => `${(h.date_start||'').slice(5)} ${(h.hourly_stats_aggregated_by_advertiser_time_zone||'').slice(0, 5)}`) : null;
         const dailyBudgetVal = document.getElementById('stat-daily-budget') ? parseFloat(document.getElementById('stat-daily-budget').textContent) : 0;
-        window.renderSparklineAndTrend({ statId: 'stat-daily-budget', data: spendData.map(() => dailyBudgetVal || 1), colorHex: '#20c997', labelSuffix: 'Active Cap' });
-        window.renderSparklineAndTrend({ statId: 'stat-spend-today', data: hourlySpendSeries.length ? hourlySpendSeries : [0, 0], colorHex: '#ff6b6b', labelSuffix: 'vs 24h ago' });
-        window.renderSparklineAndTrend({ statId: 'stat-spend', data: spendData, colorHex: '#007bff' });
-        window.renderSparklineAndTrend({ statId: 'stat-purchases', data: purchasesData, colorHex: '#28a745' });
-        window.renderSparklineAndTrend({ statId: 'stat-impressions', data: impressionsData, colorHex: '#17a2b8' });
-        window.renderSparklineAndTrend({ statId: 'stat-clicks', data: clicksData, colorHex: '#ffc107' });
-        window.renderSparklineAndTrend({ statId: 'stat-cpc', data: cpcData, colorHex: '#6f42c1', inverseTrend: true });
-        window.renderSparklineAndTrend({ statId: 'stat-cpa', data: cpaData, colorHex: '#e83e8c', inverseTrend: true });
-        window.renderSparklineAndTrend({ statId: 'stat-ctr', data: ctrData, colorHex: '#fd7e14' });
+        window.renderSparklineAndTrend({ statId: 'stat-daily-budget', data: spendData.map(() => dailyBudgetVal || 1), dates: labels, colorHex: '#20c997', labelSuffix: 'Active Cap' });
+        window.renderSparklineAndTrend({ statId: 'stat-spend-today', data: hourlySpendSeries.length ? hourlySpendSeries : [0, 0], dates: hourlyDates, colorHex: '#ff6b6b', labelSuffix: 'vs 24h ago' });
+        window.renderSparklineAndTrend({ statId: 'stat-spend', data: spendData, dates: labels, colorHex: '#007bff' });
+        window.renderSparklineAndTrend({ statId: 'stat-purchases', data: purchasesData, dates: labels, colorHex: '#28a745' });
+        window.renderSparklineAndTrend({ statId: 'stat-impressions', data: impressionsData, dates: labels, colorHex: '#17a2b8' });
+        window.renderSparklineAndTrend({ statId: 'stat-clicks', data: clicksData, dates: labels, colorHex: '#ffc107' });
+        window.renderSparklineAndTrend({ statId: 'stat-cpc', data: cpcData, dates: labels, colorHex: '#6f42c1', inverseTrend: true });
+        window.renderSparklineAndTrend({ statId: 'stat-cpa', data: cpaData, dates: labels, colorHex: '#e83e8c', inverseTrend: true });
+        window.renderSparklineAndTrend({ statId: 'stat-ctr', data: ctrData, dates: labels, colorHex: '#fd7e14' });
     }
 
     currentSummary = {

@@ -4,6 +4,7 @@ const BASE_URL = "https://channels-service.fourvenues.com";
 window.renderSparklineAndTrend = function({
     statId,
     data,
+    dates = null,
     colorHex = '#3b82f6',
     inverseTrend = false,
     labelSuffix = 'vs 7d ago'
@@ -24,10 +25,13 @@ window.renderSparklineAndTrend = function({
         badgeEl = document.createElement('span');
         badgeEl.id = `${statId}-trend`;
         badgeEl.className = 'trend-badge badge-neutral';
-        containerEl.appendChild(badgeEl);
+        const cardEl = containerEl.parentElement;
+        if (cardEl) {
+            cardEl.appendChild(badgeEl);
+        }
     }
 
-    const cardEl = statEl.closest('.stat-card');
+    const cardEl = containerEl.parentElement;
     let sparkEl = document.getElementById(`${statId}-sparkline`);
     if (cardEl && !sparkEl) {
         sparkEl = document.createElement('div');
@@ -105,6 +109,7 @@ window.renderSparklineAndTrend = function({
         const gradId = `grad-${statId.replace(/[^a-zA-Z0-9]/g, '-')}`;
         const endTopPct = (pts[pts.length - 1].y / height) * 100;
 
+        sparkEl.style.position = 'relative';
         sparkEl.innerHTML = `
             <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" style="width: 100%; height: 100%; display: block; overflow: visible;">
                 <defs>
@@ -116,8 +121,43 @@ window.renderSparklineAndTrend = function({
                 <path d="${polygonD}" fill="url(#${gradId})" />
                 <path d="${pathD}" fill="none" stroke="${colorHex}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
             </svg>
-            <div style="position: absolute; right: 1px; top: ${endTopPct.toFixed(1)}%; width: 7px; height: 7px; border-radius: 50%; background: ${colorHex}; border: 1.5px solid #fff; box-shadow: 0 0 6px ${colorHex}; transform: translateY(-50%); z-index: 2; pointer-events: none;"></div>
+            <div class="sparkline-end-dot" style="position: absolute; right: 1px; top: ${endTopPct.toFixed(1)}%; width: 7px; height: 7px; border-radius: 50%; background: ${colorHex}; border: 1.5px solid #fff; box-shadow: 0 0 6px ${colorHex}; transform: translateY(-50%); z-index: 2; pointer-events: none; transition: opacity 0.15s ease;"></div>
+            <div class="sparkline-hover-dot" style="position: absolute; width: 9px; height: 9px; border-radius: 50%; background: #fff; border: 2.5px solid ${colorHex}; box-shadow: 0 0 10px ${colorHex}; transform: translate(-50%, -50%); z-index: 5; pointer-events: none; display: none;"></div>
+            <div class="sparkline-tooltip" style="position: absolute; bottom: 85%; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255, 255, 255, 0.2); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; color: #fff; pointer-events: none; white-space: nowrap; z-index: 10; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.6); font-family: 'Inter', sans-serif;"></div>
         `;
+
+        const endDot = sparkEl.querySelector('.sparkline-end-dot');
+        const hoverDot = sparkEl.querySelector('.sparkline-hover-dot');
+        const tooltip = sparkEl.querySelector('.sparkline-tooltip');
+
+        sparkEl.style.cursor = 'crosshair';
+        sparkEl.onmousemove = (e) => {
+            const rect = sparkEl.getBoundingClientRect();
+            const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            const idx = Math.round(ratio * (validData.length - 1));
+            const pt = pts[idx];
+            if (!pt) return;
+
+            const valStr = typeof validData[idx] === 'number' ? validData[idx].toLocaleString(undefined, { maximumFractionDigits: 2 }) : validData[idx];
+            const dateStr = (dates && dates[idx]) ? dates[idx] : `Point ${idx + 1}`;
+
+            const leftPct = (pt.x / width) * 100;
+            const topPct = (pt.y / height) * 100;
+
+            if (endDot) endDot.style.opacity = '0.2';
+            hoverDot.style.left = `${leftPct.toFixed(1)}%`;
+            hoverDot.style.top = `${topPct.toFixed(1)}%`;
+            hoverDot.style.display = 'block';
+
+            tooltip.innerHTML = `<span style="color: #94a3b8; font-size: 0.68rem; display: block;">${dateStr}</span><strong style="color: ${colorHex}; font-size: 0.82rem;">${valStr}</strong>`;
+            tooltip.style.left = `${Math.max(15, Math.min(85, leftPct)).toFixed(1)}%`;
+            tooltip.style.display = 'block';
+        };
+        sparkEl.onmouseleave = () => {
+            if (endDot) endDot.style.opacity = '1';
+            hoverDot.style.display = 'none';
+            tooltip.style.display = 'none';
+        };
     }
 };
 
@@ -438,9 +478,9 @@ function processAndRender() {
             const dd = chartDataByDate[d];
             return dd.totalFor > 0 ? ((dd.totalFor - dd.totalEnter) / dd.totalFor * 100) : 0;
         });
-        window.renderSparklineAndTrend({ statId: 'stat-total-revenue', data: revSeries, colorHex: '#10b981' });
-        window.renderSparklineAndTrend({ statId: 'stat-total-tickets', data: tixSeries, colorHex: '#3b82f6' });
-        window.renderSparklineAndTrend({ statId: 'stat-avg-noshow', data: noShowSeries, colorHex: '#ef4444', inverseTrend: true });
+        window.renderSparklineAndTrend({ statId: 'stat-total-revenue', data: revSeries, dates: dates, colorHex: '#10b981' });
+        window.renderSparklineAndTrend({ statId: 'stat-total-tickets', data: tixSeries, dates: dates, colorHex: '#3b82f6' });
+        window.renderSparklineAndTrend({ statId: 'stat-avg-noshow', data: noShowSeries, dates: dates, colorHex: '#ef4444', inverseTrend: true });
     }
 
     renderPartnersTable(partnerData);
