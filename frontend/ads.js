@@ -738,7 +738,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
     const clicksEl = document.getElementById('modal-camp-clicks');
     if (clicksEl) clicksEl.textContent = clicks.toLocaleString();
     
-    const adsetsContainer = document.getElementById('modal-adsets-container');
+    const adsetsContainer = document.getElementById('modal-meta-groups-container') || document.getElementById('modal-adsets-container');
     if (adsetsContainer) {
         adsetsContainer.innerHTML = '';
         const adSetMap = {};
@@ -814,17 +814,17 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                 }
                 
                 const adsetEl = document.createElement('div');
-                adsetEl.className = 'adset-item';
+                adsetEl.className = 'meta-group-item';
                 
                 const header = document.createElement('div');
-                header.className = 'adset-header';
+                header.className = 'meta-group-header';
                 header.innerHTML = `
                     <div>
                         <div style="margin-bottom: 5px; font-size: 1.05em; color: white;">
                             <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${asStatusColor}; margin-right: 8px;" title="${asStatus}"></span>
                             ${adset.name || 'Unknown Ad Set'}
                         </div>
-                        <div class="adset-stats">
+                        <div class="meta-group-stats">
                             ${asBudgetText} ${asBidText}
                             <span>Spend: ${adset.spend.toFixed(2)}€</span>
                             <span>Imp: ${adset.imp.toLocaleString()}</span>
@@ -839,7 +839,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                 `;
                 
                 const body = document.createElement('div');
-                body.className = 'adset-body';
+                body.className = 'meta-group-body';
                 
                 if (adset.ads.length > 0) {
                     adset.ads.forEach(ad => {
@@ -877,15 +877,15 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                         const adStatusColor = adStatusObj.color;
                         
                         const adEl = document.createElement('div');
-                        adEl.className = 'ad-item';
+                        adEl.className = 'meta-creative-item';
                         adEl.innerHTML = `
-                            <div class="ad-header">
+                            <div class="meta-creative-header">
                                 <div>
                                     <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${adStatusColor}; margin-right: 6px;" title="${adStatus}"></span>
                                     ${ad.ad_name || ad.ad_id}
                                 </div>
                             </div>
-                            <div class="ad-stats">
+                            <div class="meta-creative-stats">
                                 <span>Spend: ${adSpend.toFixed(2)}€</span>
                                 <span>Imp: ${adImp}</span>
                                 <span>Clicks: ${adClicks}</span>
@@ -894,10 +894,10 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                                 <span>CPC: ${adCpc}€</span>
                                 <span>CTR: ${adCtr}%</span>
                             </div>
-                            <div class="ad-details">
+                            <div class="meta-creative-details">
                                 <p><strong>Title:</strong> ${titleText}</p>
                                 <p><strong>Description:</strong> ${copyText.substring(0, 150)}${copyText.length > 150 ? '...' : ''}</p>
-                                ${link ? `<p><strong>Link:</strong> <a href="${link}" target="_blank" class="ad-link">${link}</a></p>` : ''}
+                                ${link ? `<p><strong>Link:</strong> <a href="${link}" target="_blank" class="meta-creative-link">${link}</a></p>` : ''}
                             </div>
                         `;
                         body.appendChild(adEl);
@@ -906,7 +906,8 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                     body.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9em; padding: 10px;">No ads data available for this ad set in the selected period.</div>';
                 }
                 
-                header.onclick = () => {
+                header.onclick = (e) => {
+                    if (e && e.stopPropagation) e.stopPropagation();
                     const isExpanded = body.style.display === 'block';
                     body.style.display = isExpanded ? 'none' : 'block';
                     if (isExpanded) {
