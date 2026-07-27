@@ -1314,6 +1314,49 @@ function closeCampaignModal() {
     document.getElementById('campaignModal').style.display = 'none';
 }
 
+window.refreshCampaignModalData = async function() {
+    if (!currentSelectedCampaign || !currentSelectedCampaign.camp) return;
+    const btn = document.getElementById('btn-refresh-campaign-modal');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-rotate-right fa-spin"></i> Refreshing...`;
+    }
+
+    try {
+        await fetchAdsData();
+        if (currentSelectedCampaign && currentSelectedCampaign.camp) {
+            const campId = currentSelectedCampaign.camp.campaign_id;
+            const updatedCamp = currentCampaignsData.find(c => c.campaign_id === campId) || currentSelectedCampaign.camp;
+            
+            const spend = parseFloat(updatedCamp.spend || 0);
+            const imp = parseInt(updatedCamp.impressions || 0);
+            const clicks = parseInt(updatedCamp.clicks || 0);
+            let purchases = 0;
+            let lpv = 0;
+            if (updatedCamp.actions) {
+                const purchaseAction = updatedCamp.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+                if (purchaseAction) purchases = parseInt(purchaseAction.value);
+                const lpvAction = updatedCamp.actions.find(a => a.action_type === 'landing_page_view');
+                if (lpvAction) lpv = parseInt(lpvAction.value);
+            }
+
+            openCampaignModal(updatedCamp, spend, imp, clicks, purchases, lpv);
+        }
+    } catch (e) {
+        console.error("Failed to refresh campaign modal data", e);
+    } finally {
+        if (btn) {
+            btn.innerHTML = `<i class="fa-solid fa-check" style="color: #10b981;"></i> Refreshed!`;
+            setTimeout(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="fa-solid fa-rotate-right"></i> Refresh`;
+                }
+            }, 2000);
+        }
+    }
+};
+
 document.getElementById('btn-analyze-campaign').addEventListener('click', () => {
     if (!currentSelectedCampaign) return;
     analyzeCampaignWithAI(currentSelectedCampaign);
