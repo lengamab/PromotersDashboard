@@ -82,27 +82,52 @@ window.renderSparklineAndTrend = function({
         const max = Math.max(...validData);
         const range = (max - min) || 1;
 
-        const points = validData.map((val, idx) => {
+        const pts = validData.map((val, idx) => {
             const x = (idx / (validData.length - 1)) * width;
-            const y = height - ((val - min) / range) * (height - 10) - 5;
-            return `${x.toFixed(1)},${y.toFixed(1)}`;
-        }).join(' ');
+            const y = height - ((val - min) / range) * 26 - 6;
+            return { x, y };
+        });
 
-        const polygonPoints = `0,${height} ${points} ${width},${height}`;
+        const tension = 0.25;
+        let pathD = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+        const tangents = pts.map((pt, i) => {
+            if (i === 0) return { x: (pts[1].x - pt.x) * tension, y: (pts[1].y - pt.y) * tension };
+            if (i === pts.length - 1) return { x: (pt.x - pts[i - 1].x) * tension, y: (pt.y - pts[i - 1].y) * tension };
+            if ((pts[i - 1].y <= pt.y && pt.y <= pts[i + 1].y) || (pts[i - 1].y >= pt.y && pt.y >= pts[i + 1].y)) {
+                return { x: (pts[i + 1].x - pts[i - 1].x) * tension, y: (pts[i + 1].y - pts[i - 1].y) * tension };
+            } else {
+                return { x: (pts[i + 1].x - pts[i - 1].x) * tension, y: 0 };
+            }
+        });
+
+        for (let i = 0; i < pts.length - 1; i++) {
+            const p0 = pts[i];
+            const p1 = pts[i + 1];
+            const t0 = tangents[i];
+            const t1 = tangents[i + 1];
+            const cp1x = p0.x + t0.x;
+            const cp1y = Math.max(2, Math.min(height - 2, p0.y + t0.y));
+            const cp2x = p1.x - t1.x;
+            const cp2y = Math.max(2, Math.min(height - 2, p1.y - t1.y));
+            pathD += ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p1.x.toFixed(1)},${p1.y.toFixed(1)}`;
+        }
+
+        const polygonD = `${pathD} L ${width},${height} L 0,${height} Z`;
         const gradId = `grad-${statId.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        const endTopPct = (pts[pts.length - 1].y / height) * 100;
 
         sparkEl.innerHTML = `
-            <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+            <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" style="width: 100%; height: 100%; display: block; overflow: visible;">
                 <defs>
                     <linearGradient id="${gradId}" x1="0%" y1="0%" x2="0%" y2="100%">
                         <stop offset="0%" stop-color="${colorHex}" stop-opacity="0.35" />
                         <stop offset="100%" stop-color="${colorHex}" stop-opacity="0.0" />
                     </linearGradient>
                 </defs>
-                <polygon points="${polygonPoints}" fill="url(#${gradId})" />
-                <polyline fill="none" stroke="${colorHex}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" points="${points}" />
-                <circle cx="${width}" cy="${height - ((currentVal - min) / range) * (height - 10) - 5}" r="3.5" fill="${colorHex}" stroke="#ffffff" stroke-width="1.5" />
+                <path d="${polygonD}" fill="url(#${gradId})" />
+                <path d="${pathD}" fill="none" stroke="${colorHex}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
             </svg>
+            <div style="position: absolute; right: 1px; top: ${endTopPct.toFixed(1)}%; width: 7px; height: 7px; border-radius: 50%; background: ${colorHex}; border: 1.5px solid #fff; box-shadow: 0 0 6px ${colorHex}; transform: translateY(-50%); z-index: 2; pointer-events: none;"></div>
         `;
     }
 };
