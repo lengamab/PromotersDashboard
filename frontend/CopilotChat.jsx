@@ -152,6 +152,63 @@ const fetchAccountHistoricalDataHandler = async ({ since, until }) => {
   }
 };
 
+const fetchCampaignHourlyDataHandler = async ({ campaignId, datePreset = 'last_2d' }) => {
+  try {
+    const params = new URLSearchParams({
+        level: 'campaign',
+        date_preset: datePreset,
+        breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
+        fields: 'spend,impressions,clicks,actions'
+    });
+    const response = await fetchWithTimeout(`/api/meta-proxy/${campaignId}/insights?${params.toString()}`);
+    const data = await response.json();
+    if (data.error) return { error: data.error.message };
+    
+    if (data.data) {
+      return data.data.map(d => ({
+        date: d.date_start,
+        hour: d.hourly_stats_aggregated_by_advertiser_time_zone,
+        spend: d.spend,
+        impressions: d.impressions,
+        clicks: d.clicks,
+        purchases: d.actions ? d.actions.filter(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase').map(a => a.value).join(',') : 0
+      }));
+    }
+    return data;
+  } catch (e) {
+    return { error: e.message };
+  }
+};
+
+const fetchAccountHourlyDataHandler = async ({ datePreset = 'last_2d' }) => {
+  try {
+    const accountId = 'act_911535275086772';
+    const params = new URLSearchParams({
+        level: 'account',
+        date_preset: datePreset,
+        breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
+        fields: 'spend,impressions,clicks,actions'
+    });
+    const response = await fetchWithTimeout(`/api/meta-proxy/${accountId}/insights?${params.toString()}`);
+    const data = await response.json();
+    if (data.error) return { error: data.error.message };
+    
+    if (data.data) {
+      return data.data.map(d => ({
+        date: d.date_start,
+        hour: d.hourly_stats_aggregated_by_advertiser_time_zone,
+        spend: d.spend,
+        impressions: d.impressions,
+        clicks: d.clicks,
+        purchases: d.actions ? d.actions.filter(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase').map(a => a.value).join(',') : 0
+      }));
+    }
+    return data;
+  } catch (e) {
+    return { error: e.message };
+  }
+};
+
 const fetchCampaignBudgetHandler = async ({ campaignId }) => {
   try {
     const response = await fetchWithTimeout(`/api/meta-proxy/${campaignId}?fields=name,daily_budget,lifetime_budget`);
@@ -356,6 +413,28 @@ const tools = [
         }
       },
       {
+        name: "fetchCampaignHourlyData",
+        description: "Fetch hourly insights (spend, impressions, clicks, purchases by hour of the day) for a specific campaign over the last 24 to 48 hours.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            campaignId: { type: "STRING", description: "The ID of the campaign." },
+            datePreset: { type: "STRING", description: "Time window preset (optional, defaults to 'last_2d' to cover today and yesterday)." }
+          },
+          required: ["campaignId"]
+        }
+      },
+      {
+        name: "fetchAccountHourlyData",
+        description: "Fetch hourly insights (spend, impressions, clicks, purchases by hour of the day) for the ENTIRE Meta Ads account over the last 24 to 48 hours.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            datePreset: { type: "STRING", description: "Time window preset (optional, defaults to 'last_2d' to cover today and yesterday)." }
+          }
+        }
+      },
+      {
         name: "queryMetaGraphAPI",
         description: "A raw proxy to the Meta Graph API (v19.0). Use this to fetch advanced or deeply nested data that isn't provided in the context (e.g., adsets, ad creatives, demographic breakdowns). Do NOT include the base URL or access token.",
         parameters: {
@@ -454,6 +533,8 @@ const dispatchToolCall = async (call) => {
     case 'fetchCampaignBudget': return await fetchCampaignBudgetHandler(call.args);
     case 'fetchCampaignHistoricalData': return await fetchCampaignHistoricalDataHandler(call.args);
     case 'fetchAccountHistoricalData': return await fetchAccountHistoricalDataHandler(call.args);
+    case 'fetchCampaignHourlyData': return await fetchCampaignHourlyDataHandler(call.args);
+    case 'fetchAccountHourlyData': return await fetchAccountHourlyDataHandler(call.args);
     case 'fetchActiveCampaigns': return await fetchActiveCampaignsHandler();
     case 'queryMetaGraphAPI': return await queryMetaGraphAPIHandler(call.args);
     case 'fetchFourvenuesEvents': return await fetchFourvenuesEventsHandler(call.args);
@@ -564,6 +645,8 @@ const CopilotChatWidget = () => {
         const analyzingTasks = calls.map(c => {
           if (c.name === 'fetchCampaignHistoricalData') return `Analyzing historical data for campaign ${c.args.campaignId}...`;
           if (c.name === 'fetchAccountHistoricalData') return `Analyzing overall account history...`;
+          if (c.name === 'fetchCampaignHourlyData') return `Analyzing hourly breakdowns for campaign ${c.args.campaignId}...`;
+          if (c.name === 'fetchAccountHourlyData') return `Analyzing account hourly breakdowns...`;
           if (c.name === 'fetchCampaignBudget') return `Checking budget settings...`;
           if (c.name === 'fetchActiveCampaigns') return `Scanning active campaigns...`;
           if (c.name === 'queryMetaGraphAPI') return `Querying Meta Graph API for advanced metrics...`;

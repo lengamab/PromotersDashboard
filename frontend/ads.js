@@ -566,6 +566,60 @@ function closeAiModal() {
     document.getElementById('aiModal').style.display = 'none';
 }
 
+async function fetchTimeSeriesContext(endpointPrefix) {
+    let text = '\n\n**Temporal Evolution (Last 7 Days Daily & Last 24 Hours Hourly):**\n';
+    try {
+        const [dailyRes, hourlyRes] = await Promise.all([
+            fetch(`/api/meta-proxy/${endpointPrefix}/insights?level=${endpointPrefix.startsWith('act_') ? 'account' : 'campaign'}&date_preset=last_7d&time_increment=1&fields=spend,impressions,clicks,actions`),
+            fetch(`/api/meta-proxy/${endpointPrefix}/insights?level=${endpointPrefix.startsWith('act_') ? 'account' : 'campaign'}&date_preset=last_2d&breakdowns=hourly_stats_aggregated_by_advertiser_time_zone&fields=spend,impressions,clicks,actions`)
+        ]);
+        const dailyJson = await dailyRes.json();
+        const hourlyJson = await hourlyRes.json();
+
+        if (dailyJson.data && dailyJson.data.length > 0) {
+            text += 'Daily Breakdown (Last 7 Days):\n| Date | Spend | Imp | Clicks | Purchases | CPA | CPC | CTR |\n|---|---|---|---|---|---|---|---|\n';
+            dailyJson.data.forEach(d => {
+                const sp = parseFloat(d.spend || 0);
+                const im = parseInt(d.impressions || 0);
+                const cl = parseInt(d.clicks || 0);
+                let pu = 0;
+                if (d.actions) {
+                    const pa = d.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+                    if (pa) pu = parseInt(pa.value);
+                }
+                const cpa = pu > 0 ? (sp / pu).toFixed(2) + '€' : '0€';
+                const cpc = cl > 0 ? (sp / cl).toFixed(2) + '€' : '0€';
+                const ctr = im > 0 ? ((cl / im) * 100).toFixed(2) + '%' : '0%';
+                text += `| ${d.date_start} | ${sp.toFixed(2)}€ | ${im} | ${cl} | ${pu} | ${cpa} | ${cpc} | ${ctr} |\n`;
+            });
+        } else {
+            text += 'Daily Breakdown (Last 7 Days): No data recorded.\n';
+        }
+
+        if (hourlyJson.data && hourlyJson.data.length > 0) {
+            const recentHours = hourlyJson.data.slice(-24);
+            text += '\nHourly Breakdown (Last 24 Hours):\n| Date & Hour | Spend | Imp | Clicks | Purchases |\n|---|---|---|---|---|\n';
+            recentHours.forEach(h => {
+                const sp = parseFloat(h.spend || 0);
+                const im = parseInt(h.impressions || 0);
+                const cl = parseInt(h.clicks || 0);
+                let pu = 0;
+                if (h.actions) {
+                    const pa = h.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+                    if (pa) pu = parseInt(pa.value);
+                }
+                text += `| ${h.date_start} (${h.hourly_stats_aggregated_by_advertiser_time_zone}) | ${sp.toFixed(2)}€ | ${im} | ${cl} | ${pu} |\n`;
+            });
+        } else {
+            text += '\nHourly Breakdown (Last 24 Hours): No data recorded.\n';
+        }
+    } catch (err) {
+        console.warn('Could not load time-series insights:', err);
+        text += 'Time-series data temporarily unavailable.\n';
+    }
+    return text;
+}
+
 async function analyzeWithAI() {
     if (currentAdsData.length === 0) {
         alert("No ad data available to analyze. Please wait for data to load.");
@@ -612,10 +666,11 @@ async function analyzeWithAI() {
         });
     }
 
-    const fullContextData = contextData + campaignsSummary;
+    const timeSeriesText = await fetchTimeSeriesContext('act_' + META_ACCOUNT_ID);
+    const fullContextData = contextData + timeSeriesText + campaignsSummary;
 
     if (window.updateCopilotContext) {
-        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze my overall account performance and individual campaigns based on the extensive context data provided. Identify top-performing trends, pinpoint areas of inefficient spend, and provide 3 concrete, data-backed recommendations to optimize my budget. If you need more granular data to make recommendations, feel free to use your API tools.";
+        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze my overall account performance and individual campaigns based on the extensive context data provided. Carefully inspect the Temporal Evolution tables (Daily for last 7 days and Hourly for last 24 hours) to diagnose overall account trajectory, intraday spend/conversion hours, and trends over time. Identify top-performing trends, pinpoint areas of inefficient spend, and provide 3 concrete, data-backed recommendations to optimize my budget. If you need more granular data to make recommendations, feel free to use your API tools.";
         window.updateCopilotContext(fullContextData, customPrompt);
     }
 }
@@ -1129,10 +1184,11 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
         }
     }
 
-    const fullContext = campStatsText + adsText;
+    const timeSeriesText = await fetchTimeSeriesContext(campData.camp.campaign_id);
+    const fullContext = campStatsText + timeSeriesText + adsText;
 
     if (window.updateCopilotContext) {
-        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze the performance of this specific campaign AND its individual Ad Sets and Ads (including Ad Copy/Title performance) based on the context data provided. VERY IMPORTANT: Pay close attention to the Status of each Ad Set and Ad. Do NOT suggest optimizing or changing Ad Sets or Ads that are PAUSED or ARCHIVED, focus only on ACTIVE ones. Tell me what is working well, what is underperforming, and give 3 highly actionable pieces of advice to improve the active creatives and targeting based on CPC, CPA, and CTR.";
+        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze the performance of this specific campaign AND its individual Ad Sets and Ads (including Ad Copy/Title performance) based on the context data provided. VERY IMPORTANT: Pay close attention to the Status of each Ad Set and Ad. Do NOT suggest optimizing or changing Ad Sets or Ads that are PAUSED or ARCHIVED, focus only on ACTIVE ones. Analyze the Temporal Evolution tables (Daily for last 7 days and Hourly for last 24 hours) to diagnose trends like creative fatigue, bid exhaustion, intraday conversion hours, or scaling opportunities. Tell me what is working well, what is underperforming, and give 3 highly actionable pieces of advice to improve the active creatives and targeting based on CPC, CPA, and CTR.";
         window.updateCopilotContext(fullContext, customPrompt);
     }
 }
