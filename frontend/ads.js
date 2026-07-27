@@ -148,7 +148,7 @@ async function fetchAdsData() {
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/campaigns?${new URLSearchParams({
                 limit: 500,
                 effective_status: JSON.stringify(['ACTIVE', 'PAUSED', 'ARCHIVED', 'IN_PROCESS', 'WITH_ISSUES', 'PENDING_REVIEW', 'CAMPAIGN_PAUSED', 'ADSET_PAUSED', 'DISAPPROVED']),
-                fields: 'id,name,daily_budget,lifetime_budget,status,effective_status,start_time,stop_time,updated_time,objective'
+                fields: 'id,name,daily_budget,lifetime_budget,status,effective_status,start_time,stop_time,updated_time,objective,bid_strategy,bid_amount,spend_cap'
             }).toString()}`),
             fetch(`${url}?${new URLSearchParams({
                 level: 'ad',
@@ -164,7 +164,7 @@ async function fetchAdsData() {
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/adsets?${new URLSearchParams({
                 limit: 500,
                 effective_status: JSON.stringify(['ACTIVE', 'PAUSED', 'ARCHIVED', 'IN_PROCESS', 'WITH_ISSUES', 'PENDING_REVIEW', 'CAMPAIGN_PAUSED', 'ADSET_PAUSED', 'DISAPPROVED']),
-                fields: 'id,name,status,effective_status,end_time,targeting,campaign_id,optimization_goal,billing_event,daily_budget,lifetime_budget'
+                fields: 'id,name,status,effective_status,end_time,targeting,campaign_id,optimization_goal,billing_event,daily_budget,lifetime_budget,bid_strategy,bid_amount'
             }).toString()}`)
         ]);
         
@@ -662,7 +662,12 @@ async function analyzeWithAI() {
                 }
             }
             
-            campaignsSummary += `- [${status}] ${camp.campaign_name} | Spend: ${spend.toFixed(2)}€ | Budget: ${budgetText} | Purchases: ${purchases} | CPA: ${cpa}€ | CPC: ${cpc}€ | CTR: ${ctr}%\n`;
+            let bidText = camp.budget_info?.bid_strategy || "LOWEST_COST_WITHOUT_CAP";
+            if (camp.budget_info?.bid_amount) {
+                bidText += ` (Cap: ${(parseInt(camp.budget_info.bid_amount)/100).toFixed(2)}€)`;
+            }
+            
+            campaignsSummary += `- [${status}] ${camp.campaign_name} | Spend: ${spend.toFixed(2)}€ | Budget: ${budgetText} | Bid Strategy: ${bidText} | Purchases: ${purchases} | CPA: ${cpa}€ | CPC: ${cpc}€ | CTR: ${ctr}%\n`;
         });
     }
 
@@ -670,7 +675,7 @@ async function analyzeWithAI() {
     const fullContextData = contextData + timeSeriesText + campaignsSummary;
 
     if (window.updateCopilotContext) {
-        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze my overall account performance and individual campaigns based on the extensive context data provided. Carefully inspect the Temporal Evolution tables (Daily for last 7 days and Hourly for last 24 hours) to diagnose overall account trajectory, intraday spend/conversion hours, and trends over time. Identify top-performing trends, pinpoint areas of inefficient spend, and provide 3 concrete, data-backed recommendations to optimize my budget. If you need more granular data to make recommendations, feel free to use your API tools.";
+        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze my overall account performance and individual campaigns based on the extensive context data provided. Carefully inspect the Temporal Evolution tables (Daily for last 7 days and Hourly for last 24 hours) to diagnose overall account trajectory, intraday spend/conversion hours, and trends over time. 🚨 ZERO-IMPRESSION / BID CAP DIAGNOSTIC RULE: Whenever an ACTIVE campaign or ad set has generated 0 Impressions and 0 Spend over the last 24 hours (or since launching yesterday), check its Bid Strategy and Bid Cap. If a Cost Cap (COST_CAP) or Bid Cap (LOWEST_COST_WITH_BID_CAP) is set, diagnose Auction Exclusion due to Low Bid Cap immediately and recommend raising or removing the cap. Identify top-performing trends, pinpoint areas of inefficient spend, and provide 3 concrete, data-backed recommendations to optimize my budget. If you need more granular data to make recommendations, feel free to use your API tools.";
         window.updateCopilotContext(fullContextData, customPrompt);
     }
 }
@@ -800,6 +805,14 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                     asBudgetText = `<span>Budget: ${(parseInt(adsetTargeting.lifetime_budget)/100).toFixed(2)}€ (life)</span>`;
                 }
                 
+                let asBidText = '';
+                if (adsetTargeting.bid_strategy && adsetTargeting.bid_strategy !== 'LOWEST_COST_WITHOUT_CAP') {
+                    asBidText = `<span>Strategy: ${adsetTargeting.bid_strategy}</span>`;
+                }
+                if (adsetTargeting.bid_amount) {
+                    asBidText += `<span>Bid Cap: ${(parseInt(adsetTargeting.bid_amount)/100).toFixed(2)}€</span>`;
+                }
+                
                 const adsetEl = document.createElement('div');
                 adsetEl.className = 'adset-item';
                 
@@ -812,7 +825,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases) {
                             ${adset.name || 'Unknown Ad Set'}
                         </div>
                         <div class="adset-stats">
-                            ${asBudgetText}
+                            ${asBudgetText} ${asBidText}
                             <span>Spend: ${adset.spend.toFixed(2)}€</span>
                             <span>Imp: ${adset.imp.toLocaleString()}</span>
                             <span>Clicks: ${adset.clicks.toLocaleString()}</span>
@@ -1083,6 +1096,7 @@ Objective: ${objective}
 Duration: ${datesText} (Active for: ${daysActiveText})
 Last Significant Change: ${lastChangeText}
 Budget: ${budgetText}
+Bid Strategy: ${campData.camp.budget_info?.bid_strategy || 'LOWEST_COST_WITHOUT_CAP'} ${campData.camp.budget_info?.bid_amount ? '(Bid Cap: ' + (parseInt(campData.camp.budget_info.bid_amount)/100).toFixed(2) + '€)' : ''}
 Spend: ${campData.spend.toFixed(2)}€
 Impressions: ${campData.imp}
 Reach: ${campData.camp.reach || 'N/A'}
@@ -1131,6 +1145,7 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
             let billEvent = 'UNKNOWN';
             let asStatus = 'UNKNOWN';
             let asBudgetStr = 'N/A';
+            let asBidStr = 'LOWEST_COST_WITHOUT_CAP (Auto Bid)';
             if (currentAdSetsTargetingMap[adsetId]) {
                 const adsetData = currentAdSetsTargetingMap[adsetId];
                 targetingDataStr = JSON.stringify(adsetData.targeting || {}, null, 2);
@@ -1138,13 +1153,15 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
                 billEvent = adsetData.billing_event || 'UNKNOWN';
                 if (adsetData.daily_budget) asBudgetStr = (parseInt(adsetData.daily_budget)/100).toFixed(2) + '€/day';
                 else if (adsetData.lifetime_budget) asBudgetStr = (parseInt(adsetData.lifetime_budget)/100).toFixed(2) + '€ (life)';
+                if (adsetData.bid_strategy) asBidStr = adsetData.bid_strategy;
+                if (adsetData.bid_amount) asBidStr += ` (Cap: ${(parseInt(adsetData.bid_amount)/100).toFixed(2)}€)`;
                 asStatus = window.getMetaStatusDetails(
                     adsetData.status,
                     adsetData.effective_status,
                     adsetData.end_time || campData.camp.budget_info?.stop_time
                 ).text;
             }
-            adsText += `\nAd Set: ${adset.name || adsetId} (Status: ${asStatus}, Budget: ${asBudgetStr}, Optimization: ${optGoal}, Billing: ${billEvent})\nTargeting: ${targetingDataStr}\n`;
+            adsText += `\nAd Set: ${adset.name || adsetId} (Status: ${asStatus}, Budget: ${asBudgetStr}, Bid Strategy: ${asBidStr}, Optimization: ${optGoal}, Billing: ${billEvent})\nTargeting: ${targetingDataStr}\n`;
             
             if (adset.ads.length === 0) {
                 adsText += `   No ads data available for this ad set in the selected period.\n`;
@@ -1188,7 +1205,7 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
     const fullContext = campStatsText + timeSeriesText + adsText;
 
     if (window.updateCopilotContext) {
-        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze the performance of this specific campaign AND its individual Ad Sets and Ads (including Ad Copy/Title performance) based on the context data provided. VERY IMPORTANT: Pay close attention to the Status of each Ad Set and Ad. Do NOT suggest optimizing or changing Ad Sets or Ads that are PAUSED or ARCHIVED, focus only on ACTIVE ones. Analyze the Temporal Evolution tables (Daily for last 7 days and Hourly for last 24 hours) to diagnose trends like creative fatigue, bid exhaustion, intraday conversion hours, or scaling opportunities. Tell me what is working well, what is underperforming, and give 3 highly actionable pieces of advice to improve the active creatives and targeting based on CPC, CPA, and CTR.";
+        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze the performance of this specific campaign AND its individual Ad Sets and Ads (including Ad Copy/Title performance) based on the context data provided. VERY IMPORTANT: Pay close attention to the Status of each Ad Set and Ad. Do NOT suggest optimizing or changing Ad Sets or Ads that are PAUSED or ARCHIVED, focus only on ACTIVE ones. 🚨 ZERO-IMPRESSION / BID CAP DIAGNOSTIC RULE: Whenever an ACTIVE campaign or ad set has generated 0 Impressions and 0 Spend over the last 24 hours (or since launching yesterday), check its Bid Strategy and Bid Cap. If a Cost Cap (COST_CAP) or Bid Cap (LOWEST_COST_WITH_BID_CAP) is set, diagnose Auction Exclusion due to Low Bid Cap immediately and recommend raising or removing the cap. Analyze the Temporal Evolution tables (Daily for last 7 days and Hourly for last 24 hours) to diagnose trends like creative fatigue, bid exhaustion, intraday conversion hours, or scaling opportunities. Tell me what is working well, what is underperforming, and give 3 highly actionable pieces of advice to improve the active creatives and targeting based on CPC, CPA, and CTR.";
         window.updateCopilotContext(fullContext, customPrompt);
     }
 }

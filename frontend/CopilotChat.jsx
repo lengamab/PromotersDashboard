@@ -24,33 +24,34 @@ const SYSTEM_INSTRUCTION = `You are La French AI, an elite digital marketing and
 5. When the user is in the Main Dashboard asking about nightlife operations, cash tracking, promoter balances, manual expenses, or sales, use your Fourvenues tools (fetchFourvenuesCashTracking, fetchFourvenuesSalesHistory, fetchFourvenuesExpenses, fetchFourvenuesCashouts, fetchFourvenuesEvents, fetchFourvenuesPerformance, fetchFourvenuesWallet, fetchPromoterProfile) to answer precisely and accurately.
 
 ═══ CAMPAIGN HEALTH CHECKS (run all four before any recommendation) ═══
-5. Learning phase: active < 4 days OR last significant change < 3 days ago.
+6. Learning phase: active < 4 days OR last significant change < 3 days ago.
    If true, state "Learning Phase" explicitly and do not recommend pausing or
    drastic changes — unless spend is high AND performance is catastrophic, in
    which case flag the exception explicitly and explain why you're overriding it.
-6. Fatigue: Frequency > 2.5 with rising CPA = flag ad fatigue.
-7. Goal alignment: check Objective (campaign) vs Optimization Goal (ad set) match
+7. Fatigue: Frequency > 2.5 with rising CPA = flag ad fatigue.
+8. Goal alignment: check Objective (campaign) vs Optimization Goal (ad set) match
    the intended outcome (e.g. OUTCOME_SALES vs OUTCOME_TRAFFIC).
-8. Targeting: review Age/Gender/Geo/Interests (flexible_spec) against the event
+9. Targeting: review Age/Gender/Geo/Interests (flexible_spec) against the event
    profile; flag if too broad or misaligned.
+10. Zero-Impression Bid Cap Exhaustion: When analyzing an ACTIVE campaign or ad set with 0 Impressions and 0 Spend over the last 24 hours (or since launching yesterday), check \`bid_strategy\` and \`bid_amount\`. If a Cost Cap (\`COST_CAP\`) or Bid Cap (\`LOWEST_COST_WITH_BID_CAP\`) is configured, diagnose **Bid Cap Exhaustion / Auction Exclusion** immediately. Explain that Meta's algorithm is refusing to enter ad auctions because the bid/cost cap is set too low for current market competition, and recommend raising the cap by 30%–50% or switching to Auto Bid (Lowest Cost without Cap) to jumpstart delivery.
 
 If more than one issue applies to the same campaign, address all of them but lead
 with whichever has the largest cost/revenue impact.
 
 ═══ TOOLS ═══
-9. 'queryMetaGraphAPI' is available for any granular data not in context (breakdowns,
+11. 'queryMetaGraphAPI' is available for any granular data not in context (breakdowns,
    ad-set level stats, etc.). Use it proactively rather than answering from
    incomplete context. Restrict yourself to read-only/GET calls — never use it to
    modify budgets, pause campaigns, or change settings; only surface
    recommendations for a human to execute.
 
 ═══ OUTPUT FORMAT ═══
-10. No LaTeX (no $\\rightarrow$, \\rightarrow, etc.) — use -> for arrows.
-11. Structure every substantive answer as: (a) the numbers/calculation shown
-    plainly, (b) diagnosis (learning phase / fatigue / targeting / goal issues),
+12. No LaTeX (no $\rightarrow$, \rightarrow, etc.) — use -> for arrows.
+13. Structure every substantive answer as: (a) the numbers/calculation shown
+    plainly, (b) diagnosis (learning phase / fatigue / targeting / goal issues / bid cap exclusion),
     (c) one concrete, numeric recommendation (e.g. specific bid cap tied to
     actual event margin). Keep prose tight — data and action, not narrative.
-12. Round currency to whole euros unless the person asks for more precision.`;
+14. Round currency to whole euros unless the person asks for more precision.`;
 
 const fetchWithTimeout = async (url, options = {}, timeoutMs = 30000) => {
   const controller = new AbortController();
@@ -211,7 +212,7 @@ const fetchAccountHourlyDataHandler = async ({ datePreset = 'last_2d' }) => {
 
 const fetchCampaignBudgetHandler = async ({ campaignId }) => {
   try {
-    const response = await fetchWithTimeout(`/api/meta-proxy/${campaignId}?fields=name,daily_budget,lifetime_budget`);
+    const response = await fetchWithTimeout(`/api/meta-proxy/${campaignId}?fields=name,daily_budget,lifetime_budget,bid_strategy,bid_amount,spend_cap`);
     const data = await response.json();
     if (data.error) return { error: data.error.message };
     return data;
@@ -223,13 +224,16 @@ const fetchCampaignBudgetHandler = async ({ campaignId }) => {
 const fetchActiveCampaignsHandler = async () => {
   try {
     const accountId = 'act_911535275086772';
-    const res = await fetchWithTimeout(`/api/meta-proxy/${accountId}/campaigns?fields=name,status,daily_budget,lifetime_budget&effective_status=['ACTIVE']`);
+    const res = await fetchWithTimeout(`/api/meta-proxy/${accountId}/campaigns?fields=name,status,daily_budget,lifetime_budget,bid_strategy,bid_amount,spend_cap&effective_status=['ACTIVE']`);
     const data = await res.json();
     if (data.error) return { error: data.error.message };
     return data.data.map(c => ({
         id: c.id, name: c.name,
         daily_budget: c.daily_budget ? (parseInt(c.daily_budget)/100) : null,
-        lifetime_budget: c.lifetime_budget ? (parseInt(c.lifetime_budget)/100) : null
+        lifetime_budget: c.lifetime_budget ? (parseInt(c.lifetime_budget)/100) : null,
+        bid_strategy: c.bid_strategy || 'LOWEST_COST_WITHOUT_CAP',
+        bid_amount: c.bid_amount ? (parseInt(c.bid_amount)/100) : null,
+        spend_cap: c.spend_cap ? (parseInt(c.spend_cap)/100) : null
     }));
   } catch (e) {
     return { error: e.message };
