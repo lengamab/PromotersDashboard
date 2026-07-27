@@ -364,11 +364,34 @@ def get_rates():
             else:
                 ev_date = "N/A"
                 
-            tickets = get_fourvenues_data(f"tickets/?event_id={ev_id}")
+            rates = get_fourvenues_data(f"tickets-rates?event_id={ev_id}") or []
+            for r in rates:
+                rate_id = r.get("_id", "unknown-rate-id")
+                rate_name = r.get("name", "Unknown Rate")
+                rate_slug = r.get("slug", "unknown-slug")
+                opts = r.get("options", [])
+                price = float(opts[0].get("price", 0)) if opts else float(r.get("price", 0))
+                
+                key = f"{ev_id}_{rate_slug}"
+                if key not in unique_rates:
+                    comm_cash = calculate_ticket_commission(rate_name, price, rate_slug, custom_commissions, sale_type="cash")
+                    comm_online = calculate_ticket_commission(rate_name, price, rate_slug, custom_commissions, sale_type="online")
+                    unique_rates[key] = {
+                        "event_id": ev_id,
+                        "event_name": ev_name,
+                        "event_date": ev_date,
+                        "rate_id": rate_id,
+                        "rate_name": rate_name,
+                        "rate_slug": rate_slug,
+                        "price": price,
+                        "commission_cash": comm_cash,
+                        "commission_online": comm_online,
+                        "event_date_raw": ev_date_raw or 0
+                    }
+
+            tickets = get_fourvenues_data(f"tickets/?event_id={ev_id}") or []
             for t in tickets:
                 price = float(t.get("price", 0))
-                payment_id = t.get("payment_id")
-                
                 rate_name = t.get("rate_name", "Unknown Rate")
                 rate_slug = t.get("rate_slug", "unknown-slug")
                 rate_id = t.get("rate_id", "unknown-rate-id")
@@ -393,7 +416,7 @@ def get_rates():
         rates_list = list(unique_rates.values())
         rates_list.sort(key=lambda x: (-x["event_date_raw"], x["rate_name"]))
         
-        return jsonify({"success": True, "rates": rates_list})
+        return jsonify({"success": True, "rates": rates_list, "data": rates_list})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

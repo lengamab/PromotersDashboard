@@ -250,7 +250,7 @@ const fetchFourvenuesTicketPricesHandler = async () => {
   try {
     const res = await fetchWithTimeout(`/api/rates`);
     const data = await res.json();
-    return data.success ? data.data : { error: data.error };
+    return data.success ? (data.rates || data.data) : { error: data.error };
   } catch (e) {
     return { error: e.message };
   }
