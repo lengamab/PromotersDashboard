@@ -566,7 +566,7 @@ const CopilotChatWidget = () => {
   
   const chatSessionRef = useRef(null);
   const messagesEndRef = useRef(null);
-  const memoryKey = window.location.pathname || 'global';
+  const [memoryKey, setMemoryKey] = useState(window.location.pathname || 'global');
 
   useEffect(() => {
     fetch('/api/gemini-config')
@@ -591,7 +591,15 @@ const CopilotChatWidget = () => {
   }, [memoryKey]);
 
   useEffect(() => {
-    window.updateCopilotContext = (data, customPrompt) => {
+    window.updateCopilotContext = (data, customPrompt, specificKey) => {
+      const newKey = specificKey || window.location.pathname || 'global';
+      setMemoryKey(prevKey => {
+          if (prevKey !== newKey) {
+              setMemorySummary(""); // Clear old memory temporarily until fetched
+              setMessages([{ role: 'model', parts: [{ text: "Hello! I am La French AI. Click 'Analyze Campaign' in Meta Ads, or ask me any question about your Fourvenues nightlife data, ticket sales, promoter performance, or cash tracking." }] }]);
+          }
+          return newKey;
+      });
       setContextData(data);
       setIsOpen(true);
       if (customPrompt) {

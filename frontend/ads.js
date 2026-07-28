@@ -931,7 +931,7 @@ async function analyzeWithAI() {
 
     if (window.updateCopilotContext) {
         const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze my overall account performance and individual campaigns based on the extensive context data provided. Carefully inspect the Temporal Evolution tables (Daily for last 7 days and Hourly for last 24 hours) to diagnose overall account trajectory, intraday spend/conversion hours, and trends over time. 🚨 ZERO-IMPRESSION / BID CAP DIAGNOSTIC RULE: Whenever an ACTIVE campaign or ad set has generated 0 Impressions and 0 Spend over the last 24 hours (or since launching yesterday), check its Bid Strategy and Bid Cap. If a Cost Cap (COST_CAP) or Bid Cap (LOWEST_COST_WITH_BID_CAP) is set, diagnose Auction Exclusion due to Low Bid Cap immediately and recommend raising or removing the cap. Identify top-performing trends, pinpoint areas of inefficient spend, and provide 3 concrete, data-backed recommendations to optimize my budget. If you need more granular data to make recommendations, feel free to use your API tools.";
-        window.updateCopilotContext(fullContextData, customPrompt);
+        window.updateCopilotContext(fullContextData, customPrompt, 'ads_global');
     }
 }
 
@@ -1520,6 +1520,6 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
 
     if (window.updateCopilotContext) {
         const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze the performance of this specific campaign AND its individual Ad Sets and Ads (including Ad Copy/Title performance) based on the context data provided. VERY IMPORTANT: Pay close attention to the Status of each Ad Set and Ad. Do NOT suggest optimizing or changing Ad Sets or Ads that are PAUSED or ARCHIVED, focus only on ACTIVE ones. 🚨 ZERO-IMPRESSION / BID CAP DIAGNOSTIC RULE: Whenever an ACTIVE campaign or ad set has generated 0 Impressions and 0 Spend over the last 24 hours (or since launching yesterday), check its Bid Strategy and Bid Cap. If a Cost Cap (COST_CAP) or Bid Cap (LOWEST_COST_WITH_BID_CAP) is set, diagnose Auction Exclusion due to Low Bid Cap immediately and recommend raising or removing the cap. Analyze the Temporal Evolution tables (Daily for last 7 days and Hourly for last 24 hours) to diagnose trends like creative fatigue, bid exhaustion, intraday conversion hours, or scaling opportunities. Tell me what is working well, what is underperforming, and give 3 highly actionable pieces of advice to improve the active creatives and targeting based on CPC, CPA, and CTR.";
-        window.updateCopilotContext(fullContext, customPrompt);
+        window.updateCopilotContext(fullContext, customPrompt, 'campaign_' + campData.camp.campaign_id);
     }
 }
