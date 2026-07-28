@@ -626,6 +626,48 @@ def delete_cashout(cashout_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+MEMORY_DB = os.path.join(DATA_DIR, 'memory.json')
+
+def load_memory():
+    if not os.path.exists(MEMORY_DB):
+        return {}
+    try:
+        with open(MEMORY_DB, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error loading memory DB: {e}")
+        return {}
+
+def save_memory(data):
+    try:
+        with open(MEMORY_DB, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=4)
+        return True
+    except Exception as e:
+        print(f"Error saving memory DB: {e}")
+        return False
+
+@app.route('/api/memory', methods=['GET'])
+def get_memory():
+    key = request.args.get('key', 'global')
+    memory_db = load_memory()
+    summary = memory_db.get(key, "")
+    return jsonify({"success": True, "summary": summary})
+
+@app.route('/api/memory', methods=['POST'])
+def post_memory():
+    req_data = request.json or {}
+    key = req_data.get('key', 'global')
+    summary = req_data.get('summary', '')
+    
+    memory_db = load_memory()
+    memory_db[key] = summary
+    if save_memory(memory_db):
+        return jsonify({"success": True})
+    else:
+        return jsonify({"success": False, "error": "Failed to save memory"}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 5000))
     print(f"Starting La French cash tracking server on http://localhost:{port}...")

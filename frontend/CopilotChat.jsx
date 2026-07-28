@@ -560,11 +560,13 @@ const CopilotChatWidget = () => {
   const [messages, setMessages] = useState([{ role: 'model', parts: [{ text: "Hello! I am La French AI. Click 'Analyze Campaign' in Meta Ads, or ask me any question about your Fourvenues nightlife data, ticket sales, promoter performance, or cash tracking." }] }]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [memorySummary, setMemorySummary] = useState("");
   
   const [genAIInstance, setGenAIInstance] = useState(null);
   
   const chatSessionRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const memoryKey = window.location.pathname || 'global';
 
   useEffect(() => {
     fetch('/api/gemini-config')
@@ -576,6 +578,17 @@ const CopilotChatWidget = () => {
       })
       .catch(err => console.error("Error loading Gemini API key from server:", err));
   }, []);
+
+  useEffect(() => {
+    fetch(`/api/memory?key=${encodeURIComponent(memoryKey)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.summary) {
+          setMemorySummary(data.summary);
+        }
+      })
+      .catch(err => console.error("Error loading memory:", err));
+  }, [memoryKey]);
 
   useEffect(() => {
     window.updateCopilotContext = (data, customPrompt) => {
@@ -590,6 +603,41 @@ const CopilotChatWidget = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Smart Memory Compaction
+  useEffect(() => {
+    if (messages.length > 10 && !isLoading && genAIInstance) {
+      const runSummarization = async () => {
+        try {
+          const model = genAIInstance.getGenerativeModel({ model: "gemini-3.5-flash" });
+          const chatHistoryText = messages.slice(1).map(m => `${m.role}: ${m.parts.map(p => p.text || '').join('')}`).join('\n');
+          const prompt = `Summarize the following conversation, preserving key facts, budgets, strategies, or decisions. 
+Previous memory summary:
+${memorySummary}
+
+New conversation to integrate:
+${chatHistoryText}
+
+Output ONLY the new dense, bulleted summary. Do not include pleasantries.`;
+
+          const result = await model.generateContent(prompt);
+          const newSummary = result.response.text();
+          
+          await fetch('/api/memory', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: memoryKey, summary: newSummary })
+          });
+          
+          setMemorySummary(newSummary);
+          setMessages(prev => [prev[0], ...prev.slice(-2)]);
+        } catch (e) {
+          console.error("Error summarizing memory:", e);
+        }
+      };
+      runSummarization();
+    }
+  }, [messages, isLoading, genAIInstance, memoryKey, memorySummary]);
 
   const sendMessage = async (text, activeContext = contextData) => {
     if (!text.trim()) return;
@@ -619,7 +667,7 @@ const CopilotChatWidget = () => {
     try {
       const model = ai.getGenerativeModel({
         model: "gemini-3.5-flash",
-        systemInstruction: `${SYSTEM_INSTRUCTION}\n\nCURRENT DASHBOARD CONTEXT DATA:\n${activeContext}`,
+        systemInstruction: `${SYSTEM_INSTRUCTION}\n\nCURRENT DATE AND TIME: ${new Date().toLocaleString()}\n\nLONG-TERM MEMORY SUMMARY:\n${memorySummary || "No previous memory for this context."}\n\nCURRENT DASHBOARD CONTEXT DATA:\n${activeContext}`,
         tools: tools
       });
       
