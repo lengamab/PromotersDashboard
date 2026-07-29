@@ -988,6 +988,8 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
     document.getElementById('modal-camp-cpa').textContent = cpa + '€';
     document.getElementById('modal-camp-cpc').textContent = cpc + '€';
     document.getElementById('modal-camp-ctr').textContent = ctr + '%';
+    const freqEl = document.getElementById('modal-camp-frequency');
+    if (freqEl) freqEl.textContent = camp.frequency ? parseFloat(camp.frequency).toFixed(2) : 'N/A';
     const impEl = document.getElementById('modal-camp-impressions');
     if (impEl) impEl.textContent = imp.toLocaleString();
     const clicksEl = document.getElementById('modal-camp-clicks');
@@ -1205,6 +1207,8 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
     const modalHourlySpendData = [];
     const modalHourlyClicksData = [];
     const modalHourlyLandingPageViewsData = [];
+    const modalHourlyPurchasesData = [];
+    const modalHourlyCpcData = [];
     
     // Filter for current campaign
     const campHourlyData = currentHourlyCampData.filter(h => h.campaign_id === camp.campaign_id);
@@ -1230,19 +1234,28 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
         const hourData = campHourlyData.find(h => h.date_start === t.dateKey && h.hourly_stats_aggregated_by_advertiser_time_zone === t.hourKey);
         
         if (hourData) {
-            modalHourlySpendData.push(parseFloat(hourData.spend || 0));
-            modalHourlyClicksData.push(parseInt(hourData.clicks || 0));
+            const spend = parseFloat(hourData.spend || 0);
+            const clicks = parseInt(hourData.clicks || 0);
+            modalHourlySpendData.push(spend);
+            modalHourlyClicksData.push(clicks);
+            modalHourlyCpcData.push(clicks > 0 ? Number((spend / clicks).toFixed(2)) : 0);
             
             let landingPageViews = 0;
+            let purchases = 0;
             if (hourData.actions) {
                 const lpvAction = hourData.actions.find(a => a.action_type === 'landing_page_view');
                 if (lpvAction) landingPageViews = parseInt(lpvAction.value);
+                const pAction = hourData.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+                if (pAction) purchases = parseInt(pAction.value);
             }
             modalHourlyLandingPageViewsData.push(landingPageViews);
+            modalHourlyPurchasesData.push(purchases);
         } else {
             modalHourlySpendData.push(0);
             modalHourlyClicksData.push(0);
+            modalHourlyCpcData.push(0);
             modalHourlyLandingPageViewsData.push(0);
+            modalHourlyPurchasesData.push(0);
         }
     });
 
@@ -1276,6 +1289,24 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                         borderWidth: 2,
                         tension: 0.3,
                         yAxisID: 'y1'
+                    },
+                    {
+                        label: 'Hourly Purchases',
+                        data: modalHourlyPurchasesData,
+                        type: 'line',
+                        borderColor: '#ff6b6b',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        yAxisID: 'y1'
+                    },
+                    {
+                        label: 'Hourly CPC (€)',
+                        data: modalHourlyCpcData,
+                        type: 'line',
+                        borderColor: '#9b59b6',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        yAxisID: 'y'
                     }
                 ]
             },
