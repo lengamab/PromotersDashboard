@@ -1153,8 +1153,25 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                     adset.ads.forEach(ad => {
                         const adData = currentAdCreativesMap[ad.ad_id] || {};
                         const creative = adData.creative || {};
-                        const copyText = creative.body || 'No description';
-                        const titleText = creative.title || 'No title';
+                        let titleHtml = creative.title ? `<p><strong>Title:</strong> ${creative.title}</p>` : '';
+                        let descHtml = creative.body ? `<p><strong>Description:</strong> ${creative.body.substring(0, 150)}${creative.body.length > 150 ? '...' : ''}</p>` : '';
+
+                        if (creative.asset_feed_spec) {
+                            if (creative.asset_feed_spec.titles && creative.asset_feed_spec.titles.length > 0) {
+                                titleHtml = `<p><strong>Title Variations:</strong></p><ul style="margin: 5px 0 10px 20px; padding: 0;">` + creative.asset_feed_spec.titles.map((t, i) => `<li style="margin-bottom:3px;">[${i+1}] ${t.text}</li>`).join('') + `</ul>`;
+                            }
+                            if (creative.asset_feed_spec.bodies && creative.asset_feed_spec.bodies.length > 0) {
+                                descHtml = `<p><strong>Description Variations:</strong></p><ul style="margin: 5px 0 10px 20px; padding: 0;">` + creative.asset_feed_spec.bodies.map((b, i) => {
+                                    const shortTxt = b.text.substring(0, 100) + (b.text.length > 100 ? '...' : '');
+                                    return `<li style="margin-bottom:3px;">[${i+1}] ${shortTxt}</li>`;
+                                }).join('') + `</ul>`;
+                            }
+                            if (creative.asset_feed_spec.descriptions && creative.asset_feed_spec.descriptions.length > 0) {
+                                descHtml += `<p><strong>Sub-Descriptions:</strong></p><ul style="margin: 5px 0 10px 20px; padding: 0;">` + creative.asset_feed_spec.descriptions.map((d, i) => `<li style="margin-bottom:3px;">[${i+1}] ${d.text}</li>`).join('') + `</ul>`;
+                            }
+                        }
+                        if (!titleHtml) titleHtml = `<p><strong>Title:</strong> No title</p>`;
+                        if (!descHtml) descHtml = `<p><strong>Description:</strong> No description</p>`;
                         
                         let link = '';
                         if (creative.object_story_spec && creative.object_story_spec.link_data && creative.object_story_spec.link_data.link) {
@@ -1210,8 +1227,8 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                                 <span>CPA: ${adCpa}€</span>
                             </div>
                             <div class="meta-creative-details">
-                                <p><strong>Title:</strong> ${titleText}</p>
-                                <p><strong>Description:</strong> ${copyText.substring(0, 150)}${copyText.length > 150 ? '...' : ''}</p>
+                                ${titleHtml}
+                                ${descHtml}
                                 ${link ? `<p><strong>Link:</strong> <a href="${link}" target="_blank" class="meta-creative-link">${link}</a></p>` : ''}
                             </div>
                         `;
@@ -1564,8 +1581,21 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
                         adData.status,
                         adData.effective_status
                     ).text;
-                    const copyText = creative.body ? `\n   Ad Copy: "${creative.body}"` : '';
-                    const titleText = creative.title ? `\n   Ad Title: "${creative.title}"` : '';
+                    let copyText = creative.body ? `\n   Ad Copy: "${creative.body}"` : '';
+                    let titleText = creative.title ? `\n   Ad Title: "${creative.title}"` : '';
+                    let descText = '';
+
+                    if (creative.asset_feed_spec) {
+                        if (creative.asset_feed_spec.bodies && creative.asset_feed_spec.bodies.length > 0) {
+                            copyText = `\n   Ad Copy Variations: ` + creative.asset_feed_spec.bodies.map((b, i) => `[${i+1}] "${b.text}"`).join(" | ");
+                        }
+                        if (creative.asset_feed_spec.titles && creative.asset_feed_spec.titles.length > 0) {
+                            titleText = `\n   Ad Title Variations: ` + creative.asset_feed_spec.titles.map((t, i) => `[${i+1}] "${t.text}"`).join(" | ");
+                        }
+                        if (creative.asset_feed_spec.descriptions && creative.asset_feed_spec.descriptions.length > 0) {
+                            descText = `\n   Ad Description Variations: ` + creative.asset_feed_spec.descriptions.map((d, i) => `[${i+1}] "${d.text}"`).join(" | ");
+                        }
+                    }
                     
                     let link = '';
                     if (creative.object_story_spec && creative.object_story_spec.link_data && creative.object_story_spec.link_data.link) {
@@ -1586,7 +1616,7 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
                     }
                     
                     adsText += `- Ad: ${ad.ad_name || ad.ad_id} (Status: ${adStatus})
-       Spend: ${ad.spend || 0}€, Impressions: ${ad.impressions || 0}, Reach: ${adReach}, Frequency: ${adFreq}, Link Clicks: ${linkClicks}${titleText}${copyText}${destLinkText}\n`;
+       Spend: ${ad.spend || 0}€, Impressions: ${ad.impressions || 0}, Reach: ${adReach}, Frequency: ${adFreq}, Link Clicks: ${linkClicks}${titleText}${copyText}${descText}${destLinkText}\n`;
                 });
             }
         }
