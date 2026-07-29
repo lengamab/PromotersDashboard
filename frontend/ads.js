@@ -1,5 +1,28 @@
 const META_ACCOUNT_ID = 'act_911535275086772';
 
+window.getColorForFreq = function(freq) {
+    if (freq === 'N/A' || freq == 0) return 'var(--text-secondary)';
+    const val = parseFloat(freq);
+    if (val < 2) return '#10b981'; // Green
+    if (val <= 4) return '#f59e0b'; // Yellow
+    return '#ef4444'; // Red
+};
+
+window.getColorForCtr = function(ctr) {
+    if (ctr === 'N/A' || ctr == 0) return 'var(--text-secondary)';
+    const val = parseFloat(ctr);
+    if (val >= 2) return '#10b981'; // Green
+    if (val >= 1) return '#f59e0b'; // Yellow
+    return '#ef4444'; // Red
+};
+
+window.getColorForCpc = function(cpc) {
+    if (cpc === 'N/A' || cpc == 0) return 'var(--text-secondary)';
+    const val = parseFloat(cpc);
+    if (val <= 0.20) return '#10b981'; // Green
+    if (val <= 0.50) return '#f59e0b'; // Yellow
+    return '#ef4444'; // Red
+};
 window.renderSparklineAndTrend = function({
     statId,
     data,
@@ -986,10 +1009,25 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
     const cplpv = lpv > 0 ? (spend / lpv).toFixed(2) : 0;
     
     document.getElementById('modal-camp-cpa').textContent = cpa + '€';
-    document.getElementById('modal-camp-cpc').textContent = cpc + '€';
-    document.getElementById('modal-camp-ctr').textContent = ctr + '%';
+    
+    const cpcEl = document.getElementById('modal-camp-cpc');
+    if (cpcEl) {
+        cpcEl.textContent = cpc + '€';
+        cpcEl.style.color = window.getColorForCpc(cpc);
+    }
+    
+    const ctrEl = document.getElementById('modal-camp-ctr');
+    if (ctrEl) {
+        ctrEl.textContent = ctr + '%';
+        ctrEl.style.color = window.getColorForCtr(ctr);
+    }
+    
     const freqEl = document.getElementById('modal-camp-frequency');
-    if (freqEl) freqEl.textContent = camp.frequency ? parseFloat(camp.frequency).toFixed(2) : 'N/A';
+    if (freqEl) {
+        const freqVal = camp.frequency ? parseFloat(camp.frequency).toFixed(2) : 'N/A';
+        freqEl.textContent = freqVal;
+        freqEl.style.color = window.getColorForFreq(freqVal);
+    }
     const impEl = document.getElementById('modal-camp-impressions');
     if (impEl) impEl.textContent = imp.toLocaleString();
     const clicksEl = document.getElementById('modal-camp-clicks');
@@ -1096,9 +1134,9 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                             <span>Spend: ${adset.spend.toFixed(2)}€</span>
                             <span>Imp: ${adset.imp.toLocaleString()}</span>
                             <span>Clicks: ${adset.clicks.toLocaleString()}</span>
-                            <span>CTR: ${asCtr}%</span>
-                            <span>CPC: ${asCpc}€</span>
-                            <span>Freq: ${asFreq}</span>
+                            <span>CTR: <span style="color: ${window.getColorForCtr(asCtr)}; font-weight: 600;">${asCtr}%</span></span>
+                            <span>CPC: <span style="color: ${window.getColorForCpc(asCpc)}; font-weight: 600;">${asCpc}€</span></span>
+                            <span>Freq: <span style="color: ${window.getColorForFreq(asFreq)}; font-weight: 600;">${asFreq}</span></span>
                             <span>LPV: ${adset.lpv.toLocaleString()}</span>
                             <span>CPLPV: ${asCplpv}€</span>
                             <span>Purchases: ${adset.purchases}</span>
@@ -1163,9 +1201,9 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                                 <span>Spend: ${adSpend.toFixed(2)}€</span>
                                 <span>Imp: ${adImp.toLocaleString()}</span>
                                 <span>Clicks: ${adClicks.toLocaleString()}</span>
-                                <span>CTR: ${adCtr}%</span>
-                                <span>CPC: ${adCpc}€</span>
-                                <span>Freq: ${adFreq}</span>
+                                <span>CTR: <span style="color: ${window.getColorForCtr(adCtr)}; font-weight: 600;">${adCtr}%</span></span>
+                                <span>CPC: <span style="color: ${window.getColorForCpc(adCpc)}; font-weight: 600;">${adCpc}€</span></span>
+                                <span>Freq: <span style="color: ${window.getColorForFreq(adFreq)}; font-weight: 600;">${adFreq}</span></span>
                                 <span>LPV: ${adLpv.toLocaleString()}</span>
                                 <span>CPLPV: ${adCplpv}€</span>
                                 <span>Purchases: ${adPurchases}</span>
