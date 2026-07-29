@@ -1156,18 +1156,22 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                         let titleHtml = creative.title ? `<p><strong>Title:</strong> ${creative.title}</p>` : '';
                         let descHtml = creative.body ? `<p><strong>Description:</strong> ${creative.body.substring(0, 150)}${creative.body.length > 150 ? '...' : ''}</p>` : '';
 
+                        let hasVariations = false;
                         if (creative.asset_feed_spec) {
                             if (creative.asset_feed_spec.titles && creative.asset_feed_spec.titles.length > 0) {
-                                titleHtml = `<p><strong>Title Variations:</strong></p><ul style="margin: 5px 0 10px 20px; padding: 0;">` + creative.asset_feed_spec.titles.map((t, i) => `<li style="margin-bottom:3px;">[${i+1}] ${t.text}</li>`).join('') + `</ul>`;
+                                hasVariations = true;
+                                titleHtml = `<p><strong>Title Variations:</strong></p><ul style="margin: 5px 0 10px 20px; padding: 0;">` + creative.asset_feed_spec.titles.map((t, i) => `<li style="margin-bottom:3px;" id="perf-${ad.ad_id}-title-${i}">[${i+1}] ${t.text} <span class="asset-stats" style="color: #10b981; font-size: 0.85em; font-weight: 600; margin-left: 5px;"></span></li>`).join('') + `</ul>`;
                             }
                             if (creative.asset_feed_spec.bodies && creative.asset_feed_spec.bodies.length > 0) {
+                                hasVariations = true;
                                 descHtml = `<p><strong>Description Variations:</strong></p><ul style="margin: 5px 0 10px 20px; padding: 0;">` + creative.asset_feed_spec.bodies.map((b, i) => {
                                     const shortTxt = b.text.substring(0, 100) + (b.text.length > 100 ? '...' : '');
-                                    return `<li style="margin-bottom:3px;">[${i+1}] ${shortTxt}</li>`;
+                                    return `<li style="margin-bottom:3px;" id="perf-${ad.ad_id}-body-${i}">[${i+1}] ${shortTxt} <span class="asset-stats" style="color: #10b981; font-size: 0.85em; font-weight: 600; margin-left: 5px;"></span><span class="full-text" style="display:none;">${b.text}</span></li>`;
                                 }).join('') + `</ul>`;
                             }
                             if (creative.asset_feed_spec.descriptions && creative.asset_feed_spec.descriptions.length > 0) {
-                                descHtml += `<p><strong>Sub-Descriptions:</strong></p><ul style="margin: 5px 0 10px 20px; padding: 0;">` + creative.asset_feed_spec.descriptions.map((d, i) => `<li style="margin-bottom:3px;">[${i+1}] ${d.text}</li>`).join('') + `</ul>`;
+                                hasVariations = true;
+                                descHtml += `<p><strong>Sub-Descriptions:</strong></p><ul style="margin: 5px 0 10px 20px; padding: 0;">` + creative.asset_feed_spec.descriptions.map((d, i) => `<li style="margin-bottom:3px;" id="perf-${ad.ad_id}-desc-${i}">[${i+1}] ${d.text} <span class="asset-stats" style="color: #10b981; font-size: 0.85em; font-weight: 600; margin-left: 5px;"></span></li>`).join('') + `</ul>`;
                             }
                         }
                         if (!titleHtml) titleHtml = `<p><strong>Title:</strong> No title</p>`;
@@ -1230,6 +1234,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                                 ${titleHtml}
                                 ${descHtml}
                                 ${link ? `<p><strong>Link:</strong> <a href="${link}" target="_blank" class="meta-creative-link">${link}</a></p>` : ''}
+                                ${hasVariations ? `<button id="btn-load-perf-${ad.ad_id}" onclick="window.fetchAssetPerformance('${ad.ad_id}')" class="btn btn-secondary btn-sm" style="margin-top: 10px; cursor: pointer;"><i class="fa-solid fa-chart-line"></i> Load Variation Performance</button>` : ''}
                             </div>
                         `;
                         body.appendChild(adEl);
@@ -1630,3 +1635,98 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
         window.updateCopilotContext(fullContext, customPrompt, 'campaign_' + campData.camp.campaign_id);
     }
 }
+
+window.fetchAssetPerformance = async function(adId) {
+    const btn = document.getElementById('btn-load-perf-' + adId);
+    if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
+        btn.disabled = true;
+    }
+    
+    try {
+        const adData = currentAdCreativesMap[adId] || {};
+        const creative = adData.creative || {};
+        if (!creative.asset_feed_spec) return;
+
+        // Determine date range matching the current dashboard
+        const dateFromInput = document.getElementById('date-from').value;
+        const dateToInput = document.getElementById('date-to').value;
+        let datePresetParam = '';
+        let timeRangeParam = '';
+        if (dateFromInput && dateToInput) {
+            timeRangeParam = `&time_range={"since":"${dateFromInput}","until":"${dateToInput}"}`;
+        } else {
+            datePresetParam = '&date_preset=last_30d';
+        }
+
+        const baseUrl = `/api/meta-proxy/${adId}/insights?level=ad&fields=spend,actions,impressions,clicks${datePresetParam}${timeRangeParam}`;
+        
+        const fetchBreakdown = async (breakdown) => {
+            try {
+                const res = await fetch(baseUrl + '&breakdowns=' + breakdown);
+                const json = await res.json();
+                return json.data || [];
+            } catch(e) {
+                console.error('Error fetching breakdown ' + breakdown, e);
+                return [];
+            }
+        };
+
+        const [bodyData, titleData, descData] = await Promise.all([
+            fetchBreakdown('body_asset'),
+            fetchBreakdown('title_asset'),
+            fetchBreakdown('description_asset')
+        ]);
+
+        const updateStatsUI = (perfDataList, assetTypeStr, variationsArray) => {
+            if (!variationsArray || variationsArray.length === 0) return;
+            
+            variationsArray.forEach((variation, i) => {
+                const liId = `perf-${adId}-${assetTypeStr}-${i}`;
+                const liEl = document.getElementById(liId);
+                if (!liEl) return;
+                
+                const spanEl = liEl.querySelector('.asset-stats');
+                if (!spanEl) return;
+
+                // Find matching performance row by text
+                const perfRow = perfDataList.find(row => {
+                    const breakdownObj = row[`${assetTypeStr}_asset`];
+                    return breakdownObj && breakdownObj.text === variation.text;
+                });
+
+                if (perfRow) {
+                    const spend = parseFloat(perfRow.spend || 0);
+                    let purchases = 0;
+                    if (perfRow.actions) {
+                        const pa = perfRow.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+                        if (pa) purchases = parseInt(pa.value);
+                    }
+                    let cpc = 0;
+                    const clicks = parseInt(perfRow.clicks || 0);
+                    if (clicks > 0) cpc = spend / clicks;
+
+                    spanEl.textContent = `| Spend: ${spend.toFixed(2)}€ | Purchases: ${purchases} | CPC: ${cpc.toFixed(2)}€`;
+                } else {
+                    spanEl.textContent = `| Spend: 0.00€`;
+                }
+            });
+        };
+
+        updateStatsUI(bodyData, 'body', creative.asset_feed_spec.bodies);
+        updateStatsUI(titleData, 'title', creative.asset_feed_spec.titles);
+        updateStatsUI(descData, 'desc', creative.asset_feed_spec.descriptions);
+
+        if (btn) {
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Loaded';
+            setTimeout(() => btn.style.display = 'none', 2000);
+        }
+
+    } catch (e) {
+        console.error("Error loading asset performance", e);
+        if (btn) {
+            btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Error loading';
+            btn.disabled = false;
+        }
+    }
+};
