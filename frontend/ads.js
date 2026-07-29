@@ -360,7 +360,7 @@ async function fetchAdsData() {
                 breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
                 time_increment: 1,
                 limit: 2000,
-                fields: 'campaign_id,spend,clicks,actions'
+                fields: 'campaign_id,spend,clicks,impressions,actions'
             }).toString()}`),
             fetch(`${url}?${new URLSearchParams({
                 level: 'campaign',
@@ -1274,6 +1274,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
     const modalHourlyLandingPageViewsData = [];
     const modalHourlyPurchasesData = [];
     const modalHourlyCpcData = [];
+    const modalHourlyCtrData = [];
     
     // Filter for current campaign
     const campHourlyData = currentHourlyCampData.filter(h => h.campaign_id === camp.campaign_id);
@@ -1301,9 +1302,11 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
         if (hourData) {
             const spend = parseFloat(hourData.spend || 0);
             const clicks = parseInt(hourData.clicks || 0);
+            const impressions = parseInt(hourData.impressions || 0);
             modalHourlySpendData.push(spend);
             modalHourlyClicksData.push(clicks);
             modalHourlyCpcData.push(clicks > 0 ? Number((spend / clicks).toFixed(2)) : 0);
+            modalHourlyCtrData.push(impressions > 0 ? Number(((clicks / impressions) * 100).toFixed(2)) : 0);
             
             let landingPageViews = 0;
             let purchases = 0;
@@ -1319,6 +1322,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
             modalHourlySpendData.push(0);
             modalHourlyClicksData.push(0);
             modalHourlyCpcData.push(0);
+            modalHourlyCtrData.push(0);
             modalHourlyLandingPageViewsData.push(0);
             modalHourlyPurchasesData.push(0);
         }
@@ -1372,6 +1376,15 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                         borderWidth: 2,
                         tension: 0.3,
                         yAxisID: 'y'
+                    },
+                    {
+                        label: 'Hourly CTR (%)',
+                        data: modalHourlyCtrData,
+                        type: 'line',
+                        borderColor: '#e67e22',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        yAxisID: 'y1'
                     }
                 ]
             },
