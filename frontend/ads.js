@@ -1007,7 +1007,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
         // 1. Get all Ad Sets for this campaign from TargetingMap
         Object.values(currentAdSetsTargetingMap).forEach(as => {
             if (as.campaign_id === camp.campaign_id) {
-                adSetMap[as.id] = { name: as.name, spend: 0, imp: 0, clicks: 0, purchases: 0, lpv: 0, ads: [] };
+                adSetMap[as.id] = { name: as.name, spend: 0, imp: 0, clicks: 0, purchases: 0, lpv: 0, ads: [], reach: 0 };
             }
         });
         
@@ -1034,6 +1034,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                 adSetMap[adsetId].spend += combinedAd.spend;
                 adSetMap[adsetId].imp += combinedAd.impressions;
                 adSetMap[adsetId].clicks += combinedAd.clicks;
+                adSetMap[adsetId].reach += parseInt(combinedAd.reach || 0);
                 
                 let p = 0;
                 let l = 0;
@@ -1054,6 +1055,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                 const asCpc = adset.clicks > 0 ? (adset.spend / adset.clicks).toFixed(2) : 0;
                 const asCtr = adset.imp > 0 ? ((adset.clicks / adset.imp) * 100).toFixed(2) : 0;
                 const asCplpv = adset.lpv > 0 ? (adset.spend / adset.lpv).toFixed(2) : 0;
+                const asFreq = adset.reach > 0 ? (adset.imp / adset.reach).toFixed(2) : 0;
                 
                 const adsetTargeting = currentAdSetsTargetingMap[adsetId] || {};
                 const asStatusObj = window.getMetaStatusDetails(
@@ -1096,6 +1098,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                             <span>Clicks: ${adset.clicks.toLocaleString()}</span>
                             <span>CTR: ${asCtr}%</span>
                             <span>CPC: ${asCpc}€</span>
+                            <span>Freq: ${asFreq}</span>
                             <span>LPV: ${adset.lpv.toLocaleString()}</span>
                             <span>CPLPV: ${asCplpv}€</span>
                             <span>Purchases: ${adset.purchases}</span>
@@ -1139,6 +1142,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                         const adCpc = adClicks > 0 ? (adSpend / adClicks).toFixed(2) : 0;
                         const adCtr = adImp > 0 ? ((adClicks / adImp) * 100).toFixed(2) : 0;
                         const adCplpv = adLpv > 0 ? (adSpend / adLpv).toFixed(2) : 0;
+                        const adFreq = ad.frequency ? parseFloat(ad.frequency).toFixed(2) : 0;
                         
                         const adStatusObj = window.getMetaStatusDetails(
                             adData.status,
@@ -1161,6 +1165,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                                 <span>Clicks: ${adClicks.toLocaleString()}</span>
                                 <span>CTR: ${adCtr}%</span>
                                 <span>CPC: ${adCpc}€</span>
+                                <span>Freq: ${adFreq}</span>
                                 <span>LPV: ${adLpv.toLocaleString()}</span>
                                 <span>CPLPV: ${adCplpv}€</span>
                                 <span>Purchases: ${adPurchases}</span>
