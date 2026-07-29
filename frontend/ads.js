@@ -387,7 +387,7 @@ async function fetchAdsData() {
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/adsets?${new URLSearchParams({
                 limit: 500,
                 effective_status: JSON.stringify(['ACTIVE', 'PAUSED', 'ARCHIVED', 'IN_PROCESS', 'WITH_ISSUES', 'PENDING_REVIEW', 'CAMPAIGN_PAUSED', 'ADSET_PAUSED', 'DISAPPROVED']),
-                fields: 'id,name,status,effective_status,end_time,targeting,campaign_id,optimization_goal,billing_event,daily_budget,lifetime_budget,bid_strategy,bid_amount,learning_stage_info'
+                fields: 'id,name,status,effective_status,end_time,targeting,campaign_id,optimization_goal,billing_event,daily_budget,lifetime_budget,daily_min_spend_target,daily_spend_cap,bid_strategy,bid_amount,learning_stage_info'
             }).toString()}`)
         ]);
         
@@ -1541,6 +1541,9 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
                 billEvent = adsetData.billing_event || 'UNKNOWN';
                 if (adsetData.daily_budget) asBudgetStr = (parseInt(adsetData.daily_budget)/100).toFixed(2) + '€/day';
                 else if (adsetData.lifetime_budget) asBudgetStr = (parseInt(adsetData.lifetime_budget)/100).toFixed(2) + '€ (life)';
+                
+                if (adsetData.daily_min_spend_target) asBudgetStr += ` [Min Limit: ${(parseInt(adsetData.daily_min_spend_target)/100).toFixed(2)}€]`;
+                if (adsetData.daily_spend_cap) asBudgetStr += ` [Max Limit: ${(parseInt(adsetData.daily_spend_cap)/100).toFixed(2)}€]`;
                 if (adsetData.bid_strategy) asBidStr = adsetData.bid_strategy;
                 if (adsetData.bid_amount) asBidStr += ` (Cap: ${(parseInt(adsetData.bid_amount)/100).toFixed(2)}€)`;
                 asStatus = window.getMetaStatusDetails(
