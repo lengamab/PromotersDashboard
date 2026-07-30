@@ -436,6 +436,15 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                     <h2 id="modal-campaign-name" style="margin: 0; font-size: 1.3rem;">Campaign Details</h2>
                     <div style="display: flex; align-items: center; gap: 12px;">
+                        <select id="modal-date-preset" onchange="applyModalDatePreset()" class="form-select form-select-sm" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border-color); color: white; border-radius: 6px; padding: 4px 8px; font-size: 0.85em; cursor: pointer; outline: none;">
+                            <option value="" disabled selected>Filter Dates...</option>
+                            <option value="today" style="color: black;">Today</option>
+                            <option value="yesterday" style="color: black;">Yesterday</option>
+                            <option value="last_7d" style="color: black;">Last 7 Days</option>
+                            <option value="this_week" style="color: black;">This Week (Start Monday)</option>
+                            <option value="last_30d" style="color: black;">Last 30 Days</option>
+                            <option value="all" style="color: black;">All</option>
+                        </select>
                         <button id="btn-refresh-campaign-modal" onclick="refreshCampaignModalData()" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
                             <i class="fa-solid fa-rotate-right"></i> Refresh
                         </button>

@@ -898,6 +898,40 @@ async function fetchTimeSeriesContext(endpointPrefix) {
     return text;
 }
 
+window.applyModalDatePreset = async function() {
+    const val = document.getElementById('modal-date-preset').value;
+    if (!val) return;
+    
+    const today = new Date();
+    let fromDate = new Date();
+    let toDate = new Date();
+    
+    if (val === 'today') {
+        // fromDate and toDate are today
+    } else if (val === 'yesterday') {
+        fromDate.setDate(today.getDate() - 1);
+        toDate.setDate(today.getDate() - 1);
+    } else if (val === 'last_7d') {
+        fromDate.setDate(today.getDate() - 6);
+    } else if (val === 'this_week') {
+        const day = today.getDay(); // 0 is Sunday
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+        fromDate.setDate(diff);
+    } else if (val === 'last_30d') {
+        fromDate.setDate(today.getDate() - 29);
+    } else if (val === 'all') {
+        fromDate.setFullYear(today.getFullYear() - 5);
+    }
+
+    document.getElementById('date-from').value = fromDate.toISOString().split('T')[0];
+    document.getElementById('date-to').value = toDate.toISOString().split('T')[0];
+    
+    document.querySelectorAll('.date-preset-btn').forEach(b => b.classList.remove('active'));
+
+    await window.refreshCampaignModalData();
+};
+
+
 async function analyzeWithAI() {
     if (currentAdsData.length === 0) {
         alert("No ad data available to analyze. Please wait for data to load.");
