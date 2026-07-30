@@ -1777,3 +1777,28 @@ window.fetchAssetPerformance = async function(adId) {
         }
     }
 };
+
+window.triggerGlobalRefresh = async function() {
+    const btn = document.getElementById('btn-global-refresh');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-rotate-right fa-spin"></i> Refreshing...`;
+    }
+    
+    try {
+        await fetchAdsData();
+    } catch (e) {
+        console.error("Failed to refresh globally", e);
+    } finally {
+        if (btn) {
+            btn.innerHTML = `<i class="fa-solid fa-check" style="color: white;"></i> Refreshed!`;
+            setTimeout(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="fa-solid fa-rotate-right"></i> Refresh`;
+                }
+            }, 2000);
+        }
+    }
+};
+

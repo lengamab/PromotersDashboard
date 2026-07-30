@@ -124,6 +124,30 @@
         .markdown-body strong {
             color: #fff;
         }
+        .btn-refresh {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 14px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        .btn-refresh:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4);
+            background: linear-gradient(135deg, #34d399, #10b981);
+        }
+        .btn-refresh:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
         .learning-badge {
             background-color: rgba(255, 193, 7, 0.15);
             color: #ffc107;
@@ -286,6 +310,9 @@
                     <input type="date" id="date-to">
                 </div>
                 <button id="apply-dates" class="btn btn-secondary btn-sm"><i class="fa-solid fa-filter"></i> Apply</button>
+                <button id="btn-global-refresh" onclick="triggerGlobalRefresh()" class="btn-refresh" style="margin-left: 10px;">
+                    <i class="fa-solid fa-rotate-right"></i> Refresh
+                </button>
             </div>
         </section>
 
@@ -445,7 +472,7 @@
                             <option value="last_30d" style="color: black;">Last 30 Days</option>
                             <option value="all" style="color: black;">All</option>
                         </select>
-                        <button id="btn-refresh-campaign-modal" onclick="refreshCampaignModalData()" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <button id="btn-refresh-campaign-modal" onclick="refreshCampaignModalData()" class="btn-refresh">
                             <i class="fa-solid fa-rotate-right"></i> Refresh
                         </button>
                         <button onclick="closeCampaignModal()" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer;">&times;</button>
