@@ -1,0 +1,362 @@
+[
+  {
+    "event_id": "kk96oovgff1h63p7r8eoabxmitqaeela",
+    "event_name": "\ud835\udc7e\ud835\udc6c\ud835\udc6b\ud835\udc75\ud835\udc6c\ud835\udc7a\ud835\udc6b\ud835\udc68\ud835\udc80 \ud835\udc77\ud835\udc68\ud835\udc7a\ud835\udc7a (\ud835\udc6d\ud835\udc76\ud835\udc68\ud835\udc74 \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80)",
+    "event_date": "2026-07-01",
+    "total_tickets": 30,
+    "total_revenue": 240.0,
+    "total_entered": 13,
+    "no_show_rate": 56.67
+  },
+  {
+    "event_id": "sa5myv1tevskl3p4jg2hpgbebkncibp6",
+    "event_name": "\ud835\udc6d\ud835\udc79\ud835\udc70\ud835\udc6b\ud835\udc68\ud835\udc80 \ud835\udc77\ud835\udc68\ud835\udc7a\ud835\udc7a (\ud835\udc6d\ud835\udc70\ud835\udc79\ud835\udc68 + \ud835\udc7b\ud835\udc7e\ud835\udc6c\ud835\udc75\ud835\udc7b\ud835\udc70\ud835\udc6c\ud835\udc7a)",
+    "event_date": "2026-07-03",
+    "total_tickets": 10,
+    "total_revenue": 100.0,
+    "total_entered": 4,
+    "no_show_rate": 60.0
+  },
+  {
+    "event_id": "tr5abx5he5tm8t48ylrp35bkpbtianfb",
+    "event_name": "ZAMNA AT SEASEACLUB",
+    "event_date": "2026-07-05",
+    "total_tickets": 3,
+    "total_revenue": 45.0,
+    "total_entered": 0,
+    "no_show_rate": 100.0
+  },
+  {
+    "event_id": "ldztrhaluc48m5vee8s9joqakgzxsn0r",
+    "event_name": "Paraguay - France  - FAN ZONE OFFICIELLE",
+    "event_date": "2026-07-05",
+    "total_tickets": 393,
+    "total_revenue": 2459.0,
+    "total_entered": 307,
+    "no_show_rate": 21.88
+  },
+  {
+    "event_id": "k4rbp5sfgl0upbn78h8jj82lofsvzerg",
+    "event_name": "BOAT PARTY - \u00ab\u00a0SWIM & DANCE\u00a0\u00bb",
+    "event_date": "2026-07-05",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "twsiq6fs8bcmhz235p5ocu117rl9qoku",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-07",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "u9w07ifp23tuuu2xekwnz9e68wbofejl",
+    "event_name": "\ud835\udc7b\ud835\udc7c\ud835\udc6c\ud835\udc7a\ud835\udc6b\ud835\udc68\ud835\udc80 \ud835\udc77\ud835\udc68\ud835\udc7a\ud835\udc7a (\ud835\udc7a\ud835\udc8c\ud835\udc9a \ud835\udc7a\ud835\udc8a\ud835\udc8f\ud835\udc8f\ud835\udc86\ud835\udc93 + \ud835\udc7a\ud835\udc96\ud835\udc95\ud835\udc95\ud835\udc90\ud835\udc8f)",
+    "event_date": "2026-07-07",
+    "total_tickets": 6,
+    "total_revenue": 60.0,
+    "total_entered": 0,
+    "no_show_rate": 100.0
+  },
+  {
+    "event_id": "khhkmg8q0654pa25gub2pqi64ewtng1h",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-08",
+    "total_tickets": 4,
+    "total_revenue": 260.0,
+    "total_entered": 0,
+    "no_show_rate": 100.0
+  },
+  {
+    "event_id": "rsg4canhka07mn3hpwdebd4ur9ycndyt",
+    "event_name": "France - Maroc FAN ZONE OFFICIELLE",
+    "event_date": "2026-07-09",
+    "total_tickets": 495,
+    "total_revenue": 3369.0,
+    "total_entered": 419,
+    "no_show_rate": 15.35
+  },
+  {
+    "event_id": "rvxorsewwmln92bprbnf8r5zgwdd24e0",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-09",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "ghs1da5b9sc2zgkya8w38exqnoxqrbzb",
+    "event_name": "\ud835\udc6d\ud835\udc79\ud835\udc70\ud835\udc6b\ud835\udc68\ud835\udc80 \ud835\udc77\ud835\udc68\ud835\udc7a\ud835\udc7a (\ud835\udc6d\ud835\udc70\ud835\udc79\ud835\udc68 + \ud835\udc7b\ud835\udc7e\ud835\udc6c\ud835\udc75\ud835\udc7b\ud835\udc70\ud835\udc6c\ud835\udc7a)",
+    "event_date": "2026-07-10",
+    "total_tickets": 3,
+    "total_revenue": 30.0,
+    "total_entered": 3,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "ctee5cl0pz5lcce7nmgf0t2xnhqvb4bm",
+    "event_name": "Stephan Bodzin at SEASEACLUB",
+    "event_date": "2026-07-10",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "wgkkm6s82c81x8avrtgw0r0gon4o8nbw",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-10",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "t8bu93kiofuqhpx8ij4nwhh5kdekksga",
+    "event_name": "Espa\u00f1a - B\u00e9lgica FAN ZONE",
+    "event_date": "2026-07-10",
+    "total_tickets": 125,
+    "total_revenue": 775.0,
+    "total_entered": 88,
+    "no_show_rate": 29.6
+  },
+  {
+    "event_id": "mkl2cwr5rgyuljq8dch1m3lz54xy4khv",
+    "event_name": "\ud835\udc7a\ud835\udc68\ud835\udc7b\ud835\udc7c\ud835\udc79\ud835\udc6b\ud835\udc68\ud835\udc80 \ud835\udc77\ud835\udc68\ud835\udc7a\ud835\udc7a (\ud835\udc6d\ud835\udc70\ud835\udc79\ud835\udc68 + \ud835\udc6b\ud835\udc76\ud835\udc7e\ud835\udc75\ud835\udc7b\ud835\udc76\ud835\udc7e\ud835\udc75)",
+    "event_date": "2026-07-11",
+    "total_tickets": 2,
+    "total_revenue": 30.0,
+    "total_entered": 0,
+    "no_show_rate": 100.0
+  },
+  {
+    "event_id": "asxs7reuyulobtl1isez1098m57w7lim",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-12",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "nbqnzgg7gn8axbi2sk3uzl1i65aqr9w9",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-13",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "dqvkmyik5ybclfdt5ck9g9zxq8rvaft8",
+    "event_name": "France - Espagne FAN ZONE DES BLEUS \u274c SOLD OUT \u274c",
+    "event_date": "2026-07-14",
+    "total_tickets": 475,
+    "total_revenue": 3251.0,
+    "total_entered": 367,
+    "no_show_rate": 22.74
+  },
+  {
+    "event_id": "yvykoixt3uyy8xiet1by2vrrz69bsyiy",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-14",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "awsnngfzhoewisxv3w59ih12sr54bgg5",
+    "event_name": "\ud83c\uddeb\ud83c\uddf7 France - Espagne \ud83c\uddea\ud83c\uddf8 FAN ZONE FIRA VILLARROEL",
+    "event_date": "2026-07-14",
+    "total_tickets": 408,
+    "total_revenue": 4720.0,
+    "total_entered": 383,
+    "no_show_rate": 6.13
+  },
+  {
+    "event_id": "o64qkroasdn2sk10ljgx9ely4tjsr14r",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-15",
+    "total_tickets": 3,
+    "total_revenue": 90.0,
+    "total_entered": 0,
+    "no_show_rate": 100.0
+  },
+  {
+    "event_id": "f4jds093l05onv4i35kxfh65o52g5i8f",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-16",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "o1ne7z4sx50sgducqc695tj076e3k41s",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-17",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "mzelbxwg6leojizsdn2bszl5nc3867rg",
+    "event_name": "AFRODANZ w/ SONAR AT SEASEACLUB",
+    "event_date": "2026-07-17",
+    "total_tickets": 5,
+    "total_revenue": 75.0,
+    "total_entered": 0,
+    "no_show_rate": 100.0
+  },
+  {
+    "event_id": "mvjw5hhxklcw5b3kyp3wh6u63kvvbuh9",
+    "event_name": "\ud835\udc6d\ud835\udc79\ud835\udc70\ud835\udc6b\ud835\udc68\ud835\udc80 \ud835\udc77\ud835\udc68\ud835\udc7a\ud835\udc7a (\ud835\udc6d\ud835\udc70\ud835\udc79\ud835\udc68 + \ud835\udc7b\ud835\udc7e\ud835\udc6c\ud835\udc75\ud835\udc7b\ud835\udc70\ud835\udc6c\ud835\udc7a)",
+    "event_date": "2026-07-17",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "pziale32i737ehqnxukvg6inhpwav8ma",
+    "event_name": "\ud83c\udf05 \ud835\udc7a\ud835\udc68\ud835\udc7b\ud835\udc7c\ud835\udc79\ud835\udc6b\ud835\udc68\ud835\udc80 \ud835\udc6c\ud835\udc6b\ud835\udc70\ud835\udc7b\ud835\udc70\ud835\udc76\ud835\udc75 \u2013 \ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 \u2022 \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-18",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "j3a2d31vapkit3lssochn9fhoja8g0zv",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-19",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "fyyfafu8gx8dwp9dgaxpmglpsmkmu8bh",
+    "event_name": "TIKITAKA AT SEASEACLUB",
+    "event_date": "2026-07-19",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "w1p6bw9zfo7748cqwlcxql3mubb50dhq",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-20",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "wsuhqwznw2epx19msi1r39oyz971j7q3",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-21",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "p7rb3685ghpdvlc3k19kovoiyw6ljp66",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-22",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "ykhwp61djwjayhyjpibyzhp5fpag8jrp",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-23",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "zg8j7kxiuyx24a2vcbdc7s3nk4oyutwk",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-24",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "notpastyau542fb12ctutfvxm9gn5z9u",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-25",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "fsgqysw2uk5yv44uz016ik9rptht7zvq",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-26",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "helckxwjjhvi96wjzsebs7pn896erk1l",
+    "event_name": "KUNDA AT SEASEACLUB",
+    "event_date": "2026-07-26",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "ih8rg7dq3iiuiszteszsyciguenqxi3l",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-27",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "o6o7vpao4nx2regvmbq2cpe0bq57t2cz",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-28",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "wumzlbxyxfntfohdgvne40xn8qjltnjw",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-29",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  },
+  {
+    "event_id": "mpz68ei6n8kwhi5e2ti7m8qdg9w2vdmo",
+    "event_name": "\ud835\udc69\ud835\udc76\ud835\udc68\ud835\udc7b \ud835\udc77\ud835\udc68\ud835\udc79\ud835\udc7b\ud835\udc80 - \ud835\udc7a\ud835\udc7e\ud835\udc70\ud835\udc74 & \ud835\udc6b\ud835\udc68\ud835\udc75\ud835\udc6a\ud835\udc6c",
+    "event_date": "2026-07-30",
+    "total_tickets": 0,
+    "total_revenue": 0.0,
+    "total_entered": 0,
+    "no_show_rate": 0.0
+  }
+]

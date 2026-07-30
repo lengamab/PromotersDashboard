@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm';
 // Gemini client is initialized dynamically by fetching the key from the backend (/api/gemini-config)
 // to support Cloud Run secret injection without hardcoding secrets in client bundles.
 
-const SYSTEM_INSTRUCTION = `You are La French AI, an elite digital marketing and nightlife business analyst for La French Barcelona.
+const getSystemInstruction = (allowWriteAccess) => `You are La French AI, an elite digital marketing and nightlife business analyst for La French Barcelona.
 
 ═══ ATTRIBUTION & DATA INTEGRITY (non-negotiable) ═══
 1. Meta's "Purchases" metric is unreliable. Always cross-reference Meta spend against
@@ -41,17 +41,18 @@ with whichever has the largest cost/revenue impact.
 ═══ TOOLS ═══
 11. 'queryMetaGraphAPI' is available for any granular data not in context (breakdowns,
    ad-set level stats, etc.). Use it proactively rather than answering from
-   incomplete context. Restrict yourself to read-only/GET calls — never use it to
-   modify budgets, pause campaigns, or change settings; only surface
-   recommendations for a human to execute.
+   incomplete context. Restrict yourself to read-only/GET calls.
+${allowWriteAccess 
+    ? "12. WRITE ACCESS GRANTED: You CAN modify campaigns, budgets, and statuses. However, you MUST use the `proposeMetaChanges` tool to queue your changes. Explain clearly to the user what you are doing. Wait for their approval." 
+    : "12. WRITE ACCESS DENIED: Do NOT attempt to modify budgets, pause campaigns, or change settings; only surface recommendations for a human to execute."}
 
 ═══ OUTPUT FORMAT ═══
-12. No LaTeX (no $\rightarrow$, \rightarrow, etc.) — use -> for arrows.
-13. Structure every substantive answer as: (a) the numbers/calculation shown
+13. No LaTeX (no $\\rightarrow$, \\rightarrow, etc.) — use -> for arrows.
+14. Structure every substantive answer as: (a) the numbers/calculation shown
     plainly, (b) diagnosis (learning phase / fatigue / targeting / goal issues / bid cap exclusion),
     (c) one concrete, numeric recommendation (e.g. specific bid cap tied to
     actual event margin). Keep prose tight — data and action, not narrative.
-14. Round currency to whole euros unless the person asks for more precision.`;
+15. Round currency to whole euros unless the person asks for more precision.`;
 
 const fetchWithTimeout = async (url, options = {}, timeoutMs = 30000) => {
   const controller = new AbortController();
@@ -374,7 +375,8 @@ const fetchFourvenuesCashoutsHandler = async ({ start, end }) => {
   }
 };
 
-const tools = [
+const getTools = (allowWriteAccess) => {
+  const baseTools = [
   {
     functionDeclarations: [
       {
@@ -530,9 +532,37 @@ const tools = [
       }
     ]
   }
-];
+  ];
+  
+  if (allowWriteAccess) {
+    baseTools[0].functionDeclarations.push({
+      name: "proposeMetaChanges",
+      description: "Propose modifications (POST) to the Meta Ads API. The user will be asked to confirm these changes before they are executed. You MUST use this tool to change budgets or pause campaigns.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          explanation: { type: "STRING", description: "A clear, human-readable explanation of exactly what changes will be made." },
+          mutations: {
+            type: "ARRAY",
+            description: "List of API calls to make.",
+            items: {
+              type: "OBJECT",
+              properties: {
+                endpoint: { type: "STRING", description: "e.g. '<campaign_id>' or '<adset_id>'" },
+                payload: { type: "STRING", description: "JSON string of the payload." }
+              },
+              required: ["endpoint", "payload"]
+            }
+          }
+        },
+        required: ["explanation", "mutations"]
+      }
+    });
+  }
+  return baseTools;
+};
 
-const dispatchToolCall = async (call) => {
+const dispatchToolCall = async (call, context) => {
   switch (call.name) {
     case 'fetchCampaignBudget': return await fetchCampaignBudgetHandler(call.args);
     case 'fetchCampaignHistoricalData': return await fetchCampaignHistoricalDataHandler(call.args);
@@ -550,6 +580,7 @@ const dispatchToolCall = async (call) => {
     case 'fetchFourvenuesExpenses': return await fetchFourvenuesExpensesHandler(call.args);
     case 'fetchFourvenuesCashouts': return await fetchFourvenuesCashoutsHandler(call.args);
     case 'fetchPromoterProfile': return await fetchPromoterProfileHandler(call.args);
+    case 'proposeMetaChanges': return await context.handleProposeChanges(call.args);
     default: return { error: `Unknown tool: ${call.name}` };
   }
 };
@@ -561,6 +592,8 @@ const CopilotChatWidget = () => {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [memorySummary, setMemorySummary] = useState("");
+  const [allowWriteAccess, setAllowWriteAccess] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState(null);
   
   const [genAIInstance, setGenAIInstance] = useState(null);
   
@@ -675,8 +708,8 @@ Output ONLY the new dense, bulleted summary. Do not include pleasantries.`;
     try {
       const model = ai.getGenerativeModel({
         model: "gemini-3.5-flash",
-        systemInstruction: `${SYSTEM_INSTRUCTION}\n\nCURRENT DATE AND TIME: ${new Date().toLocaleString()}\n\nLONG-TERM MEMORY SUMMARY:\n${memorySummary || "No previous memory for this context."}\n\nCURRENT DASHBOARD CONTEXT DATA:\n${activeContext}`,
-        tools: tools
+        systemInstruction: `${getSystemInstruction(allowWriteAccess)}\n\nCURRENT DATE AND TIME: ${new Date().toLocaleString()}\n\nLONG-TERM MEMORY SUMMARY:\n${memorySummary || "No previous memory for this context."}\n\nCURRENT DASHBOARD CONTEXT DATA:\n${activeContext}`,
+        tools: getTools(allowWriteAccess)
       });
       
       const contents = messages.slice(1).map(m => ({
@@ -727,7 +760,13 @@ Output ONLY the new dense, bulleted summary. Do not include pleasantries.`;
 
         // Execute all tool calls in parallel to massively speed up agent responses
         const functionResponses = await Promise.all(calls.map(async (call) => {
-          const apiResponse = await dispatchToolCall(call);
+          const apiResponse = await dispatchToolCall(call, {
+            handleProposeChanges: (args) => {
+              return new Promise(resolve => {
+                setPendingChanges({ args, resolve });
+              });
+            }
+          });
           return {
             functionResponse: {
               name: call.name,
@@ -885,9 +924,15 @@ Output ONLY the new dense, bulleted summary. Do not include pleasantries.`;
                 <i className="fa-solid fa-wand-magic-sparkles" style={{color: 'var(--color-primary)'}}></i>
                 La French AI Analysis
               </h2>
-              <button onClick={() => setIsOpen(false)} style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', border: 'none', padding: '8px 16px', cursor: 'pointer', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.2s' }} onMouseOver={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'} onMouseOut={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}>
-                <i className="fa-solid fa-xmark"></i> Close
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <label style={{ color: 'white', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={allowWriteAccess} onChange={e => setAllowWriteAccess(e.target.checked)} />
+                  Allow AI Edits
+                </label>
+                <button onClick={() => setIsOpen(false)} style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', border: 'none', padding: '8px 16px', cursor: 'pointer', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.2s' }} onMouseOver={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'} onMouseOut={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}>
+                  <i className="fa-solid fa-xmark"></i> Close
+                </button>
+              </div>
             </div>
 
             {/* Chat History */}
@@ -901,9 +946,44 @@ Output ONLY the new dense, bulleted summary. Do not include pleasantries.`;
                   )}
                 </div>
               ))}
-              {isLoading && (
+              {isLoading && !pendingChanges && (
                 <div className="ai-message-bubble" style={{ width: 'fit-content', padding: '10px 20px' }}>
                   <span style={{ fontWeight: 'bold' }}>Analyzing<span className="loading-dots"></span></span>
+                </div>
+              )}
+              {pendingChanges && (
+                <div className="ai-message-bubble" style={{ border: '2px solid #ff9800' }}>
+                  <h3 style={{ marginTop: 0, color: '#ff9800' }}>Confirm Proposed Changes</h3>
+                  <p>{pendingChanges.args.explanation}</p>
+                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '8px', fontSize: '0.85em', fontFamily: 'monospace' }}>
+                    {pendingChanges.args.mutations.map((m, i) => (
+                      <div key={i}>{m.method || 'POST'} /{m.endpoint}</div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
+                    <button onClick={async () => {
+                      const results = [];
+                      for (const m of pendingChanges.args.mutations) {
+                        try {
+                          const res = await fetch(`/api/meta-proxy-mutate/${m.endpoint}`, {
+                             method: m.method || 'POST',
+                             headers: { 'Content-Type': 'application/json' },
+                             body: m.payload || '{}'
+                          });
+                          const data = await res.json();
+                          results.push({ endpoint: m.endpoint, success: !data.error, data });
+                        } catch (e) {
+                          results.push({ endpoint: m.endpoint, success: false, error: e.message });
+                        }
+                      }
+                      pendingChanges.resolve(results);
+                      setPendingChanges(null);
+                    }} style={{ background: '#4CAF50', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>Apply Changes</button>
+                    <button onClick={() => {
+                      pendingChanges.resolve({ error: "User rejected the changes." });
+                      setPendingChanges(null);
+                    }} style={{ background: '#f44336', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>Reject</button>
+                  </div>
                 </div>
               )}
               <div ref={messagesEndRef} />

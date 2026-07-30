@@ -39,3 +39,6 @@ test_*.py
 # macOS automation
 *.plist
 setup_automation.sh
+
+# JS Test scripts
+test*.js
