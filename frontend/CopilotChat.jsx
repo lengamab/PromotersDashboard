@@ -914,6 +914,45 @@ Output ONLY the new dense, bulleted summary. Do not include pleasantries.`;
               background-color: rgba(255, 255, 255, 0.1);
               font-weight: bold;
             }
+            .toggle-switch {
+              position: relative;
+              display: inline-block;
+              width: 44px;
+              height: 24px;
+            }
+            .toggle-switch input {
+              opacity: 0;
+              width: 0;
+              height: 0;
+            }
+            .toggle-slider {
+              position: absolute;
+              cursor: pointer;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background-color: rgba(255, 255, 255, 0.2);
+              transition: .3s;
+              border-radius: 24px;
+            }
+            .toggle-slider:before {
+              position: absolute;
+              content: "";
+              height: 18px;
+              width: 18px;
+              left: 3px;
+              bottom: 3px;
+              background-color: white;
+              transition: .3s;
+              border-radius: 50%;
+            }
+            .toggle-switch input:checked + .toggle-slider {
+              background-color: var(--color-primary, #6b43d1);
+            }
+            .toggle-switch input:checked + .toggle-slider:before {
+              transform: translateX(20px);
+            }
           `}</style>
           
           <div style={{ backgroundColor: 'var(--surface-color)', borderRadius: '16px', width: '90%', maxWidth: '750px', height: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
@@ -925,9 +964,12 @@ Output ONLY the new dense, bulleted summary. Do not include pleasantries.`;
                 La French AI Analysis
               </h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                <label style={{ color: 'white', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={allowWriteAccess} onChange={e => setAllowWriteAccess(e.target.checked)} />
+                <label style={{ color: 'white', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: '500' }}>
                   Allow AI Edits
+                  <div className="toggle-switch">
+                    <input type="checkbox" checked={allowWriteAccess} onChange={e => setAllowWriteAccess(e.target.checked)} />
+                    <span className="toggle-slider"></span>
+                  </div>
                 </label>
                 <button onClick={() => setIsOpen(false)} style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', border: 'none', padding: '8px 16px', cursor: 'pointer', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.2s' }} onMouseOver={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'} onMouseOut={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}>
                   <i className="fa-solid fa-xmark"></i> Close
