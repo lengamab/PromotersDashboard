@@ -249,7 +249,6 @@ def toggle_online_paid():
 @app.route('/api/toggle-online-batch', methods=['POST'])
 def toggle_online_batch():
     try:
-        from email_sender import load_db, save_db
         db = load_db()
         req_data = request.json
         if not req_data or "updates" not in req_data:
