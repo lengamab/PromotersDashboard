@@ -887,12 +887,16 @@ Output ONLY the new dense, bulleted summary. Do not include pleasantries.`;
               width: 100%;
               background: #1a1b26;
               border: 1px solid var(--border-color);
-              border-radius: 20px;
-              padding: 12px 20px;
+              border-radius: 12px;
+              padding: 12px 50px 12px 20px;
               color: white;
               outline: none;
               font-family: inherit;
               font-size: 1rem;
+              resize: none;
+              min-height: 60px;
+              line-height: 1.4;
+              box-sizing: border-box;
             }
             .chat-input:focus {
               border-color: var(--color-primary);
@@ -900,8 +904,7 @@ Output ONLY the new dense, bulleted summary. Do not include pleasantries.`;
             .send-btn {
               position: absolute;
               right: 10px;
-              top: 50%;
-              transform: translateY(-50%);
+              bottom: 12px;
               background: var(--color-primary);
               color: white;
               border: none;
@@ -1080,14 +1083,19 @@ Output ONLY the new dense, bulleted summary. Do not include pleasantries.`;
                 </div>
               )}
               <div style={{ position: 'relative' }}>
-                <input 
-                  type="text" 
+                <textarea 
                   className="chat-input" 
                   placeholder="Ask a question about your performance..." 
                   value={inputValue}
                   onChange={e => setInputValue(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') sendMessage(inputValue); }}
+                  onKeyDown={e => { 
+                    if (e.key === 'Enter' && !e.shiftKey) { 
+                      e.preventDefault();
+                      sendMessage(inputValue); 
+                    } 
+                  }}
                   disabled={isLoading}
+                  rows={2}
                 />
                 <button 
                   className="send-btn" 
