@@ -558,6 +558,30 @@ const getTools = (allowWriteAccess) => {
         required: ["explanation", "mutations"]
       }
     });
+    baseTools[0].functionDeclarations.push({
+      name: "proposeFourvenuesChanges",
+      description: "Propose modifications (POST, PUT, DELETE) to the Fourvenues API. The user will be asked to confirm these changes before they are executed. You MUST use this tool to create or modify events, tickets, promoters, or PR lists on Fourvenues.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          explanation: { type: "STRING", description: "A clear, human-readable explanation of exactly what changes will be made to Fourvenues." },
+          mutations: {
+            type: "ARRAY",
+            description: "List of API calls to make.",
+            items: {
+              type: "OBJECT",
+              properties: {
+                method: { type: "STRING", description: "HTTP Method, e.g. POST, PUT, DELETE, PATCH." },
+                endpoint: { type: "STRING", description: "e.g. 'events/<event_id>' or 'tickets'" },
+                payload: { type: "STRING", description: "JSON string of the payload (for POST/PUT/PATCH)." }
+              },
+              required: ["method", "endpoint"]
+            }
+          }
+        },
+        required: ["explanation", "mutations"]
+      }
+    });
   }
   return baseTools;
 };
@@ -580,7 +604,8 @@ const dispatchToolCall = async (call, context) => {
     case 'fetchFourvenuesExpenses': return await fetchFourvenuesExpensesHandler(call.args);
     case 'fetchFourvenuesCashouts': return await fetchFourvenuesCashoutsHandler(call.args);
     case 'fetchPromoterProfile': return await fetchPromoterProfileHandler(call.args);
-    case 'proposeMetaChanges': return await context.handleProposeChanges(call.args);
+    case 'proposeMetaChanges': return await context.handleProposeChanges({ ...call.args, platform: 'meta' });
+    case 'proposeFourvenuesChanges': return await context.handleProposeChanges({ ...call.args, platform: 'fourvenues' });
     default: return { error: `Unknown tool: ${call.name}` };
   }
 };
@@ -1020,7 +1045,7 @@ Output ONLY the new dense, bulleted summary. Do not include pleasantries.`;
               )}
               {pendingChanges && (
                 <div className="ai-message-bubble" style={{ border: '2px solid #ff9800' }}>
-                  <h3 style={{ marginTop: 0, color: '#ff9800' }}>Confirm Proposed Changes</h3>
+                  <h3 style={{ marginTop: 0, color: '#ff9800' }}>Confirm Proposed Changes ({pendingChanges.args.platform === 'fourvenues' ? 'Fourvenues' : 'Meta Ads'})</h3>
                   <p>{pendingChanges.args.explanation}</p>
                   <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '8px', fontSize: '0.85em', fontFamily: 'monospace' }}>
                     {pendingChanges.args.mutations.map((m, i) => (
@@ -1032,7 +1057,8 @@ Output ONLY the new dense, bulleted summary. Do not include pleasantries.`;
                       const results = [];
                       for (const m of pendingChanges.args.mutations) {
                         try {
-                          const res = await fetch(`/api/meta-proxy-mutate/${m.endpoint}`, {
+                          const baseUrl = pendingChanges.args.platform === 'fourvenues' ? '/api/fourvenues-proxy-mutate/' : '/api/meta-proxy-mutate/';
+                          const res = await fetch(`${baseUrl}${m.endpoint}`, {
                              method: m.method || 'POST',
                              headers: { 'Content-Type': 'application/json' },
                              body: m.payload || '{}'

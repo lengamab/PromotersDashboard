@@ -488,6 +488,29 @@ def meta_proxy_mutate(endpoint):
     except Exception as e:
         return jsonify({"error": {"message": str(e)}}), 500
 
+@app.route('/api/fourvenues-proxy-mutate/<path:endpoint>', methods=['POST', 'PUT', 'PATCH', 'DELETE'])
+def fourvenues_proxy_mutate(endpoint):
+    import requests
+    from email_sender import API_KEY
+    if not API_KEY:
+        return jsonify({"error": {"message": "FOURVENUES_API_KEY not configured in backend"}}), 500
+        
+    url = f"https://api.fourvenues.com/integrations/{endpoint}"
+    headers = {"X-Api-Key": API_KEY}
+    if request.method in ['POST', 'PUT', 'PATCH']:
+        headers['Content-Type'] = 'application/json'
+    
+    data = request.json or {}
+    
+    try:
+        resp = requests.request(request.method, url, headers=headers, params=request.args.to_dict(), json=data, timeout=25)
+        try:
+            return jsonify(resp.json()), resp.status_code
+        except:
+            return jsonify({"response": resp.text}), resp.status_code
+    except Exception as e:
+        return jsonify({"error": {"message": str(e)}}), 500
+
 @app.route('/api/gemini-config', methods=['GET'])
 def get_gemini_config():
     key = os.getenv("GEMINI_API_KEY", "")
