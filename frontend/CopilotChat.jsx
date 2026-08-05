@@ -588,7 +588,21 @@ const dispatchToolCall = async (call, context) => {
 const CopilotChatWidget = () => {
   const [contextData, setContextData] = useState("No data selected yet.");
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([{ role: 'model', parts: [{ text: "Hello! I am La French AI. Click 'Analyze Campaign' in Meta Ads, or ask me any question about your Fourvenues nightlife data, ticket sales, promoter performance, or cash tracking." }] }]);
+
+  const getInitialMessages = (key) => {
+    try {
+      const saved = localStorage.getItem(`copilot_messages_${key}`);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error("Error loading chat history:", e);
+    }
+    return [{ role: 'model', parts: [{ text: "Hello! I am La French AI. Click 'Analyze Campaign' in Meta Ads, or ask me any question about your Fourvenues nightlife data, ticket sales, promoter performance, or cash tracking." }] }];
+  };
+
+  const initialMemoryKey = window.location.pathname || 'global';
+  const [memoryKey, setMemoryKey] = useState(initialMemoryKey);
+  const [messages, setMessages] = useState(() => getInitialMessages(initialMemoryKey));
+
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [memorySummary, setMemorySummary] = useState("");
@@ -599,7 +613,14 @@ const CopilotChatWidget = () => {
   
   const chatSessionRef = useRef(null);
   const messagesEndRef = useRef(null);
-  const [memoryKey, setMemoryKey] = useState(window.location.pathname || 'global');
+  
+  useEffect(() => {
+    try {
+      localStorage.setItem(`copilot_messages_${memoryKey}`, JSON.stringify(messages));
+    } catch (e) {
+      console.error("Error saving chat history:", e);
+    }
+  }, [messages, memoryKey]);
 
   useEffect(() => {
     fetch('/api/gemini-config')
@@ -629,7 +650,7 @@ const CopilotChatWidget = () => {
       setMemoryKey(prevKey => {
           if (prevKey !== newKey) {
               setMemorySummary(""); // Clear old memory temporarily until fetched
-              setMessages([{ role: 'model', parts: [{ text: "Hello! I am La French AI. Click 'Analyze Campaign' in Meta Ads, or ask me any question about your Fourvenues nightlife data, ticket sales, promoter performance, or cash tracking." }] }]);
+              setMessages(getInitialMessages(newKey));
           }
           return newKey;
       });
