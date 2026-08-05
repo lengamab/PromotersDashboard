@@ -608,6 +608,7 @@ const CopilotChatWidget = () => {
   const [memorySummary, setMemorySummary] = useState("");
   const [allowWriteAccess, setAllowWriteAccess] = useState(false);
   const [pendingChanges, setPendingChanges] = useState(null);
+  const [suggestedPrompt, setSuggestedPrompt] = useState(null);
   
   const [genAIInstance, setGenAIInstance] = useState(null);
   
@@ -657,7 +658,7 @@ const CopilotChatWidget = () => {
       setContextData(data);
       setIsOpen(true);
       if (customPrompt) {
-        setTimeout(() => sendMessage(customPrompt, data), 300);
+        setSuggestedPrompt(customPrompt);
       }
     };
   }, []);
@@ -1054,6 +1055,30 @@ Output ONLY the new dense, bulleted summary. Do not include pleasantries.`;
 
             {/* Input Box */}
             <div style={{ padding: '20px 25px', borderTop: '1px solid var(--border-color)', background: 'rgba(0,0,0,0.2)' }}>
+              {suggestedPrompt && (
+                <div style={{ marginBottom: '10px' }}>
+                  <button 
+                    onClick={() => {
+                      sendMessage(suggestedPrompt);
+                      setSuggestedPrompt(null);
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, #1a1b26, #2d1b4e)',
+                      color: '#c084fc',
+                      border: '1px solid #9333ea',
+                      padding: '8px 12px',
+                      borderRadius: '12px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <i className="fa-solid fa-wand-magic-sparkles"></i> Run Campaign Analysis
+                  </button>
+                </div>
+              )}
               <div style={{ position: 'relative' }}>
                 <input 
                   type="text" 
