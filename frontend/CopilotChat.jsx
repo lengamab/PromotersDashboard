@@ -1063,8 +1063,19 @@ Output ONLY the new dense, bulleted summary. Do not include pleasantries.`;
                              headers: { 'Content-Type': 'application/json' },
                              body: m.payload || '{}'
                           });
-                          const data = await res.json();
-                          results.push({ endpoint: m.endpoint, success: !data.error, data });
+                          
+                          let data;
+                          try {
+                            data = await res.json();
+                          } catch (err) {
+                            data = { error: { message: "Failed to parse JSON response" } };
+                          }
+                          
+                          if (!res.ok) {
+                            results.push({ endpoint: m.endpoint, success: false, error: data.error || data.response || "HTTP Error " + res.status });
+                          } else {
+                            results.push({ endpoint: m.endpoint, success: !data.error, data });
+                          }
                         } catch (e) {
                           results.push({ endpoint: m.endpoint, success: false, error: e.message });
                         }
