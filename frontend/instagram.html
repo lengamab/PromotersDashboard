@@ -243,12 +243,23 @@
                 </div>
             </div>
             
-            <!-- Engagement Chart -->
+            <!-- Charts Section -->
             <div class="section-header" style="margin-top: 40px;">
-                <h2>Engagement Trends</h2>
+                <h2>Growth & Engagement Trends</h2>
             </div>
-            <div style="background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-                <canvas id="engagementChart" height="80"></canvas>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                <!-- Engagement Chart -->
+                <div style="background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px;">
+                    <h3 style="margin-bottom: 15px; font-size: 1rem; color: var(--text-secondary);">Recent Posts Engagement</h3>
+                    <canvas id="engagementChart" height="200"></canvas>
+                </div>
+                
+                <!-- Reach Chart -->
+                <div style="background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px;">
+                    <h3 style="margin-bottom: 15px; font-size: 1rem; color: var(--text-secondary);">Daily Reach (Last 28 Days)</h3>
+                    <canvas id="reachChart" height="200"></canvas>
+                </div>
             </div>
 
             <!-- Recent Posts Grid -->

@@ -98,6 +98,52 @@ async function fetchInsights(igAccountId) {
                 totalReach = values.reduce((sum, val) => sum + val.value, 0);
                 document.getElementById('kpi-reach').textContent = totalReach.toLocaleString();
                 if(window.currentInstagramContext) window.currentInstagramContext += `Account Reach (last 28d): ${totalReach}\n`;
+                
+                // --- Reach Chart logic ---
+                const reachCtx = document.getElementById('reachChart').getContext('2d');
+                const reachLabels = values.map(v => {
+                    const d = new Date(v.end_time);
+                    d.setDate(d.getDate() - 1); // FB Insight end_time is the next morning
+                    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                });
+                const reachValues = values.map(v => v.value);
+                
+                if (window.reachChartInstance) {
+                    window.reachChartInstance.destroy();
+                }
+                
+                window.reachChartInstance = new Chart(reachCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: reachLabels,
+                        datasets: [{
+                            label: 'Daily Reach',
+                            data: reachValues,
+                            backgroundColor: 'rgba(192, 132, 252, 0.6)',
+                            borderColor: '#c084fc',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: {
+                                ticks: { color: '#a0a0b0', maxTicksLimit: 14 },
+                                grid: { display: false }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: '#a0a0b0' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            }
+                        }
+                    }
+                });
             }
         } else {
             document.getElementById('kpi-reach').textContent = "N/A";
