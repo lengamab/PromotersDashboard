@@ -13,8 +13,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnSynergy) {
         btnSynergy.addEventListener('click', () => {
             if (window.updateCopilotContext) {
-                const prompt = "Please generate a Synergy Report connecting my Instagram organic growth with my Meta Ads and Fourvenues ticket sales. Analyze which types of content or campaigns are driving the most value.";
-                window.updateCopilotContext(window.currentInstagramContext || "Instagram dashboard data is loading...", prompt, "instagram_dashboard");
+                const prompt = `You are a cross-platform data analyst (Synergy Mode). 
+
+I need a Synergy Report connecting my Instagram organic growth with my Meta Ads campaigns and Fourvenues ticket sales. 
+1. Review my Instagram context (below) to see what content is resonating organically.
+2. Use your tools to check my Meta Ads performance (\`fetchActiveCampaigns\`, \`fetchCampaignHistoricalData\`).
+3. Use your tools to check my Fourvenues performance (\`fetchFourvenuesEvents\`, \`fetchFourvenuesSalesHistory\`).
+
+Find the synergy: Are my popular organic posts driving cheap Meta clicks or Fourvenues sales? What should I do next?`;
+                window.updateCopilotContext(window.currentInstagramContext || "Instagram dashboard data is loading...", prompt, "instagram_dashboard", true);
             } else {
                 alert("AI Assistant is not loaded yet.");
             }
@@ -80,34 +87,34 @@ async function loadInstagramData() {
 
 async function fetchInsights(igAccountId) {
     try {
-        // Fetch 28 day reach and impressions
-        const insightsRes = await fetch(`${IG_API_BASE}/${igAccountId}/insights?metric=impressions,reach,profile_views&period=day`);
-        const insightsData = await insightsRes.json();
+        // Fetch 28 day reach (requires daily values sum)
+        const reachRes = await fetch(`${IG_API_BASE}/${igAccountId}/insights?metric=reach&period=day`);
+        const reachData = await reachRes.json();
         
-        if (insightsData.data) {
-            // Sum up the last 28 days for reach
-            let totalReach = 0;
-            let totalViews = 0;
-            
-            const reachData = insightsData.data.find(m => m.name === 'reach');
-            const viewsData = insightsData.data.find(m => m.name === 'profile_views');
-            
-            if (reachData && reachData.values) {
-                totalReach = reachData.values.reduce((sum, val) => sum + val.value, 0);
+        let totalReach = 0;
+        if (reachData.data && reachData.data.length > 0) {
+            const values = reachData.data[0].values;
+            if (values) {
+                totalReach = values.reduce((sum, val) => sum + val.value, 0);
                 document.getElementById('kpi-reach').textContent = totalReach.toLocaleString();
                 if(window.currentInstagramContext) window.currentInstagramContext += `Account Reach (last 28d): ${totalReach}\n`;
-            } else {
-                 document.getElementById('kpi-reach').textContent = "N/A";
             }
-            
-            if (viewsData && viewsData.values) {
-                totalViews = viewsData.values.reduce((sum, val) => sum + val.value, 0);
-                document.getElementById('kpi-profile-views').textContent = totalViews.toLocaleString();
-                if(window.currentInstagramContext) window.currentInstagramContext += `Profile Views (last 28d): ${totalViews}\n\n`;
-            } else {
-                 document.getElementById('kpi-profile-views').textContent = "N/A";
-            }
+        } else {
+            document.getElementById('kpi-reach').textContent = "N/A";
         }
+        
+        // Fetch 28 day profile views (requires total_value metric_type)
+        const pvRes = await fetch(`${IG_API_BASE}/${igAccountId}/insights?metric=profile_views&metric_type=total_value&period=day`);
+        const pvData = await pvRes.json();
+        
+        if (pvData.data && pvData.data.length > 0) {
+            const totalViews = pvData.data[0].total_value.value;
+            document.getElementById('kpi-profile-views').textContent = totalViews.toLocaleString();
+            if(window.currentInstagramContext) window.currentInstagramContext += `Profile Views (last 28d): ${totalViews}\n\n`;
+        } else {
+            document.getElementById('kpi-profile-views').textContent = "N/A";
+        }
+
     } catch (error) {
         console.warn("Could not fetch insights. Token might lack instagram_manage_insights permission.", error);
         document.getElementById('kpi-reach').textContent = "Permission Required";
@@ -176,6 +183,81 @@ async function loadRecentMedia(accountId = null) {
             
             if(window.currentInstagramContext) {
                 window.currentInstagramContext += `- [${dateStr}] [${post.media_type}] Likes: ${post.like_count}, Comments: ${post.comments_count}. Caption snippet: "${caption.substring(0, 100).replace(/\n/g, ' ')}..."\n`;
+            }
+        });
+        
+        // --- Engagement Chart logic ---
+        const ctx = document.getElementById('engagementChart').getContext('2d');
+        
+        // Reverse posts so oldest is on the left, newest on right for the chart
+        const chartPosts = [...posts].reverse();
+        const labels = chartPosts.map(p => new Date(p.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
+        const likesData = chartPosts.map(p => p.like_count);
+        const commentsData = chartPosts.map(p => p.comments_count);
+
+        if (window.engagementChartInstance) {
+            window.engagementChartInstance.destroy();
+        }
+
+        window.engagementChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Likes',
+                        data: likesData,
+                        borderColor: '#ed4956',
+                        backgroundColor: 'rgba(237, 73, 86, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Comments',
+                        data: commentsData,
+                        borderColor: '#0095f6',
+                        backgroundColor: 'rgba(0, 149, 246, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        labels: { color: '#a0a0b0' }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#a0a0b0' },
+                        grid: { color: 'rgba(255,255,255,0.05)' }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        ticks: { color: '#a0a0b0' },
+                        grid: { color: 'rgba(255,255,255,0.05)' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        ticks: { color: '#a0a0b0' },
+                        grid: { drawOnChartArea: false } // only want the grid lines for one axis to show up
+                    }
+                }
             }
         });
         

@@ -671,7 +671,7 @@ const CopilotChatWidget = () => {
   }, [memoryKey]);
 
   useEffect(() => {
-    window.updateCopilotContext = (data, customPrompt, specificKey) => {
+    window.updateCopilotContext = (data, customPrompt, specificKey, autoSubmit = false) => {
       const newKey = specificKey || window.location.pathname || 'global';
       setMemoryKey(prevKey => {
           if (prevKey !== newKey) {
@@ -684,6 +684,13 @@ const CopilotChatWidget = () => {
       setIsOpen(true);
       if (customPrompt) {
         setSuggestedPrompt(customPrompt);
+        if (autoSubmit) {
+            // Wait for state to settle then send
+            setTimeout(() => {
+                sendMessage(customPrompt);
+                setSuggestedPrompt(null);
+            }, 500);
+        }
       }
     };
   }, []);
