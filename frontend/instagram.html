@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>La French - Instagram Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link rel="stylesheet" href="style.css?v=15">
+    <style>
+        .ig-btn {
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+        .ig-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(225, 48, 108, 0.4);
+        }
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .media-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s;
+        }
+        .media-card:hover {
+            transform: translateY(-5px);
+            border-color: #E1306C;
+        }
+        .media-img-container {
+            width: 100%;
+            height: 280px;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .media-img-container img, .media-img-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .media-type-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.6);
+            padding: 5px 8px;
+            border-radius: 6px;
+            color: white;
+        }
+        .media-stats {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .media-stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 600;
+        }
+        .media-caption {
+            padding: 15px;
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex-grow: 1;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background-color: var(--surface-color);
+            margin: 10% auto;
+            padding: 30px;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            color: var(--text-color);
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: rgba(0,0,0,0.2);
+            color: white;
+            font-family: monospace;
+        }
+        .synergy-panel {
+            background: linear-gradient(135deg, rgba(225, 48, 108, 0.1) 0%, rgba(132, 94, 194, 0.1) 100%);
+            border: 1px solid rgba(225, 48, 108, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .synergy-content h3 {
+            margin: 0 0 10px 0;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .synergy-content p {
+            margin: 0;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar/Header -->
+        <header class="main-header">
+            <div class="header-logo">
+                <i class="fab fa-instagram logo-icon" style="color: #E1306C; font-size: 28px;"></i>
+                <div class="logo-text">
+                    <h1>LA FRENCH</h1>
+                    <span>INSTAGRAM MANAGEMENT</span>
+                </div>
+            </div>
+            
+            <div class="header-nav">
+                <button class="nav-tab active">
+                    <i class="fab fa-instagram"></i> Instagram
+                </button>
+                <button class="nav-tab" onclick="window.location.href='ads.html'" style="background: var(--surface-color); color: #007bff; border: 1px solid #007bff;">
+                    <i class="fa-brands fa-facebook"></i> Meta Ads
+                </button>
+                <button class="nav-tab" onclick="window.location.href='partners.html'" style="background: var(--surface-color); color: var(--color-primary); border: 1px solid var(--color-primary);">
+                    <i class="fa-solid fa-handshake"></i> Partners
+                </button>
+                <button class="nav-tab" onclick="window.location.href='/'">
+                    <i class="fa-solid fa-house"></i> Fourvenues
+                </button>
+            </div>
+            
+            <div class="header-actions">
+                <button class="ig-btn" onclick="openSettingsModal()">
+                    <i class="fa-solid fa-gear"></i> Setup API
+                </button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Synergy Panel -->
+            <div class="synergy-panel">
+                <div class="synergy-content">
+                    <h3><i class="fa-solid fa-wand-magic-sparkles" style="color: #c084fc;"></i> AI Growth Assistant</h3>
+                    <p>Connect your Instagram organic growth with Meta Ads and Fourvenues ticket sales to find your best performing audience.</p>
+                </div>
+                <div>
+                    <button class="ig-btn" style="background: #1a1b26; border: 1px solid #9333ea; color: #c084fc;">
+                        <i class="fa-solid fa-bolt"></i> Generate Synergy Report
+                    </button>
+                </div>
+            </div>
+
+            <!-- Profile Info -->
+            <div class="section-header">
+                <h2>Profile Overview <span id="profile-handle" style="color: var(--text-secondary); font-weight: 400; font-size: 0.8em; margin-left: 10px;">@loading...</span></h2>
+            </div>
+            
+            <!-- KPIs -->
+            <div class="kpi-grid" id="ig-kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background: rgba(225, 48, 108, 0.1); color: #E1306C;"><i class="fa-solid fa-users"></i></div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">Followers</span>
+                        <span class="kpi-value" id="kpi-followers">-</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background: rgba(0, 123, 255, 0.1); color: #007bff;"><i class="fa-solid fa-image"></i></div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">Total Posts</span>
+                        <span class="kpi-value" id="kpi-media-count">-</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background: rgba(40, 167, 69, 0.1); color: #28a745;"><i class="fa-solid fa-eye"></i></div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">Profile Views (28d)</span>
+                        <span class="kpi-value" id="kpi-profile-views">-</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;"><i class="fa-solid fa-bullhorn"></i></div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">Account Reach (28d)</span>
+                        <span class="kpi-value" id="kpi-reach">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Posts Grid -->
+            <div class="section-header" style="margin-top: 40px; display: flex; justify-content: space-between; align-items: center;">
+                <h2>Recent Content Performance</h2>
+                <button class="nav-tab" onclick="loadRecentMedia()" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border-color);">
+                    <i class="fa-solid fa-rotate-right"></i> Refresh
+                </button>
+            </div>
+            
+            <div id="media-grid" class="media-grid">
+                <!-- Cards will be populated by JS -->
+                <div style="padding: 40px; text-align: center; width: 100%; grid-column: 1 / -1; color: var(--text-secondary);">
+                    Loading recent posts... Make sure your API key is configured.
+                </div>
+            </div>
+            
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-top: 0; font-family: 'Outfit'; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">Instagram API Setup</h2>
+            <div class="form-group">
+                <label for="igToken">Meta Graph API Long-Lived Token</label>
+                <input type="text" id="igToken" placeholder="EAAOCF0JClK...">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 25px;">
+                <button class="ig-btn" style="flex: 1; justify-content: center;" onclick="saveSettings()">Save & Connect</button>
+                <button class="nav-tab" style="background: rgba(255,255,255,0.1); color: white; border: none; flex: 1;" onclick="closeSettingsModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="instagram.js"></script>
+</body>
+</html>
