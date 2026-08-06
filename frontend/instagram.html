@@ -188,9 +188,7 @@
             </div>
             
             <div class="header-actions">
-                <button class="ig-btn" onclick="openSettingsModal()">
-                    <i class="fa-solid fa-gear"></i> Setup API
-                </button>
+                <!-- Action buttons can go here -->
             </div>
         </header>
 
@@ -263,20 +261,7 @@
         </main>
     </div>
 
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="modal">
-        <div class="modal-content">
-            <h2 style="margin-top: 0; font-family: 'Outfit'; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">Instagram API Setup</h2>
-            <div class="form-group">
-                <label for="igToken">Meta Graph API Long-Lived Token</label>
-                <input type="text" id="igToken" placeholder="EAAOCF0JClK...">
-            </div>
-            <div style="display: flex; gap: 10px; margin-top: 25px;">
-                <button class="ig-btn" style="flex: 1; justify-content: center;" onclick="saveSettings()">Save & Connect</button>
-                <button class="nav-tab" style="background: rgba(255,255,255,0.1); color: white; border: none; flex: 1;" onclick="closeSettingsModal()">Cancel</button>
-            </div>
-        </div>
-    </div>
+    <!-- Modal Removed - API Key is now in .env -->
 
     <script src="instagram.js"></script>
 </body>

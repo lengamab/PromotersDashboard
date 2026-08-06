@@ -469,6 +469,23 @@ def meta_proxy(endpoint):
     except Exception as e:
         return jsonify({"error": {"message": str(e)}}), 500
 
+@app.route('/api/ig-proxy/<path:endpoint>', methods=['GET'])
+def ig_proxy(endpoint):
+    import requests
+    token = os.getenv("IG_ACCESS_TOKEN") or os.getenv("META_ACCESS_TOKEN")
+    if not token:
+        return jsonify({"error": {"message": "IG_ACCESS_TOKEN not configured in backend"}}), 500
+        
+    url = f"https://graph.facebook.com/v20.0/{endpoint}"
+    params = request.args.to_dict()
+    params['access_token'] = token
+    
+    try:
+        resp = requests.get(url, params=params, timeout=25)
+        return jsonify(resp.json()), resp.status_code
+    except Exception as e:
+        return jsonify({"error": {"message": str(e)}}), 500
+
 @app.route('/api/meta-proxy-mutate/<path:endpoint>', methods=['POST'])
 def meta_proxy_mutate(endpoint):
     import requests

@@ -2,60 +2,24 @@
 
 const IG_TOKEN_KEY = 'la_french_ig_token';
 const IG_ACCOUNT_ID_KEY = 'la_french_ig_account_id';
-const IG_API_BASE = 'https://graph.facebook.com/v20.0';
+const IG_API_BASE = '/api/ig-proxy';
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    const savedToken = localStorage.getItem(IG_TOKEN_KEY);
-    if (savedToken) {
-        document.getElementById('igToken').value = savedToken;
-        loadInstagramData();
-    } else {
-        // Automatically open settings if no token is found
-        openSettingsModal();
-    }
+    loadInstagramData();
 });
 
-// Modal Logic
-function openSettingsModal() {
-    document.getElementById('settingsModal').style.display = 'block';
-}
-
-function closeSettingsModal() {
-    document.getElementById('settingsModal').style.display = 'none';
-}
-
-async function saveSettings() {
-    const token = document.getElementById('igToken').value.trim();
-    if (!token) {
-        alert("Please enter a valid Meta Graph API Token.");
-        return;
-    }
-    
-    localStorage.setItem(IG_TOKEN_KEY, token);
-    closeSettingsModal();
-    
-    // Clear cached account ID to force re-fetch
-    localStorage.removeItem(IG_ACCOUNT_ID_KEY);
-    
-    // Refresh UI
-    document.getElementById('media-grid').innerHTML = '<div style="padding: 40px; text-align: center; width: 100%; grid-column: 1 / -1; color: var(--text-secondary);">Connecting to Instagram...</div>';
-    
-    await loadInstagramData();
-}
+// Modal Logic Removed - Settings configured via backend environment variables
 
 // Data Fetching Logic
 async function loadInstagramData() {
-    const token = localStorage.getItem(IG_TOKEN_KEY);
-    if (!token) return;
-
     try {
         // Step 1: Get the IG Account ID (if not cached)
         let igAccountId = localStorage.getItem(IG_ACCOUNT_ID_KEY);
         
         if (!igAccountId) {
             // Fetch FB Pages
-            const pagesRes = await fetch(`${IG_API_BASE}/me/accounts?access_token=${token}`);
+            const pagesRes = await fetch(`${IG_API_BASE}/me/accounts`);
             const pagesData = await pagesRes.json();
             
             if (pagesData.error) throw new Error(pagesData.error.message);
@@ -64,7 +28,7 @@ async function loadInstagramData() {
             const pageId = pagesData.data[0].id;
             
             // Fetch connected IG Account
-            const igRes = await fetch(`${IG_API_BASE}/${pageId}?fields=instagram_business_account&access_token=${token}`);
+            const igRes = await fetch(`${IG_API_BASE}/${pageId}?fields=instagram_business_account`);
             const igData = await igRes.json();
             
             if (igData.error) throw new Error(igData.error.message);
@@ -75,7 +39,7 @@ async function loadInstagramData() {
         }
 
         // Step 2: Fetch Profile Data
-        const profileRes = await fetch(`${IG_API_BASE}/${igAccountId}?fields=username,followers_count,media_count,name&access_token=${token}`);
+        const profileRes = await fetch(`${IG_API_BASE}/${igAccountId}?fields=username,followers_count,media_count,name`);
         const profileData = await profileRes.json();
         
         if (profileData.error) throw new Error(profileData.error.message);
@@ -87,22 +51,21 @@ async function loadInstagramData() {
         
         // Note: Profile Views and Reach require the 'insights' edge which has specific metric parameters.
         // For now, we simulate or show pending as we need 28 day metrics which requires a more complex query.
-        fetchInsights(igAccountId, token);
+        fetchInsights(igAccountId);
         
         // Step 3: Fetch Recent Media
-        await loadRecentMedia(igAccountId, token);
+        await loadRecentMedia(igAccountId);
         
     } catch (error) {
         console.error("Error loading Instagram data:", error);
-        alert(`Failed to load Instagram data: ${error.message}\n\nPlease check your API token.`);
-        openSettingsModal();
+        alert(`Failed to load Instagram data: ${error.message}\n\nPlease check your backend configuration.`);
     }
 }
 
-async function fetchInsights(igAccountId, token) {
+async function fetchInsights(igAccountId) {
     try {
         // Fetch 28 day reach and impressions
-        const insightsRes = await fetch(`${IG_API_BASE}/${igAccountId}/insights?metric=impressions,reach,profile_views&period=day&access_token=${token}`);
+        const insightsRes = await fetch(`${IG_API_BASE}/${igAccountId}/insights?metric=impressions,reach,profile_views&period=day`);
         const insightsData = await insightsRes.json();
         
         if (insightsData.data) {
@@ -134,17 +97,16 @@ async function fetchInsights(igAccountId, token) {
     }
 }
 
-async function loadRecentMedia(accountId = null, apiToken = null) {
+async function loadRecentMedia(accountId = null) {
     const igAccountId = accountId || localStorage.getItem(IG_ACCOUNT_ID_KEY);
-    const token = apiToken || localStorage.getItem(IG_TOKEN_KEY);
     
-    if (!igAccountId || !token) return;
+    if (!igAccountId) return;
     
     const grid = document.getElementById('media-grid');
     grid.innerHTML = '<div style="padding: 40px; text-align: center; width: 100%; grid-column: 1 / -1; color: var(--text-secondary);"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading latest posts...</div>';
     
     try {
-        const mediaRes = await fetch(`${IG_API_BASE}/${igAccountId}/media?fields=id,caption,media_type,media_url,thumbnail_url,like_count,comments_count,timestamp,permalink&limit=12&access_token=${token}`);
+        const mediaRes = await fetch(`${IG_API_BASE}/${igAccountId}/media?fields=id,caption,media_type,media_url,thumbnail_url,like_count,comments_count,timestamp,permalink&limit=12`);
         const mediaData = await mediaRes.json();
         
         if (mediaData.error) throw new Error(mediaData.error.message);
