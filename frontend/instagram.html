@@ -200,7 +200,7 @@
                     <p>Connect your Instagram organic growth with Meta Ads and Fourvenues ticket sales to find your best performing audience.</p>
                 </div>
                 <div>
-                    <button class="ig-btn" style="background: #1a1b26; border: 1px solid #9333ea; color: #c084fc;">
+                    <button class="ig-btn" id="btn-generate-synergy" style="background: #1a1b26; border: 1px solid #9333ea; color: #c084fc;">
                         <i class="fa-solid fa-bolt"></i> Generate Synergy Report
                     </button>
                 </div>
@@ -212,33 +212,33 @@
             </div>
             
             <!-- KPIs -->
-            <div class="kpi-grid" id="ig-kpi-grid">
-                <div class="kpi-card">
-                    <div class="kpi-icon" style="background: rgba(225, 48, 108, 0.1); color: #E1306C;"><i class="fa-solid fa-users"></i></div>
-                    <div class="kpi-info">
-                        <span class="kpi-label">Followers</span>
-                        <span class="kpi-value" id="kpi-followers">-</span>
+            <div class="stats-grid" id="ig-kpi-grid">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper" style="background: rgba(225, 48, 108, 0.1); color: #E1306C;"><i class="fa-solid fa-users"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-label">Followers</span>
+                        <span class="stat-value" id="kpi-followers">-</span>
                     </div>
                 </div>
-                <div class="kpi-card">
-                    <div class="kpi-icon" style="background: rgba(0, 123, 255, 0.1); color: #007bff;"><i class="fa-solid fa-image"></i></div>
-                    <div class="kpi-info">
-                        <span class="kpi-label">Total Posts</span>
-                        <span class="kpi-value" id="kpi-media-count">-</span>
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper" style="background: rgba(0, 123, 255, 0.1); color: #007bff;"><i class="fa-solid fa-image"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-label">Total Posts</span>
+                        <span class="stat-value" id="kpi-media-count">-</span>
                     </div>
                 </div>
-                <div class="kpi-card">
-                    <div class="kpi-icon" style="background: rgba(40, 167, 69, 0.1); color: #28a745;"><i class="fa-solid fa-eye"></i></div>
-                    <div class="kpi-info">
-                        <span class="kpi-label">Profile Views (28d)</span>
-                        <span class="kpi-value" id="kpi-profile-views">-</span>
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper" style="background: rgba(40, 167, 69, 0.1); color: #28a745;"><i class="fa-solid fa-eye"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-label">Profile Views (28d)</span>
+                        <span class="stat-value" id="kpi-profile-views">-</span>
                     </div>
                 </div>
-                <div class="kpi-card">
-                    <div class="kpi-icon" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;"><i class="fa-solid fa-bullhorn"></i></div>
-                    <div class="kpi-info">
-                        <span class="kpi-label">Account Reach (28d)</span>
-                        <span class="kpi-value" id="kpi-reach">-</span>
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;"><i class="fa-solid fa-bullhorn"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-label">Account Reach (28d)</span>
+                        <span class="stat-value" id="kpi-reach">-</span>
                     </div>
                 </div>
             </div>
@@ -262,6 +262,15 @@
     </div>
 
     <!-- Modal Removed - API Key is now in .env -->
+
+    <!-- Copilot AI Assistant -->
+    <div id="copilot-root"></div>
+    <script src="dist/copilot-chat.umd.cjs?v=14"></script>
+    <script>
+         if(window.mountCopilotChat) {
+             window.mountCopilotChat('copilot-root');
+         }
+    </script>
 
     <script src="instagram.js"></script>
 </body>

@@ -7,6 +7,19 @@ const IG_API_BASE = '/api/ig-proxy';
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadInstagramData();
+    
+    // Attach event listener to Synergy button
+    const btnSynergy = document.getElementById('btn-generate-synergy');
+    if (btnSynergy) {
+        btnSynergy.addEventListener('click', () => {
+            if (window.updateCopilotContext) {
+                const prompt = "Please generate a Synergy Report connecting my Instagram organic growth with my Meta Ads and Fourvenues ticket sales. Analyze which types of content or campaigns are driving the most value.";
+                window.updateCopilotContext(window.currentInstagramContext || "Instagram dashboard data is loading...", prompt, "instagram_dashboard");
+            } else {
+                alert("AI Assistant is not loaded yet.");
+            }
+        });
+    }
 });
 
 // Modal Logic Removed - Settings configured via backend environment variables
@@ -49,6 +62,9 @@ async function loadInstagramData() {
         document.getElementById('kpi-followers').textContent = profileData.followers_count.toLocaleString();
         document.getElementById('kpi-media-count').textContent = profileData.media_count.toLocaleString();
         
+        // Initialize context for AI
+        window.currentInstagramContext = `Instagram Account: @${profileData.username}\nFollowers: ${profileData.followers_count}\nTotal Posts: ${profileData.media_count}\n\n`;
+        
         // Note: Profile Views and Reach require the 'insights' edge which has specific metric parameters.
         // For now, we simulate or show pending as we need 28 day metrics which requires a more complex query.
         fetchInsights(igAccountId);
@@ -79,6 +95,7 @@ async function fetchInsights(igAccountId) {
             if (reachData && reachData.values) {
                 totalReach = reachData.values.reduce((sum, val) => sum + val.value, 0);
                 document.getElementById('kpi-reach').textContent = totalReach.toLocaleString();
+                if(window.currentInstagramContext) window.currentInstagramContext += `Account Reach (last 28d): ${totalReach}\n`;
             } else {
                  document.getElementById('kpi-reach').textContent = "N/A";
             }
@@ -86,6 +103,7 @@ async function fetchInsights(igAccountId) {
             if (viewsData && viewsData.values) {
                 totalViews = viewsData.values.reduce((sum, val) => sum + val.value, 0);
                 document.getElementById('kpi-profile-views').textContent = totalViews.toLocaleString();
+                if(window.currentInstagramContext) window.currentInstagramContext += `Profile Views (last 28d): ${totalViews}\n\n`;
             } else {
                  document.getElementById('kpi-profile-views').textContent = "N/A";
             }
@@ -114,10 +132,12 @@ async function loadRecentMedia(accountId = null) {
         const posts = mediaData.data;
         if (!posts || posts.length === 0) {
             grid.innerHTML = '<div style="padding: 40px; text-align: center; width: 100%; grid-column: 1 / -1; color: var(--text-secondary);">No posts found on this account.</div>';
+            if(window.currentInstagramContext) window.currentInstagramContext += "Recent Posts: None found.\n";
             return;
         }
         
         grid.innerHTML = '';
+        if(window.currentInstagramContext) window.currentInstagramContext += "Recent Posts Performance:\n";
         
         posts.forEach(post => {
             const card = document.createElement('div');
@@ -153,6 +173,10 @@ async function loadRecentMedia(accountId = null) {
             `;
             
             grid.appendChild(card);
+            
+            if(window.currentInstagramContext) {
+                window.currentInstagramContext += `- [${dateStr}] [${post.media_type}] Likes: ${post.like_count}, Comments: ${post.comments_count}. Caption snippet: "${caption.substring(0, 100).replace(/\n/g, ' ')}..."\n`;
+            }
         });
         
     } catch (error) {
