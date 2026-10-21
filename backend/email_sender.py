@@ -1307,8 +1307,13 @@ def gather_sales_history(start_date=None, end_date=None):
                 
             promoter_id = t.get("referral_id") or "unknown"
             promoter_name = users_dict.get(promoter_id, "Direct Sale / No Promoter")
-            payment_method = "Online" if t.get("payment_id") else "Cash"
             price = float(t.get("price", 0))
+            if price <= 0:
+                payment_method = "FREE"
+            elif t.get("payment_id") or t.get("sale_type") == "online":
+                payment_method = "Online"
+            else:
+                payment_method = "Cash"
             status = t.get("status", "activated")
             
             sales.append({

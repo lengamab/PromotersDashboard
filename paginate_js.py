@@ -38,12 +38,22 @@ function renderSalesPage(page) {
     
     salesTableBody.innerHTML = pageData.map(item => {
         const isCancelled = item.status === 'cancelled';
-        let badgeClass = item.payment_method === 'Online' ? 'badge badge-returned' : 'badge badge-pending';
-        let badgeText = item.payment_method;
+        const isFree = item.payment_method === 'FREE' || item.payment_method === 'Free' || item.price === 0;
+        let badgeClass = 'badge badge-pending';
+        let badgeText = item.payment_method || 'Cash';
         
         if (isCancelled) {
             badgeClass = 'badge badge-cancelled';
             badgeText = 'Cancelled';
+        } else if (isFree) {
+            badgeClass = 'badge badge-free';
+            badgeText = 'FREE';
+        } else if (item.payment_method === 'Online') {
+            badgeClass = 'badge badge-returned';
+            badgeText = 'Online';
+        } else {
+            badgeClass = 'badge badge-pending';
+            badgeText = 'Cash';
         }
         
         const rowStyle = isCancelled ? 'opacity: 0.6;' : '';

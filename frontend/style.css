@@ -842,6 +842,12 @@ body {
     border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
+.badge-free {
+    background-color: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
 /* Custom Checkboxes */
 .checkbox-container {
     display: inline-block;
