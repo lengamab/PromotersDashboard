@@ -65,26 +65,34 @@
             position: relative;
             cursor: pointer;
             transition: background 0.15s;
+            min-width: 0;
+            max-width: 100%;
+            overflow: hidden;
+            box-sizing: border-box;
         }
         .cal-hour-cell:hover {
             background: rgba(255, 255, 255, 0.03);
         }
         .sched-pill {
-            padding: 5px 8px;
-            border-radius: 8px;
-            font-size: 0.75rem;
+            padding: 4px 6px;
+            border-radius: 6px;
+            font-size: 0.72rem;
             margin-bottom: 4px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 6px;
+            gap: 4px;
             border: 1px solid rgba(212, 175, 55, 0.4);
             background: rgba(212, 175, 55, 0.15);
             color: #F3E5AB;
             transition: transform 0.15s;
+            min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
         }
         .sched-pill:hover {
-            transform: scale(1.02);
+            transform: scale(1.01);
         }
         .sched-pill.published {
             border-color: rgba(16, 185, 129, 0.5);
@@ -230,21 +238,21 @@
 
                 <!-- 24-Hour Calendar Grid View -->
                 <div id="calendarGridView" style="background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; max-height: 720px;">
-                    <!-- Weekday Column Headers -->
-                    <div id="calendarHeadersRow" style="display: grid; grid-template-columns: 80px repeat(7, 1fr); background: rgba(0,0,0,0.4); border-bottom: 1px solid var(--border-color); font-size: 0.8rem; font-weight: 700; text-align: center; color: var(--text-secondary); position: sticky; top: 0; z-index: 10;">
-                        <div style="padding: 12px; border-right: 1px solid var(--border-color);">Hour</div>
-                        <div id="wday-0" style="padding: 12px; border-right: 1px solid var(--border-color);">Mon</div>
-                        <div id="wday-1" style="padding: 12px; border-right: 1px solid var(--border-color);">Tue</div>
-                        <div id="wday-2" style="padding: 12px; border-right: 1px solid var(--border-color);">Wed</div>
-                        <div id="wday-3" style="padding: 12px; border-right: 1px solid var(--border-color);">Thu</div>
-                        <div id="wday-4" style="padding: 12px; border-right: 1px solid var(--border-color);">Fri</div>
-                        <div id="wday-5" style="padding: 12px; border-right: 1px solid var(--border-color);">Sat</div>
-                        <div id="wday-6" style="padding: 12px;">Sun</div>
-                    </div>
-
                     <!-- 24-Hour Grid Scroll Area -->
-                    <div id="calendarScrollBody" style="overflow-y: auto; flex: 1;">
-                        <div id="calendarHourlyContainer" style="display: grid; grid-template-columns: 80px repeat(7, 1fr);">
+                    <div id="calendarScrollBody" style="overflow-y: auto; flex: 1; position: relative;">
+                        <!-- Weekday Column Headers (Sticky inside scroll container so widths & scrollbar are 100% matched) -->
+                        <div id="calendarHeadersRow" style="display: grid; grid-template-columns: 75px repeat(7, minmax(0, 1fr)); background: #121217; border-bottom: 1px solid var(--border-color); font-size: 0.8rem; font-weight: 700; text-align: center; color: var(--text-secondary); position: sticky; top: 0; z-index: 20; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">
+                            <div style="padding: 12px; border-right: 1px solid var(--border-color); min-width: 0; box-sizing: border-box;">Hour</div>
+                            <div id="wday-0" style="padding: 12px; border-right: 1px solid var(--border-color); min-width: 0; box-sizing: border-box;">Mon</div>
+                            <div id="wday-1" style="padding: 12px; border-right: 1px solid var(--border-color); min-width: 0; box-sizing: border-box;">Tue</div>
+                            <div id="wday-2" style="padding: 12px; border-right: 1px solid var(--border-color); min-width: 0; box-sizing: border-box;">Wed</div>
+                            <div id="wday-3" style="padding: 12px; border-right: 1px solid var(--border-color); min-width: 0; box-sizing: border-box;">Thu</div>
+                            <div id="wday-4" style="padding: 12px; border-right: 1px solid var(--border-color); min-width: 0; box-sizing: border-box;">Fri</div>
+                            <div id="wday-5" style="padding: 12px; border-right: 1px solid var(--border-color); min-width: 0; box-sizing: border-box;">Sat</div>
+                            <div id="wday-6" style="padding: 12px; min-width: 0; box-sizing: border-box;">Sun</div>
+                        </div>
+
+                        <div id="calendarHourlyContainer" style="display: grid; grid-template-columns: 75px repeat(7, minmax(0, 1fr));">
                             <!-- Populated dynamically by JS for hours 00:00 to 23:00 -->
                         </div>
                     </div>
@@ -462,9 +470,16 @@
 
                     <!-- Live In-App Media Player Preview -->
                     <div id="onlineMediaPreviewWrapper" style="display: none; margin-top: 12px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; text-align: center;">
-                        <span style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 8px;">Uploaded Media Preview:</span>
-                        <video id="onlinePreviewVideo" controls style="max-height: 220px; border-radius: 8px; margin: 0 auto; display: none;"></video>
-                        <img id="onlinePreviewImage" src="" style="max-height: 220px; border-radius: 8px; margin: 0 auto; display: none; object-fit: contain;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                            <span style="font-size: 0.75rem; color: #D4AF37; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Media Preview</span>
+                            <div id="previewTabs" style="display: none; gap: 6px; flex-wrap: wrap;"></div>
+                        </div>
+                        <video id="onlinePreviewVideo" controls playsinline style="max-height: 240px; border-radius: 8px; margin: 0 auto; display: none; max-width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.6);"></video>
+                        <img id="onlinePreviewImage" src="" style="max-height: 240px; border-radius: 8px; margin: 0 auto; display: none; object-fit: contain; max-width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.6);">
+                        <div id="onlinePreviewError" style="display: none; margin-top: 8px; color: #fca5a5; font-size: 0.75rem; background: rgba(239, 68, 68, 0.1); padding: 6px; border-radius: 6px;">
+                            <span>Unable to render direct video preview.</span>
+                            <a id="onlinePreviewExtLink" href="#" target="_blank" style="color: #60a5fa; text-decoration: underline; margin-left: 6px;">Open media in new tab <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.7rem;"></i></a>
+                        </div>
                     </div>
                 </div>
 

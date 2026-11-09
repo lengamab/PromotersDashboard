@@ -391,10 +391,17 @@ def upload_media():
 @bp.route('/uploads/<path:filename>', methods=['GET'])
 def serve_upload(filename):
     """Serves uploaded media with HTTP Range support for video scrubbing."""
+    import re
     safe_name = secure_filename(os.path.basename(filename))
     file_path = os.path.join(UPLOAD_DIR, safe_name)
     if not os.path.exists(file_path):
-        return "File not found", 404
+        # Fallback 1: Strip leading timestamp prefix (e.g. 20261109_115622_name.mp4 -> name.mp4)
+        clean_name = re.sub(r'^\d{8}_\d{6}_', '', safe_name)
+        alt_path = os.path.join(UPLOAD_DIR, clean_name)
+        if os.path.exists(alt_path):
+            file_path = alt_path
+        else:
+            return "File not found", 404
 
     file_size = os.path.getsize(file_path)
     mime_type, _ = mimetypes.guess_type(file_path)

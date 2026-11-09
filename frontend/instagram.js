@@ -486,23 +486,25 @@ function renderOnlineCalendarGrid() {
             matching.forEach(p => {
                 const pill = document.createElement('div');
                 let statusClass = '';
-                let icon = '<i class="fa-solid fa-clock" style="color: #D4AF37;"></i>';
+                let icon = '<i class="fa-solid fa-clock" style="color: #D4AF37; flex-shrink: 0;"></i>';
                 if (p.status === 'published') {
                     statusClass = 'published';
-                    icon = '<i class="fa-solid fa-circle-check" style="color: #10b981;"></i>';
+                    icon = '<i class="fa-solid fa-circle-check" style="color: #10b981; flex-shrink: 0;"></i>';
                 } else if (p.status === 'failed') {
                     statusClass = 'failed';
-                    icon = '<i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i>';
+                    icon = '<i class="fa-solid fa-circle-xmark" style="color: #ef4444; flex-shrink: 0;"></i>';
                 }
                 pill.className = `sched-pill ${statusClass}`;
+                pill.title = `${p.scheduled_time ? p.scheduled_time.replace('T', ' ') : ''} — ${p.title || (p.post_type || '').toUpperCase()}`;
                 const tPart = p.scheduled_time.split('T')[1]?.substring(0, 5) || '';
+                const typeLabel = (p.post_type || 'reel').replace('_', ' ');
                 pill.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
+                    <div style="display: flex; align-items: center; gap: 4px; overflow: hidden; min-width: 0; flex: 1;">
                         ${icon}
-                        <strong style="font-family: monospace;">${tPart}</strong>
-                        <span style="overflow: hidden; text-overflow: ellipsis;">${p.title || (p.post_type || '').toUpperCase()}</span>
+                        <strong style="font-family: monospace; font-size: 0.7rem; flex-shrink: 0;">${tPart}</strong>
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; font-weight: 500;">${p.title || typeLabel.toUpperCase()}</span>
                     </div>
-                    <span style="font-size: 0.65rem; padding: 2px 4px; background: rgba(0,0,0,0.4); border-radius: 4px;">${(p.post_type || 'reel').toUpperCase()}</span>
+                    <span style="font-size: 0.6rem; padding: 1px 4px; background: rgba(0,0,0,0.5); border-radius: 4px; flex-shrink: 0; text-transform: uppercase;">${typeLabel}</span>
                 `;
                 pill.onclick = (e) => {
                     e.stopPropagation();
@@ -646,21 +648,99 @@ async function uploadFileToServer(file, targetType) {
     }
 }
 
-function previewOnlineMedia(url, isVideo) {
+function previewOnlineMedia(url, isVideo = null) {
     const wrap = document.getElementById('onlineMediaPreviewWrapper');
     const vid = document.getElementById('onlinePreviewVideo');
     const img = document.getElementById('onlinePreviewImage');
-    if (!wrap) return;
+    const err = document.getElementById('onlinePreviewError');
+    const extLink = document.getElementById('onlinePreviewExtLink');
+    if (!wrap || !url) {
+        if (wrap) wrap.style.display = 'none';
+        return;
+    }
+
+    if (err) err.style.display = 'none';
+
+    // Normalize URL
+    let resolvedUrl = url.trim();
+    if (!resolvedUrl.startsWith('http') && !resolvedUrl.startsWith('/')) {
+        resolvedUrl = '/' + resolvedUrl;
+    }
+
+    if (extLink) extLink.href = resolvedUrl;
+
+    const isVid = (isVideo !== null) ? isVideo : /\.(mp4|mov|webm|m4v)($|\?)/i.test(resolvedUrl);
 
     wrap.style.display = 'block';
-    if (isVideo) {
-        img.style.display = 'none';
-        vid.style.display = 'block';
-        vid.src = url;
+    if (isVid) {
+        if (img) {
+            img.style.display = 'none';
+            img.src = '';
+        }
+        if (vid) {
+            vid.style.display = 'block';
+            vid.src = resolvedUrl;
+            vid.onerror = () => {
+                if (err) err.style.display = 'block';
+            };
+            vid.load();
+        }
     } else {
-        vid.style.display = 'none';
-        img.style.display = 'block';
-        img.src = url;
+        if (vid) {
+            vid.style.display = 'none';
+            vid.src = '';
+        }
+        if (img) {
+            img.style.display = 'block';
+            img.src = resolvedUrl;
+            img.onerror = () => {
+                if (err) err.style.display = 'block';
+            };
+        }
+    }
+}
+
+function setupPreviewTabs(post) {
+    const tabsContainer = document.getElementById('previewTabs');
+    if (!tabsContainer) return;
+    tabsContainer.innerHTML = '';
+
+    const mediaList = [];
+    if (post.primary_media && post.post_type !== 'story_parts') {
+        mediaList.push({ label: '📹 Reel / Media', url: post.primary_media });
+    }
+    if (post.story_part1) {
+        mediaList.push({ label: '📹 Story Part 1', url: post.story_part1 });
+    }
+    if (post.story_part2) {
+        mediaList.push({ label: '📹 Story Part 2', url: post.story_part2 });
+    }
+    if (post.cover_media) {
+        mediaList.push({ label: '🖼️ Flyer Preview', url: post.cover_media });
+    }
+
+    if (mediaList.length > 1) {
+        tabsContainer.style.display = 'flex';
+        mediaList.forEach((m, idx) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `sub-tab-btn ${idx === 0 ? 'active' : ''}`;
+            btn.style.padding = '3px 8px';
+            btn.style.fontSize = '0.7rem';
+            btn.innerText = m.label;
+            btn.onclick = () => {
+                Array.from(tabsContainer.children).forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                previewOnlineMedia(m.url);
+            };
+            tabsContainer.appendChild(btn);
+        });
+    } else {
+        tabsContainer.style.display = 'none';
+    }
+
+    if (mediaList.length > 0) {
+        previewOnlineMedia(mediaList[0].url);
     }
 }
 
@@ -689,10 +769,19 @@ function openOnlineComposerModal(initial = null) {
         document.getElementById('schedPrimaryMediaUrl').value = initial.primary_media || '';
         document.getElementById('schedStory1Url').value = initial.story_part1 || '';
         document.getElementById('schedStory2Url').value = initial.story_part2 || '';
+        
         if (initial.primary_media) {
-            document.getElementById('primaryDropLabel').innerText = `✅ ${initial.primary_media}`;
-            previewOnlineMedia(initial.primary_media, initial.primary_media.toLowerCase().includes('.mp4'));
+            document.getElementById('primaryDropLabel').innerText = `✅ Attached: ${initial.primary_media.split('/').pop()}`;
         }
+        if (initial.story_part1) {
+            document.getElementById('story1DropLabel').innerText = `✅ ${initial.story_part1.split('/').pop()}`;
+        }
+        if (initial.story_part2) {
+            document.getElementById('story2DropLabel').innerText = `✅ ${initial.story_part2.split('/').pop()}`;
+        }
+
+        setupPreviewTabs(initial);
+
         delBtn.style.display = 'inline-block';
         document.getElementById('onlineComposerTitle').innerText = "Edit Scheduled Post";
     } else {
@@ -705,11 +794,18 @@ function openOnlineComposerModal(initial = null) {
         delBtn.style.display = 'none';
         document.getElementById('onlineComposerTitle').innerText = "Schedule New Instagram Post";
         document.getElementById('primaryDropLabel').innerText = "Drag & drop your Reel Video or Photo here";
+        document.getElementById('story1DropLabel').innerText = "Story Part 1 (Sliding Flyers)";
+        document.getElementById('story2DropLabel').innerText = "Story Part 2 (Schedule List)";
         document.getElementById('schedPrimaryMediaUrl').value = '';
         document.getElementById('schedStory1Url').value = '';
         document.getElementById('schedStory2Url').value = '';
         const wrap = document.getElementById('onlineMediaPreviewWrapper');
         if (wrap) wrap.style.display = 'none';
+        const tabsContainer = document.getElementById('previewTabs');
+        if (tabsContainer) {
+            tabsContainer.innerHTML = '';
+            tabsContainer.style.display = 'none';
+        }
     }
     updateOnlineCaptionCounts();
 }
