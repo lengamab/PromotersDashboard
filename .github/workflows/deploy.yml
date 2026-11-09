@@ -35,7 +35,19 @@ jobs:
         if: env.HAS_GCP_KEY == 'true'
         env:
           HAS_GCP_KEY: ${{ secrets.GCP_SA_KEY != '' }}
+          FOURVENUES_API_KEY: ${{ secrets.FOURVENUES_API_KEY }}
+          INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
         run: |
+          ENV_VARS="TZ=Europe/Madrid"
+          [ -n "$FOURVENUES_API_KEY" ] && ENV_VARS="$ENV_VARS,FOURVENUES_API_KEY=$FOURVENUES_API_KEY"
+          [ -n "$INSTAGRAM_ACCOUNT_ID" ] && ENV_VARS="$ENV_VARS,INSTAGRAM_ACCOUNT_ID=$INSTAGRAM_ACCOUNT_ID"
+          [ -n "$INSTAGRAM_ACCESS_TOKEN" ] && ENV_VARS="$ENV_VARS,INSTAGRAM_ACCESS_TOKEN=$INSTAGRAM_ACCESS_TOKEN,IG_ACCESS_TOKEN=$INSTAGRAM_ACCESS_TOKEN"
+          [ -n "$GEMINI_API_KEY" ] && ENV_VARS="$ENV_VARS,GEMINI_API_KEY=$GEMINI_API_KEY"
+          [ -n "$RECIPIENT_EMAIL" ] && ENV_VARS="$ENV_VARS,RECIPIENT_EMAIL=$RECIPIENT_EMAIL"
+
           gcloud run deploy promoters-dashboard \
             --source . \
             --region europe-west1 \
@@ -44,5 +56,5 @@ jobs:
             --memory 1Gi \
             --cpu 1 \
             --timeout 300 \
-            --set-env-vars "TZ=Europe/Madrid"
+            --set-env-vars "^##^$(echo "$ENV_VARS" | tr ',' '##')"
 
