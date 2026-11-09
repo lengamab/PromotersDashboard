@@ -702,69 +702,35 @@ function previewOnlineMedia(url, isVideo = null) {
 
 function setupPreviewTabs(post) {
     const tabsContainer = document.getElementById('previewTabs');
+    const badge = document.getElementById('carouselSlideBadge');
     if (!tabsContainer) return;
     tabsContainer.innerHTML = '';
 
     const mediaList = [];
-    if (post.carousel_items && Array.isArray(post.carousel_items) && post.carousel_items.length > 0) {
+    const isCarousel = (post.post_type === 'carousel') || (post.carousel_items && Array.isArray(post.carousel_items) && post.carousel_items.length > 0);
+
+    if (isCarousel && post.carousel_items && post.carousel_items.length > 0) {
         post.carousel_items.forEach((url, i) => {
-            mediaList.push({ label: `🖼️ Slide ${i + 1}`, url: url });
+            mediaList.push({ label: `🖼️ Slide ${i + 1}`, url: url, index: i });
         });
-    } else if (post.primary_media && post.post_type !== 'story_parts') {
-        mediaList.push({ label: '📹 Reel / Media', url: post.primary_media });
-    }
-    if (post.story_part1) {
-        mediaList.push({ label: '📹 Story Part 1', url: post.story_part1 });
-    }
-    if (post.story_part2) {
-        mediaList.push({ label: '📹 Story Part 2', url: post.story_part2 });
-    }
-    if (post.cover_media) {
-        mediaList.push({ label: '🖼️ Flyer Preview', url: post.cover_media });
-    }
-
-    if (mediaList.length > 1) {
-        tabsContainer.style.display = 'flex';
-        mediaList.forEach((m, idx) => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = `sub-tab-btn ${idx === 0 ? 'active' : ''}`;
-            btn.style.padding = '3px 8px';
-            btn.style.fontSize = '0.7rem';
-            btn.innerText = m.label;
-            btn.onclick = () => {
-                Array.from(tabsContainer.children).forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                previewOnlineMedia(m.url);
-            };
-            tabsContainer.appendChild(btn);
-        });
+        if (badge) {
+            badge.style.display = 'block';
+            badge.innerHTML = `<i class="fa-solid fa-layer-group" style="color: #38bdf8;"></i> <strong style="color: #38bdf8;">Carousel Album:</strong> ${post.carousel_items.length} slides attached. <em>All ${post.carousel_items.length} slides will be published to Instagram.</em>`;
+        }
     } else {
-        tabsContainer.style.display = 'none';
-    }
-
-    if (mediaList.length > 0) {
-        previewOnlineMedia(mediaList[0].url);
-    }
-}
-
-function setupPreviewTabs(post) {
-    const tabsContainer = document.getElementById('previewTabs');
-    if (!tabsContainer) return;
-    tabsContainer.innerHTML = '';
-
-    const mediaList = [];
-    if (post.primary_media && post.post_type !== 'story_parts') {
-        mediaList.push({ label: '📹 Reel / Media', url: post.primary_media });
-    }
-    if (post.story_part1) {
-        mediaList.push({ label: '📹 Story Part 1', url: post.story_part1 });
-    }
-    if (post.story_part2) {
-        mediaList.push({ label: '📹 Story Part 2', url: post.story_part2 });
-    }
-    if (post.cover_media) {
-        mediaList.push({ label: '🖼️ Flyer Preview', url: post.cover_media });
+        if (badge) badge.style.display = 'none';
+        if (post.primary_media && post.post_type !== 'story_parts') {
+            mediaList.push({ label: '📹 Reel / Media', url: post.primary_media });
+        }
+        if (post.story_part1) {
+            mediaList.push({ label: '📹 Story Part 1', url: post.story_part1 });
+        }
+        if (post.story_part2) {
+            mediaList.push({ label: '📹 Story Part 2', url: post.story_part2 });
+        }
+        if (post.cover_media) {
+            mediaList.push({ label: '🖼️ Flyer Preview', url: post.cover_media });
+        }
     }
 
     if (mediaList.length > 1) {
@@ -773,8 +739,10 @@ function setupPreviewTabs(post) {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = `sub-tab-btn ${idx === 0 ? 'active' : ''}`;
-            btn.style.padding = '3px 8px';
-            btn.style.fontSize = '0.7rem';
+            btn.style.padding = '4px 10px';
+            btn.style.fontSize = '0.75rem';
+            btn.style.borderRadius = '6px';
+            btn.style.cursor = 'pointer';
             btn.innerText = m.label;
             btn.onclick = () => {
                 Array.from(tabsContainer.children).forEach(b => b.classList.remove('active'));
@@ -865,7 +833,7 @@ function closeOnlineComposerModal() {
 
 function selectOnlinePostType(type) {
     document.getElementById('schedSelectedType').value = type;
-    ['both', 'reel', 'story_single', 'story_parts', 'photo'].forEach(t => {
+    ['both', 'reel', 'story_single', 'story_parts', 'photo', 'carousel'].forEach(t => {
         const btn = document.getElementById(`typeBtn_${t}`);
         if (!btn) return;
         if (t === type) {
