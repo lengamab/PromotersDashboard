@@ -278,6 +278,50 @@ def publish_photo_meta(image_url, caption, account_id=None, token=None):
 
     return pub_data["id"]
 
+def check_duplicate_reel_on_instagram(caption, account_id, token):
+    """Checks if a reel with similar caption was already published in the last 4 hours on Instagram."""
+    try:
+        import requests
+        url = f"https://graph.facebook.com/v21.0/{account_id}/media"
+        r = requests.get(url, params={"fields": "id,caption,timestamp,media_product_type", "limit": 10, "access_token": token}, timeout=15)
+        if r.status_code == 200:
+            data = r.json().get("data", [])
+            cap_prefix = caption.strip()[:50].lower() if caption else ""
+            now = datetime.datetime.now(datetime.timezone.utc)
+            for m in data:
+                if m.get("media_product_type") == "REELS":
+                    ts_str = m.get("timestamp")
+                    if ts_str:
+                        m_dt = datetime.datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                        hours_ago = (now - m_dt).total_seconds() / 3600.0
+                        if hours_ago < 4.0:
+                            m_cap = (m.get("caption") or "").strip()[:50].lower()
+                            if cap_prefix and (cap_prefix in m_cap or m_cap in cap_prefix):
+                                return m.get("id")
+    except Exception:
+        pass
+    return None
+
+def check_duplicate_stories_on_instagram(account_id, token, min_minutes=30):
+    """Checks if stories were already published on Instagram within min_minutes ago."""
+    try:
+        import requests
+        url = f"https://graph.facebook.com/v21.0/{account_id}/stories"
+        r = requests.get(url, params={"fields": "id,timestamp", "limit": 10, "access_token": token}, timeout=15)
+        if r.status_code == 200:
+            data = r.json().get("data", [])
+            now = datetime.datetime.now(datetime.timezone.utc)
+            for s in data:
+                ts_str = s.get("timestamp")
+                if ts_str:
+                    s_dt = datetime.datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                    mins_ago = (now - s_dt).total_seconds() / 60.0
+                    if mins_ago < min_minutes:
+                        return s.get("id")
+    except Exception:
+        pass
+    return None
+
 def execute_publish_job(post, base_request_url=""):
     logs = []
     def log(msg):
@@ -300,25 +344,29 @@ def execute_publish_job(post, base_request_url=""):
     try:
         # 1. Reel
         if post_type in ["reel", "both"]:
-            if not primary:
-                log("Error: No primary media specified for Reel.")
-                return False, logs
+            dup_id = check_duplicate_reel_on_instagram(caption, account_id, token)
+            if dup_id:
+                log(f"⚠️ Deduplication Guard: Reel already live on Instagram! (Media ID: {dup_id}). Skipping duplicate publish.")
+            else:
+                if not primary:
+                    log("Error: No primary media specified for Reel.")
+                    return False, logs
 
-            log(f"Resolving public URL for Reel: {primary}...")
-            video_url = get_public_url(primary, base_request_url)
-            log(f"Public Video URL: {video_url}")
+                log(f"Resolving public URL for Reel: {primary}...")
+                video_url = get_public_url(primary, base_request_url)
+                log(f"Public Video URL: {video_url}")
 
-            cover_url = None
-            if cover:
-                try:
-                    cover_url = get_public_url(cover, base_request_url)
-                    log(f"Cover URL: {cover_url}")
-                except Exception as ec:
-                    log(f"Cover URL skipped: {ec}")
+                cover_url = None
+                if cover:
+                    try:
+                        cover_url = get_public_url(cover, base_request_url)
+                        log(f"Cover URL: {cover_url}")
+                    except Exception as ec:
+                        log(f"Cover URL skipped: {ec}")
 
-            log(f"Creating Reel container on Instagram Account {account_id}...")
-            reel_id = publish_reel_meta(video_url, caption, cover_url, user_tags, account_id, token)
-            log(f"✅ Reel successfully published! Media ID: {reel_id}")
+                log(f"Creating Reel container on Instagram Account {account_id}...")
+                reel_id = publish_reel_meta(video_url, caption, cover_url, user_tags, account_id, token)
+                log(f"✅ Reel successfully published! Media ID: {reel_id}")
 
         # 2. Photo
         elif post_type == "photo":
@@ -342,9 +390,12 @@ def execute_publish_job(post, base_request_url=""):
             cid = publish_carousel_meta(pub_urls, caption, account_id, token)
             log(f"✅ Carousel successfully published! Media ID: {cid}")
 
-        # 3. Stories
+        # 4. Stories
         if post_type in ["story_parts", "both"]:
-            if story1 and story2:
+            dup_s_id = check_duplicate_stories_on_instagram(account_id, token, min_minutes=30)
+            if dup_s_id:
+                log(f"⚠️ Deduplication Guard: Stories were already published within last 30m (Media ID: {dup_s_id}). Skipping duplicate publish.")
+            elif story1 and story2:
                 log("Publishing 2-Part Synchronized Stories...")
                 log("   [1/2] Publishing Story Part 1...")
                 url1 = get_public_url(story1, base_request_url)
@@ -362,6 +413,10 @@ def execute_publish_job(post, base_request_url=""):
                 log(f"   ✅ Story Part 2 published! Media ID: {s2_id}")
 
         elif post_type == "story_single":
+            dup_s_id = check_duplicate_stories_on_instagram(account_id, token, min_minutes=10)
+            if dup_s_id:
+                log(f"⚠️ Deduplication Guard: A story was already published within last 10m (Media ID: {dup_s_id}). Skipping duplicate publish.")
+                return True, logs
             target = primary or story1
             if not target:
                 log("Error: No media provided for single story.")

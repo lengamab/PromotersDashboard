@@ -34,6 +34,7 @@ gcloud run deploy "$SERVICE_NAME" \
   --allow-unauthenticated \
   --memory 1Gi \
   --cpu 1 \
+  --max-instances 1 \
   --timeout 300 \
   --set-env-vars "^##^$(echo "$ENV_VARS" | tr ',' '##')"
 
