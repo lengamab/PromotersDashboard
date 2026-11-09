@@ -99,9 +99,16 @@ def get_public_url(rel_or_filename, base_request_url=""):
     if base_request_url.startswith("https://"):
         return f"{base_request_url.rstrip('/')}/uploads/{filename}"
 
-    # If local file exists, use CDN upload fallback
+    # If local file exists in uploads, use CDN upload fallback
     if os.path.exists(local_path):
         return upload_to_public_cdn_fallback(local_path)
+
+    # If it is a relative or absolute path in workspace (e.g. daily_flyers/...)
+    workspace_alt = os.path.join(os.path.dirname(BASE_DIR), "LaFrench", rel_or_filename.lstrip("/"))
+    if os.path.exists(rel_or_filename):
+        return upload_to_public_cdn_fallback(rel_or_filename)
+    elif os.path.exists(workspace_alt):
+        return upload_to_public_cdn_fallback(workspace_alt)
     
     # If it's already an absolute URL, return it
     if rel_or_filename.startswith("http://") or rel_or_filename.startswith("https://"):
