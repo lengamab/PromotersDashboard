@@ -312,3 +312,595 @@ async function loadRecentMedia(accountId = null) {
         grid.innerHTML = `<div style="padding: 40px; text-align: center; width: 100%; grid-column: 1 / -1; color: #ff6b6b;">Error loading posts: ${error.message}</div>`;
     }
 }
+
+// =========================================================================
+// VISUAL POST SCHEDULER & 24-HOUR CALENDAR LOGIC (LA FRENCH SOCIAL STUDIO)
+// =========================================================================
+
+let schedCurrentWeekStart = getSchedMonday(new Date());
+let onlineScheduleData = { posts: [] };
+let activeSchedulerView = 'calendar';
+
+const SCHED_DEFAULT_TAGS = [
+    "@opiumbarcelona", "@suttonbarcelona", "@shokobarcelona", "@kubarcelona",
+    "@downtownbarcelona", "@beuhrice", "@lucile_bcn", "@cyruslafrench",
+    "@flore_sbd", "@armand.cprn", "@mael_lafrench"
+];
+
+function getSchedMonday(d) {
+    d = new Date(d);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const mon = new Date(d.setDate(diff));
+    mon.setHours(0, 0, 0, 0);
+    return mon;
+}
+
+function formatSchedYMD(d) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// Sub-Tab Switcher (Scheduler vs Insights)
+function switchInstagramSubTab(tab) {
+    const secSched = document.getElementById('section-scheduler');
+    const secInsights = document.getElementById('section-insights');
+    const btnSched = document.getElementById('subtab-btn-scheduler');
+    const btnInsights = document.getElementById('subtab-btn-insights');
+
+    if (tab === 'scheduler') {
+        secSched.style.display = 'block';
+        secInsights.style.display = 'none';
+        btnSched.classList.add('active');
+        btnInsights.classList.remove('active');
+        renderOnlineCalendarGrid();
+    } else {
+        secSched.style.display = 'none';
+        secInsights.style.display = 'block';
+        btnSched.classList.remove('active');
+        btnInsights.classList.add('active');
+    }
+}
+
+function switchSchedulerView(view) {
+    activeSchedulerView = view;
+    const gridView = document.getElementById('calendarGridView');
+    const queueView = document.getElementById('calendarQueueView');
+    const btnGrid = document.getElementById('btnCalViewGrid');
+    const btnQueue = document.getElementById('btnCalViewQueue');
+
+    if (view === 'calendar') {
+        gridView.style.display = 'flex';
+        queueView.style.display = 'none';
+        btnGrid.classList.add('active');
+        btnQueue.classList.remove('active');
+        renderOnlineCalendarGrid();
+    } else {
+        gridView.style.display = 'none';
+        queueView.style.display = 'block';
+        btnGrid.classList.remove('active');
+        btnQueue.classList.add('active');
+        renderOnlineQueueList();
+    }
+}
+
+function navigateWeek(delta) {
+    schedCurrentWeekStart.setDate(schedCurrentWeekStart.getDate() + delta * 7);
+    renderOnlineCalendarGrid();
+}
+
+function goToCurrentWeek() {
+    schedCurrentWeekStart = getSchedMonday(new Date());
+    renderOnlineCalendarGrid();
+}
+
+async function fetchOnlineSchedule() {
+    try {
+        const res = await fetch('/api/schedule');
+        onlineScheduleData = await res.json();
+        const pendingCount = (onlineScheduleData.posts || []).filter(p => p.status === 'scheduled').length;
+        const countPill = document.getElementById('schedQueueCountPill');
+        if (countPill) countPill.innerText = `Queue: ${pendingCount} scheduled`;
+        
+        if (activeSchedulerView === 'calendar') renderOnlineCalendarGrid();
+        if (activeSchedulerView === 'queue') renderOnlineQueueList();
+    } catch (e) {
+        console.error("Failed to fetch schedule queue:", e);
+    }
+}
+
+function renderOnlineCalendarGrid() {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(schedCurrentWeekStart);
+        d.setDate(d.getDate() + i);
+        days.push(d);
+    }
+
+    const weekEnd = days[6];
+    const rangeLabel = document.getElementById('weekRangeLabel');
+    if (rangeLabel) {
+        rangeLabel.innerText = `${days[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    }
+
+    const wdayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const todayStr = formatSchedYMD(new Date());
+
+    for (let i = 0; i < 7; i++) {
+        const colHeader = document.getElementById(`wday-${i}`);
+        if (!colHeader) continue;
+        const dStr = formatSchedYMD(days[i]);
+        const isToday = (dStr === todayStr);
+        colHeader.innerHTML = `
+            <div style="${isToday ? 'color: #D4AF37; font-weight: 800;' : ''}">
+                ${wdayNames[i]} <span style="font-size: 0.75rem; opacity: 0.7;">${days[i].getDate()}</span>
+            </div>
+        `;
+    }
+
+    const grid = document.getElementById('calendarHourlyContainer');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    for (let hour = 0; hour < 24; hour++) {
+        const hourStr = String(hour).padStart(2, '0') + ':00';
+        const isPrime = (hour >= 17 && hour <= 20);
+
+        // Column 0: Time Label
+        const timeCol = document.createElement('div');
+        timeCol.className = `cal-hour-cell ${isPrime ? 'prime-hour' : ''}`;
+        timeCol.style.display = 'flex';
+        timeCol.style.flexDirection = 'column';
+        timeCol.style.alignItems = 'center';
+        timeCol.style.justifyContent = 'center';
+        timeCol.style.fontFamily = 'monospace';
+        timeCol.style.fontSize = '0.75rem';
+        timeCol.style.color = isPrime ? '#D4AF37' : 'var(--text-secondary)';
+        timeCol.style.fontWeight = isPrime ? '700' : '400';
+        timeCol.innerHTML = `
+            <span>${hourStr}</span>
+            ${hour === 18 ? '<span style="font-size: 0.6rem; color: #D4AF37; text-transform: uppercase;">🔥 PRIME</span>' : ''}
+        `;
+        grid.appendChild(timeCol);
+
+        // Days 1 to 7
+        for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+            const dayDateStr = formatSchedYMD(days[dayIdx]);
+            const cell = document.createElement('div');
+            cell.className = `cal-hour-cell ${isPrime ? 'prime-hour' : ''}`;
+            
+            cell.onclick = (e) => {
+                if (e.target.closest('.sched-pill')) return;
+                openOnlineComposerModal({ date: dayDateStr, time: `${String(hour).padStart(2, '0')}:00` });
+            };
+
+            const matching = (onlineScheduleData.posts || []).filter(p => {
+                if (!p.scheduled_time) return false;
+                const pDate = p.scheduled_time.split('T')[0];
+                const pHour = parseInt(p.scheduled_time.split('T')[1]?.split(':')[0] || '-1');
+                return pDate === dayDateStr && pHour === hour;
+            });
+
+            matching.forEach(p => {
+                const pill = document.createElement('div');
+                let statusClass = '';
+                let icon = '<i class="fa-solid fa-clock" style="color: #D4AF37;"></i>';
+                if (p.status === 'published') {
+                    statusClass = 'published';
+                    icon = '<i class="fa-solid fa-circle-check" style="color: #10b981;"></i>';
+                } else if (p.status === 'failed') {
+                    statusClass = 'failed';
+                    icon = '<i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i>';
+                }
+                pill.className = `sched-pill ${statusClass}`;
+                const tPart = p.scheduled_time.split('T')[1]?.substring(0, 5) || '';
+                pill.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
+                        ${icon}
+                        <strong style="font-family: monospace;">${tPart}</strong>
+                        <span style="overflow: hidden; text-overflow: ellipsis;">${p.title || (p.post_type || '').toUpperCase()}</span>
+                    </div>
+                    <span style="font-size: 0.65rem; padding: 2px 4px; background: rgba(0,0,0,0.4); border-radius: 4px;">${(p.post_type || 'reel').toUpperCase()}</span>
+                `;
+                pill.onclick = (e) => {
+                    e.stopPropagation();
+                    openOnlineComposerModal(p);
+                };
+                cell.appendChild(pill);
+            });
+
+            grid.appendChild(cell);
+        }
+    }
+
+    // Scroll to 14:00 on first render
+    const scrollBox = document.getElementById('calendarScrollBody');
+    if (scrollBox && !scrollBox.dataset.scrolled) {
+        scrollBox.scrollTop = 54 * 14;
+        scrollBox.dataset.scrolled = "true";
+    }
+}
+
+function renderOnlineQueueList() {
+    const wrapper = document.getElementById('queueListWrapper');
+    if (!wrapper) return;
+    wrapper.innerHTML = '';
+    const posts = onlineScheduleData.posts || [];
+
+    if (posts.length === 0) {
+        wrapper.innerHTML = `
+            <div style="padding: 40px; text-align: center; color: var(--text-secondary); background: var(--surface-100); border-radius: 12px;">
+                <i class="fa-regular fa-calendar-xmark" style="font-size: 2.5rem; color: #555; display: block; margin-bottom: 12px;"></i>
+                No scheduled posts yet. Click "+ Schedule Post" to create one.
+            </div>
+        `;
+        return;
+    }
+
+    posts.forEach(p => {
+        const item = document.createElement('div');
+        item.style.background = 'var(--surface-100)';
+        item.style.border = '1px solid var(--border-color)';
+        item.style.borderRadius = '12px';
+        item.style.padding = '16px';
+        item.style.display = 'flex';
+        item.style.justifyContent = 'space-between';
+        item.style.alignItems = 'center';
+        item.style.flexWrap = 'wrap';
+        item.style.gap = '15px';
+
+        let statusBadge = '<span style="padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: rgba(59,130,246,0.15); color: #60a5fa;">SCHEDULED</span>';
+        if (p.status === 'published') statusBadge = '<span style="padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: rgba(16,185,129,0.15); color: #34d399;">PUBLISHED</span>';
+        if (p.status === 'failed') statusBadge = '<span style="padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: rgba(239,68,68,0.15); color: #f87171;">FAILED</span>';
+
+        item.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #D4AF37;">
+                    ${p.post_type === 'both' ? '<i class="fa-solid fa-rocket"></i>' : p.post_type === 'reel' ? '<i class="fa-solid fa-film"></i>' : '<i class="fa-brands fa-instagram"></i>'}
+                </div>
+                <div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                        <strong style="color: #fff; font-size: 0.95rem;">${p.title || 'Untitled Post'}</strong>
+                        ${statusBadge}
+                        <span style="font-family: monospace; font-size: 0.8rem; color: var(--text-secondary);">${p.scheduled_time.replace('T', ' ')}</span>
+                    </div>
+                    <p style="margin: 0; font-size: 0.8rem; color: var(--text-secondary); max-width: 500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        ${p.caption || 'No caption provided.'}
+                    </p>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button onclick='openOnlineComposerModal(${JSON.stringify(p)})' class="sub-tab-btn" style="padding: 6px 12px; font-size: 0.8rem;">
+                    <i class="fa-solid fa-pen"></i> Edit
+                </button>
+                <button onclick='publishPostDirectlyOnline("${p.id}")' class="ig-btn" style="padding: 6px 12px; font-size: 0.8rem;">
+                    <i class="fa-solid fa-bolt"></i> Publish Now
+                </button>
+            </div>
+        `;
+        wrapper.appendChild(item);
+    });
+}
+
+// DRAG AND DROP FILE UPLOADS (OPTION B)
+function handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.classList.add('dragover');
+}
+
+function handleDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.classList.remove('dragover');
+}
+
+function handleFileDrop(e, targetType) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.classList.remove('dragover');
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        uploadFileToServer(e.dataTransfer.files[0], targetType);
+    }
+}
+
+function handleFileSelect(e, targetType) {
+    if (e.target.files && e.target.files.length > 0) {
+        uploadFileToServer(e.target.files[0], targetType);
+    }
+}
+
+async function uploadFileToServer(file, targetType) {
+    const prog = document.getElementById('primaryUploadProgress');
+    if (prog) prog.style.display = 'block';
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', targetType);
+
+    try {
+        const res = await fetch('/api/upload-media', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Upload failed');
+
+        if (targetType === 'primary') {
+            document.getElementById('schedPrimaryMediaUrl').value = data.url;
+            document.getElementById('primaryDropLabel').innerText = `✅ Attached: ${data.filename} (${data.size_mb} MB)`;
+            previewOnlineMedia(data.url, data.is_video);
+        } else if (targetType === 'story1') {
+            document.getElementById('schedStory1Url').value = data.url;
+            document.getElementById('story1DropLabel').innerText = `✅ ${data.filename}`;
+        } else if (targetType === 'story2') {
+            document.getElementById('schedStory2Url').value = data.url;
+            document.getElementById('story2DropLabel').innerText = `✅ ${data.filename}`;
+        }
+    } catch (err) {
+        alert("Upload error: " + err.message);
+    } finally {
+        if (prog) prog.style.display = 'none';
+    }
+}
+
+function previewOnlineMedia(url, isVideo) {
+    const wrap = document.getElementById('onlineMediaPreviewWrapper');
+    const vid = document.getElementById('onlinePreviewVideo');
+    const img = document.getElementById('onlinePreviewImage');
+    if (!wrap) return;
+
+    wrap.style.display = 'block';
+    if (isVideo) {
+        img.style.display = 'none';
+        vid.style.display = 'block';
+        vid.src = url;
+    } else {
+        vid.style.display = 'none';
+        img.style.display = 'block';
+        img.src = url;
+    }
+}
+
+// MODAL COMPOSER ACTIONS
+function openOnlineComposerModal(initial = null) {
+    const modal = document.getElementById('onlineComposerModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    renderSchedTagPills();
+
+    const dInput = document.getElementById('schedInputDate');
+    const tInput = document.getElementById('schedInputTime');
+    const idInput = document.getElementById('schedEditPostId');
+    const titleInput = document.getElementById('schedInputTitle');
+    const capInput = document.getElementById('schedInputCaption');
+    const delBtn = document.getElementById('btnOnlineDelete');
+
+    if (initial && initial.id) {
+        idInput.value = initial.id;
+        titleInput.value = initial.title || '';
+        capInput.value = initial.caption || '';
+        const parts = (initial.scheduled_time || '').split('T');
+        dInput.value = parts[0] || formatSchedYMD(new Date());
+        tInput.value = parts[1]?.substring(0, 5) || '18:00';
+        selectOnlinePostType(initial.post_type || 'both');
+        document.getElementById('schedPrimaryMediaUrl').value = initial.primary_media || '';
+        document.getElementById('schedStory1Url').value = initial.story_part1 || '';
+        document.getElementById('schedStory2Url').value = initial.story_part2 || '';
+        if (initial.primary_media) {
+            document.getElementById('primaryDropLabel').innerText = `✅ ${initial.primary_media}`;
+            previewOnlineMedia(initial.primary_media, initial.primary_media.toLowerCase().includes('.mp4'));
+        }
+        delBtn.style.display = 'inline-block';
+        document.getElementById('onlineComposerTitle').innerText = "Edit Scheduled Post";
+    } else {
+        idInput.value = '';
+        titleInput.value = '';
+        capInput.value = '';
+        dInput.value = initial?.date || formatSchedYMD(new Date());
+        tInput.value = initial?.time || '18:00';
+        selectOnlinePostType('both');
+        delBtn.style.display = 'none';
+        document.getElementById('onlineComposerTitle').innerText = "Schedule New Instagram Post";
+        document.getElementById('primaryDropLabel').innerText = "Drag & drop your Reel Video or Photo here";
+        document.getElementById('schedPrimaryMediaUrl').value = '';
+        document.getElementById('schedStory1Url').value = '';
+        document.getElementById('schedStory2Url').value = '';
+        const wrap = document.getElementById('onlineMediaPreviewWrapper');
+        if (wrap) wrap.style.display = 'none';
+    }
+    updateOnlineCaptionCounts();
+}
+
+function closeOnlineComposerModal() {
+    const modal = document.getElementById('onlineComposerModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function selectOnlinePostType(type) {
+    document.getElementById('schedSelectedType').value = type;
+    ['both', 'reel', 'story_parts', 'photo'].forEach(t => {
+        const btn = document.getElementById(`typeBtn_${t}`);
+        if (!btn) return;
+        if (t === type) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    const storyFields = document.getElementById('storyUploadFields');
+    if (storyFields) {
+        storyFields.style.display = (type === 'both' || type === 'story_parts') ? 'grid' : 'none';
+    }
+}
+
+function setOnlinePreset(preset) {
+    const now = new Date();
+    if (preset === 'today_prime') {
+        document.getElementById('schedInputDate').value = formatSchedYMD(now);
+        document.getElementById('schedInputTime').value = "18:00";
+    } else if (preset === 'tomorrow_prime') {
+        now.setDate(now.getDate() + 1);
+        document.getElementById('schedInputDate').value = formatSchedYMD(now);
+        document.getElementById('schedInputTime').value = "18:00";
+    } else if (preset === 'friday_prime') {
+        const day = now.getDay();
+        const diff = (5 - day + 7) % 7;
+        now.setDate(now.getDate() + diff);
+        document.getElementById('schedInputDate').value = formatSchedYMD(now);
+        document.getElementById('schedInputTime').value = "18:30";
+    }
+}
+
+function updateOnlineCaptionCounts() {
+    const val = document.getElementById('schedInputCaption').value;
+    const chars = val.length;
+    const hashtags = (val.match(/#[a-zA-Z0-9_]+/g) || []).length;
+    document.getElementById('schedCaptionCounts').innerText = `${chars} chars · ${hashtags} hashtags`;
+}
+
+function renderSchedTagPills(selectedTags = SCHED_DEFAULT_TAGS) {
+    const box = document.getElementById('schedTagPillsBox');
+    if (!box) return;
+    box.innerHTML = '';
+    selectedTags.forEach(t => {
+        const span = document.createElement('span');
+        span.style.padding = '4px 8px';
+        span.style.borderRadius = '6px';
+        span.style.background = 'rgba(212,175,55,0.1)';
+        span.style.border = '1px solid rgba(212,175,55,0.3)';
+        span.style.color = '#F3E5AB';
+        span.style.fontSize = '0.75rem';
+        span.style.fontFamily = 'monospace';
+        span.style.display = 'inline-flex';
+        span.style.alignItems = 'center';
+        span.style.gap = '4px';
+        span.innerHTML = `${t} <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; color:#888; cursor:pointer;">&times;</button>`;
+        box.appendChild(span);
+    });
+}
+
+async function saveOnlinePostSchedule(targetStatus = 'scheduled') {
+    const dVal = document.getElementById('schedInputDate').value;
+    const tVal = document.getElementById('schedInputTime').value;
+    if (!dVal || !tVal) {
+        alert("Please set Date and Time.");
+        return null;
+    }
+
+    const pills = document.getElementById('schedTagPillsBox').querySelectorAll('span');
+    const tags = Array.from(pills).map(p => p.textContent.replace('×', '').trim());
+
+    const payload = {
+        id: document.getElementById('schedEditPostId').value || undefined,
+        title: document.getElementById('schedInputTitle').value.trim() || 'Instagram Post',
+        scheduled_time: `${dVal}T${tVal}`,
+        post_type: document.getElementById('schedSelectedType').value,
+        primary_media: document.getElementById('schedPrimaryMediaUrl').value.trim(),
+        story_part1: document.getElementById('schedStory1Url').value.trim(),
+        story_part2: document.getElementById('schedStory2Url').value.trim(),
+        caption: document.getElementById('schedInputCaption').value.trim(),
+        user_tags: tags,
+        status: targetStatus
+    };
+
+    try {
+        const res = await fetch('/api/schedule', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        await fetchOnlineSchedule();
+        closeOnlineComposerModal();
+        return data.post;
+    } catch (e) {
+        alert("Failed to save post: " + e);
+        return null;
+    }
+}
+
+async function publishOnlinePostNow() {
+    const post = await saveOnlinePostSchedule('publishing');
+    if (!post) return;
+    publishPostDirectlyOnline(post.id, post);
+}
+
+async function publishPostDirectlyOnline(postId, postData = null) {
+    openOnlineLogModal();
+    addOnlineLogLine("Connecting to Instagram Meta Graph API...");
+    addOnlineLogLine(`Triggering Post ID: ${postId}...`);
+
+    try {
+        const res = await fetch('/api/publish-now', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: postId, ...(postData || {}) })
+        });
+        const result = await res.json();
+        (result.logs || []).forEach(l => addOnlineLogLine(l));
+        if (result.success) {
+            addOnlineLogLine("🎉 Post successfully published to Instagram!");
+        } else {
+            addOnlineLogLine("❌ Publication failed. Review error output above.");
+        }
+        document.getElementById('onlineLogSpinner').style.display = 'none';
+        await fetchOnlineSchedule();
+    } catch (err) {
+        addOnlineLogLine("❌ Network or API error: " + err);
+        document.getElementById('onlineLogSpinner').style.display = 'none';
+    }
+}
+
+async function deleteOnlinePost() {
+    const id = document.getElementById('schedEditPostId').value;
+    if (!id) return;
+    if (!confirm("Are you sure you want to delete this scheduled post?")) return;
+    try {
+        await fetch(`/api/schedule/${id}`, { method: 'DELETE' });
+        await fetchOnlineSchedule();
+        closeOnlineComposerModal();
+    } catch (e) {
+        alert("Delete failed: " + e);
+    }
+}
+
+function openOnlineLogModal() {
+    document.getElementById('onlineLogModal').style.display = 'flex';
+    document.getElementById('onlineLogTerminal').innerHTML = '';
+    document.getElementById('onlineLogSpinner').style.display = 'inline-block';
+}
+
+function closeOnlineLogModal() {
+    document.getElementById('onlineLogModal').style.display = 'none';
+}
+
+function addOnlineLogLine(txt) {
+    const term = document.getElementById('onlineLogTerminal');
+    const div = document.createElement('div');
+    div.innerText = txt;
+    term.appendChild(div);
+    term.scrollTop = term.scrollHeight;
+}
+
+// BCN Clock
+function startOnlineClock() {
+    function tick() {
+        const now = new Date();
+        const str = now.toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid', hour12: false });
+        const el = document.getElementById('headerBcnClock');
+        if (el) el.innerText = str;
+    }
+    tick();
+    setInterval(tick, 1000);
+}
+
+// Auto-boot scheduler on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+    startOnlineClock();
+    fetchOnlineSchedule();
+    setInterval(fetchOnlineSchedule, 15000);
+});

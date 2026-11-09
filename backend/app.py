@@ -373,8 +373,8 @@ def get_rates():
                 
                 key = f"{ev_id}_{rate_slug}"
                 if key not in unique_rates:
-                    comm_cash = calculate_ticket_commission(rate_name, price, rate_slug, custom_commissions, sale_type="cash")
-                    comm_online = calculate_ticket_commission(rate_name, price, rate_slug, custom_commissions, sale_type="online")
+                    comm_cash = calculate_ticket_commission(rate_name, price, rate_slug, custom_commissions, sale_type="cash", event_name=ev_name)
+                    comm_online = calculate_ticket_commission(rate_name, price, rate_slug, custom_commissions, sale_type="online", event_name=ev_name)
                     unique_rates[key] = {
                         "event_id": ev_id,
                         "event_name": ev_name,
@@ -397,8 +397,8 @@ def get_rates():
                 
                 key = f"{ev_id}_{rate_slug}"
                 if key not in unique_rates:
-                    comm_cash = calculate_ticket_commission(rate_name, price, rate_slug, custom_commissions, sale_type="cash")
-                    comm_online = calculate_ticket_commission(rate_name, price, rate_slug, custom_commissions, sale_type="online")
+                    comm_cash = calculate_ticket_commission(rate_name, price, rate_slug, custom_commissions, sale_type="cash", event_name=ev_name)
+                    comm_online = calculate_ticket_commission(rate_name, price, rate_slug, custom_commissions, sale_type="online", event_name=ev_name)
                     unique_rates[key] = {
                         "event_id": ev_id,
                         "event_name": ev_name,
@@ -723,6 +723,13 @@ def post_memory():
         return jsonify({"success": True})
     else:
         return jsonify({"success": False, "error": "Failed to save memory"}), 500
+
+# Register Instagram Visual Calendar & Publisher Scheduler
+try:
+    from instagram_scheduler import register_instagram_scheduler
+    register_instagram_scheduler(app)
+except Exception as e_ig:
+    print(f"⚠️ Could not register Instagram Scheduler: {e_ig}")
 
 
 if __name__ == '__main__':

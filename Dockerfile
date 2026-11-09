@@ -16,6 +16,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy all application files
 COPY . .
 
+# Ensure uploads directory exists
+RUN mkdir -p uploads backend
+
 # Install node dependencies
 RUN npm install
 
