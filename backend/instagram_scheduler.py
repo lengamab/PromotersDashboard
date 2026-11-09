@@ -6,8 +6,21 @@ import threading
 import mimetypes
 import urllib.request
 import urllib.parse
+import re
 from flask import Blueprint, jsonify, request, send_file, Response
 from werkzeug.utils import secure_filename
+
+def parse_iso_timestamp(ts_str):
+    """Robust ISO 8601 parser supporting +0000, +00:00, and Z across all Python versions."""
+    if not ts_str:
+        return None
+    s = str(ts_str).strip().replace("Z", "+00:00")
+    if re.match(r'.*[+-]\d{4}$', s):
+        s = s[:-2] + ':' + s[-2:]
+    try:
+        return datetime.datetime.fromisoformat(s)
+    except Exception:
+        return None
 
 try:
     from zoneinfo import ZoneInfo
@@ -292,12 +305,13 @@ def check_duplicate_reel_on_instagram(caption, account_id, token):
                 if m.get("media_product_type") == "REELS":
                     ts_str = m.get("timestamp")
                     if ts_str:
-                        m_dt = datetime.datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
-                        hours_ago = (now - m_dt).total_seconds() / 3600.0
-                        if hours_ago < 4.0:
-                            m_cap = (m.get("caption") or "").strip()[:50].lower()
-                            if cap_prefix and (cap_prefix in m_cap or m_cap in cap_prefix):
-                                return m.get("id")
+                        m_dt = parse_iso_timestamp(ts_str)
+                        if m_dt:
+                            hours_ago = (now - m_dt).total_seconds() / 3600.0
+                            if hours_ago < 4.0:
+                                m_cap = (m.get("caption") or "").strip()[:50].lower()
+                                if cap_prefix and (cap_prefix in m_cap or m_cap in cap_prefix):
+                                    return m.get("id")
     except Exception:
         pass
     return None
@@ -314,10 +328,11 @@ def check_duplicate_stories_on_instagram(account_id, token, min_minutes=30):
             for s in data:
                 ts_str = s.get("timestamp")
                 if ts_str:
-                    s_dt = datetime.datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
-                    mins_ago = (now - s_dt).total_seconds() / 60.0
-                    if mins_ago < min_minutes:
-                        return s.get("id")
+                    s_dt = parse_iso_timestamp(ts_str)
+                    if s_dt:
+                        mins_ago = (now - s_dt).total_seconds() / 60.0
+                        if mins_ago < min_minutes:
+                            return s.get("id")
     except Exception:
         pass
     return None
@@ -445,22 +460,28 @@ def background_scheduler_worker():
                 if p.get("status") == "scheduled":
                     sched_time = p.get("scheduled_time")
                     if sched_time and sched_time <= now_str:
-                        p_dt = datetime.datetime.fromisoformat(sched_time)
-                        now_naive = now.replace(tzinfo=None) if p_dt.tzinfo is None else now
-                        diff_hours = (now_naive - p_dt).total_seconds() / 3600.0
-                        if diff_hours < 24.0:
-                            print(f"\n🔔 [Online Scheduler] Triggering post '{p.get('title')}' ({sched_time})...")
-                            p["status"] = "publishing"
-                            save_schedule_db(db)
+                        p_dt = parse_iso_timestamp(sched_time)
+                        if p_dt:
+                            now_naive = now.replace(tzinfo=None) if p_dt.tzinfo is None else now
+                            diff_sec = (now_naive - p_dt).total_seconds()
+                            # STRICT 5-MINUTE WINDOW (0 to 300 seconds late)
+                            # NEVER auto-publish late/outdated posts (protects Instagram algorithm and reach)
+                            if 0 <= diff_sec <= 300:
+                                print(f"\n🔔 [Online Scheduler] Triggering post '{p.get('title')}' ({sched_time})...")
+                                p["status"] = "publishing"
+                                save_schedule_db(db)
 
-                            success, logs = execute_publish_job(p)
-                            p["status"] = "published" if success else "failed"
-                            p["logs"] = logs
-                            p["published_at"] = get_now_bcn().isoformat()
-                            modified = True
-                        else:
-                            p["status"] = "expired"
-                            modified = True
+                                success, logs = execute_publish_job(p)
+                                p["status"] = "published" if success else "failed"
+                                p["logs"] = logs
+                                p["published_at"] = get_now_bcn().isoformat()
+                                modified = True
+                            elif diff_sec > 300:
+                                # Over 5 minutes late: mark MISSED, do NOT publish late
+                                print(f"⚠️ [Online Scheduler] Post '{p.get('title')}' is {int(diff_sec/60)} minutes late. Marked as missed to protect algorithm.")
+                                p["status"] = "missed"
+                                p["logs"] = [f"⚠️ Missed Window: Scheduled for {sched_time}, current time is {now_str} ({int(diff_sec/60)}m late). Auto-publish cancelled to protect Instagram algorithm."]
+                                modified = True
 
             if modified:
                 save_schedule_db(db)

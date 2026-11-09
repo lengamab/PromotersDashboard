@@ -493,6 +493,9 @@ function renderOnlineCalendarGrid() {
                 } else if (p.status === 'failed') {
                     statusClass = 'failed';
                     icon = '<i class="fa-solid fa-circle-xmark" style="color: #ef4444; flex-shrink: 0;"></i>';
+                } else if (p.status === 'missed') {
+                    statusClass = 'failed';
+                    icon = '<i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b; flex-shrink: 0;" title="Missed scheduled window - Blocked to protect algorithm"></i>';
                 }
                 pill.className = `sched-pill ${statusClass}`;
                 pill.title = `${p.scheduled_time ? p.scheduled_time.replace('T', ' ') : ''} — ${p.title || (p.post_type || '').toUpperCase()}`;
@@ -556,6 +559,7 @@ function renderOnlineQueueList() {
         let statusBadge = '<span style="padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: rgba(59,130,246,0.15); color: #60a5fa;">SCHEDULED</span>';
         if (p.status === 'published') statusBadge = '<span style="padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: rgba(16,185,129,0.15); color: #34d399;">PUBLISHED</span>';
         if (p.status === 'failed') statusBadge = '<span style="padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: rgba(239,68,68,0.15); color: #f87171;">FAILED</span>';
+        if (p.status === 'missed') statusBadge = '<span style="padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: rgba(245,158,11,0.15); color: #fbbf24;">MISSED</span>';
 
         item.innerHTML = `
             <div style="display: flex; align-items: center; gap: 15px;">
