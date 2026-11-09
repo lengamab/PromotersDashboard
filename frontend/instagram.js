@@ -706,6 +706,54 @@ function setupPreviewTabs(post) {
     tabsContainer.innerHTML = '';
 
     const mediaList = [];
+    if (post.carousel_items && Array.isArray(post.carousel_items) && post.carousel_items.length > 0) {
+        post.carousel_items.forEach((url, i) => {
+            mediaList.push({ label: `🖼️ Slide ${i + 1}`, url: url });
+        });
+    } else if (post.primary_media && post.post_type !== 'story_parts') {
+        mediaList.push({ label: '📹 Reel / Media', url: post.primary_media });
+    }
+    if (post.story_part1) {
+        mediaList.push({ label: '📹 Story Part 1', url: post.story_part1 });
+    }
+    if (post.story_part2) {
+        mediaList.push({ label: '📹 Story Part 2', url: post.story_part2 });
+    }
+    if (post.cover_media) {
+        mediaList.push({ label: '🖼️ Flyer Preview', url: post.cover_media });
+    }
+
+    if (mediaList.length > 1) {
+        tabsContainer.style.display = 'flex';
+        mediaList.forEach((m, idx) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `sub-tab-btn ${idx === 0 ? 'active' : ''}`;
+            btn.style.padding = '3px 8px';
+            btn.style.fontSize = '0.7rem';
+            btn.innerText = m.label;
+            btn.onclick = () => {
+                Array.from(tabsContainer.children).forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                previewOnlineMedia(m.url);
+            };
+            tabsContainer.appendChild(btn);
+        });
+    } else {
+        tabsContainer.style.display = 'none';
+    }
+
+    if (mediaList.length > 0) {
+        previewOnlineMedia(mediaList[0].url);
+    }
+}
+
+function setupPreviewTabs(post) {
+    const tabsContainer = document.getElementById('previewTabs');
+    if (!tabsContainer) return;
+    tabsContainer.innerHTML = '';
+
+    const mediaList = [];
     if (post.primary_media && post.post_type !== 'story_parts') {
         mediaList.push({ label: '📹 Reel / Media', url: post.primary_media });
     }

@@ -214,6 +214,49 @@ def publish_story_meta(media_url, is_video=True, account_id=None, token=None):
 
     return pub_data["id"]
 
+def publish_carousel_meta(items_urls, caption, account_id=None, token=None):
+    import requests, time
+    graph_url = f"https://graph.facebook.com/v21.0/{account_id}/media"
+    item_ids = []
+    for url in items_urls:
+        is_video = url.lower().endswith((".mp4", ".mov"))
+        payload = {
+            "is_carousel_item": "true",
+            "access_token": token
+        }
+        if is_video:
+            payload["media_type"] = "VIDEO"
+            payload["video_url"] = url
+        else:
+            payload["image_url"] = url
+        r = requests.post(graph_url, data=payload, timeout=30)
+        if r.status_code != 200:
+            raise RuntimeError(f"Carousel item container failed for {url}: {r.text}")
+        item_ids.append(r.json().get("id"))
+    
+    # Create Carousel Container
+    carousel_payload = {
+        "media_type": "CAROUSEL",
+        "children": ",".join(item_ids),
+        "caption": caption,
+        "access_token": token
+    }
+    cr = requests.post(graph_url, data=carousel_payload, timeout=30)
+    if cr.status_code != 200:
+        raise RuntimeError(f"Carousel container creation failed: {cr.text}")
+    carousel_container_id = cr.json().get("id")
+
+    # Wait 5 seconds for child containers to process
+    time.sleep(5)
+
+    # Publish Carousel
+    pub_url = f"https://graph.facebook.com/v21.0/{account_id}/media_publish"
+    pub_res = requests.post(pub_url, data={"creation_id": carousel_container_id, "access_token": token}, timeout=30)
+    pub_data = pub_res.json()
+    if pub_res.status_code != 200 or "id" not in pub_data:
+        raise RuntimeError(f"Carousel publish failed: {pub_data}")
+    return pub_data["id"]
+
 def publish_photo_meta(image_url, caption, account_id=None, token=None):
     import requests
     graph_url = f"https://graph.facebook.com/v21.0/{account_id}/media"
@@ -285,6 +328,19 @@ def execute_publish_job(post, base_request_url=""):
             image_url = get_public_url(primary, base_request_url)
             photo_id = publish_photo_meta(image_url, caption, account_id, token)
             log(f"✅ Photo successfully published! Media ID: {photo_id}")
+
+        # 3. Carousel (Multiple Slides)
+        elif post_type == "carousel":
+            items = post.get("carousel_items") or []
+            if not items and primary:
+                items = [primary]
+            if not items:
+                log("Error: No items provided for Carousel.")
+                return False, logs
+            log(f"Publishing Carousel with {len(items)} slides...")
+            pub_urls = [get_public_url(x, base_request_url) for x in items]
+            cid = publish_carousel_meta(pub_urls, caption, account_id, token)
+            log(f"✅ Carousel successfully published! Media ID: {cid}")
 
         # 3. Stories
         if post_type in ["story_parts", "both"]:
