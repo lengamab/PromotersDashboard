@@ -25,3 +25,4 @@ gcloud run deploy "$SERVICE_NAME" \
   --set-env-vars "TZ=Europe/Madrid"
 
 echo "✅ Deployment completed successfully!"
+

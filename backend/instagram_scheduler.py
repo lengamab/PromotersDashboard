@@ -490,3 +490,4 @@ def register_instagram_scheduler(app):
     app.register_blueprint(bp)
     daemon = threading.Thread(target=background_scheduler_worker, daemon=True)
     daemon.start()
+

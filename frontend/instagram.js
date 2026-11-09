@@ -721,7 +721,7 @@ function closeOnlineComposerModal() {
 
 function selectOnlinePostType(type) {
     document.getElementById('schedSelectedType').value = type;
-    ['both', 'reel', 'story_parts', 'photo'].forEach(t => {
+    ['both', 'reel', 'story_single', 'story_parts', 'photo'].forEach(t => {
         const btn = document.getElementById(`typeBtn_${t}`);
         if (!btn) return;
         if (t === type) {
@@ -734,6 +734,18 @@ function selectOnlinePostType(type) {
     const storyFields = document.getElementById('storyUploadFields');
     if (storyFields) {
         storyFields.style.display = (type === 'both' || type === 'story_parts') ? 'grid' : 'none';
+    }
+
+    const primaryBox = document.getElementById('dropzonePrimary');
+    const primaryLabel = document.getElementById('primaryDropLabel');
+    if (type === 'story_single') {
+        if (primaryLabel) primaryLabel.innerText = "Drag & drop your 1-Part Story Video or Photo here";
+    } else if (type === 'reel') {
+        if (primaryLabel) primaryLabel.innerText = "Drag & drop your Reel Video (9:16 1080x1920) here";
+    } else if (type === 'photo') {
+        if (primaryLabel) primaryLabel.innerText = "Drag & drop your Feed Photo Flyer here";
+    } else {
+        if (primaryLabel) primaryLabel.innerText = "Drag & drop your Reel Video or Photo here";
     }
 }
 

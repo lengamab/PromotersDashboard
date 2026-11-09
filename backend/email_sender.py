@@ -6,6 +6,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime, timedelta
 import concurrent.futures
+import unicodedata
 from dotenv import load_dotenv
 
 try:
@@ -141,32 +142,46 @@ def get_all_event_tickets(events):
                 
     return results
 
-def calculate_ticket_commission(rate_name, price, rate_slug, custom_commissions=None, sale_type="cash", promoter_name=None):
+def normalize_text(text):
+    if not text:
+        return ""
+    return unicodedata.normalize('NFKD', str(text)).upper()
+
+def calculate_ticket_commission(rate_name, price, rate_slug, custom_commissions=None, sale_type="cash", promoter_name=None, event_name=None):
     if custom_commissions is None:
         custom_commissions = {}
         
-    comm = 1.0
-    # Check if a custom commission was configured for this rate name/slug
+    rate_upper = normalize_text(rate_name)
+    rate_slug_upper = normalize_text(rate_slug)
+    event_upper = normalize_text(event_name)
+    
+    # Check if this is a free ticket or free event (e.g. price 0€, or rate/event name indicates FREE/GRATIS)
+    is_free = (price <= 0) or ("FREE" in rate_upper) or ("FREE" in rate_slug_upper) or ("FREE" in event_upper) or ("GRATIS" in rate_upper) or ("GRATIS" in event_upper)
+    
+    # Check if a custom commission was explicitly configured for this rate name/slug
     comm_config = custom_commissions.get(rate_slug) or custom_commissions.get(rate_name)
     if comm_config is not None:
         if isinstance(comm_config, dict):
-            comm = float(comm_config.get(sale_type, 0.0))
-        else:
-            comm = float(comm_config)
+            return float(comm_config.get(sale_type, 0.50 if is_free else 0.0))
+        return float(comm_config)
+        
+    # Free events and free tickets ALWAYS have a promoter commission of 0.50€
+    if is_free:
+        return 0.50
+        
+    # Default non-free commission rules
+    # 1. Open Bar check first (7€)
+    if "OPEN BAR" in rate_upper or "OPENBAR" in rate_upper:
+        comm = 7.0
+    # 2. Fanzone checks (1€)
+    elif "FAN ZONE" in rate_upper or "FANZONE" in rate_upper:
+        comm = 1.0
+    # 3. PASS at 10€ check (5€)
+    elif "PASS" in rate_upper and abs(price - 10.0) < 0.01:
+        comm = 5.0
     else:
-        rate_upper = rate_name.upper()
-        # 1. Open Bar check first (7€)
-        if "OPEN BAR" in rate_upper or "OPENBAR" in rate_upper:
-            comm = 7.0
-        # 2. Fanzone checks (1€)
-        elif "FAN ZONE" in rate_upper or "FANZONE" in rate_upper:
-            comm = 1.0
-        # 3. PASS at 10€ check (5€)
-        elif "PASS" in rate_upper and abs(price - 10.0) < 0.01:
-            comm = 5.0
-        else:
-            comm = 1.0
-            
+        comm = 1.0
+        
     # Custom rule for "Welovebcn Guest List"
     if promoter_name and "Welovebcn Guest List" in promoter_name and abs(comm - 1.0) < 0.01:
         comm = 2.0
@@ -272,8 +287,8 @@ def gather_performance_report(start_date=None, end_date=None):
                 
                 rate_name = t.get("rate_name", "Unknown Rate")
                 rate_slug = t.get("rate_slug", "unknown-slug")
-                sale_type = "online" if t.get("payment_id") else "cash"
-                comm = calculate_ticket_commission(rate_name, price, rate_slug, custom_commissions, sale_type=sale_type, promoter_name=promoter_name)
+                sale_type = "online" if t.get("payment_id") or t.get("sale_type") == "online" else "cash"
+                comm = calculate_ticket_commission(rate_name, price, rate_slug, custom_commissions, sale_type=sale_type, promoter_name=promoter_name, event_name=event_name)
                 
                 if sale_type == "online" and t.get("enter", 0) != 1:
                     comm = 0.0
@@ -504,7 +519,7 @@ def gather_cash_report(start_date=None, end_date=None):
                 promoter_name = users_dict.get(promoter_id, "Direct Sale / No Promoter")
                 
                 amount = float(t.get("raised", 0) or t.get("total_paid", 0) or price)
-                comm = calculate_ticket_commission(t.get("rate_name", "Unknown Rate"), price, t.get("rate_slug", "unknown-slug"), custom_commissions, promoter_name=promoter_name)
+                comm = calculate_ticket_commission(t.get("rate_name", "Unknown Rate"), price, t.get("rate_slug", "unknown-slug"), custom_commissions, promoter_name=promoter_name, event_name=ev_name)
                 
                 # Zero commission for venue's own accounts
                 if promoter_name.lower() in NO_COMMISSION_PROMOTERS:
@@ -669,7 +684,7 @@ def gather_online_report(start_date=None, end_date=None):
                 promoter_name = users_dict.get(promoter_id, "Direct Sale / No Promoter")
                 
                 amount = float(t.get("raised", 0) or t.get("total_paid", 0) or price)
-                comm = calculate_ticket_commission(t.get("rate_name", "Unknown Rate"), price, t.get("rate_slug", "unknown-slug"), custom_commissions, sale_type="online", promoter_name=promoter_name)
+                comm = calculate_ticket_commission(t.get("rate_name", "Unknown Rate"), price, t.get("rate_slug", "unknown-slug"), custom_commissions, sale_type="online", promoter_name=promoter_name, event_name=ev_name)
                 
                 # Zero commission for no-shows or venue's own accounts
                 if t.get("enter", 0) != 1 or promoter_name.lower() in NO_COMMISSION_PROMOTERS:
@@ -839,7 +854,7 @@ def gather_promoter_profile(promoter_id, start_date=None, end_date=None):
                 # Commission
                 comm = 0.0
                 if promoter_name.lower() not in NO_COMMISSION_PROMOTERS:
-                    comm = calculate_ticket_commission(t.get("rate_name", "Unknown Rate"), price, t.get("rate_slug", "unknown-slug"), custom_commissions, sale_type=sale_type, promoter_name=promoter_name)
+                    comm = calculate_ticket_commission(t.get("rate_name", "Unknown Rate"), price, t.get("rate_slug", "unknown-slug"), custom_commissions, sale_type=sale_type, promoter_name=promoter_name, event_name=ev_name)
                     
                     if sale_type == "online" and t.get("enter", 0) != 1:
                         comm = 0.0
