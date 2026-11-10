@@ -179,30 +179,30 @@
       ]
     },
     {
-      "caption": "🔥 TONIGHT IN BARCELONA — MARTES! Guestlist link in bio 🥂",
-      "cover_media": "https://litter.catbox.moe/cif3o6.png",
-      "created_at": "2026-11-09T14:06:55.616015+01:00",
       "id": "post_20261110_stories",
+      "title": "Tuesday Night Lineup Stories (Sutton, KU, Opium, Shôko, Twenties)",
       "post_type": "story_parts",
-      "primary_media": "https://litter.catbox.moe/qs4am8.mp4",
+      "story_part1": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_020706_clubs_of_the_day_story_part1.mp4",
+      "story_part2": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_020706_clubs_of_the_day_story_part2.mp4",
+      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_020706_clubs_of_the_day_story_part1.mp4",
+      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_020654_clubs_of_the_day_preview.png",
+      "caption": "🔥 TONIGHT IN BARCELONA — MARTES! Guestlist link in bio 🥂",
       "scheduled_time": "2026-11-10T16:00",
       "status": "scheduled",
-      "story_part1": "https://litter.catbox.moe/qs4am8.mp4",
-      "story_part2": "https://litter.catbox.moe/tishbh.mp4",
-      "title": "Tuesday Night Lineup Stories [PLACEHOLDER]",
-      "updated_at": "2026-11-09T14:06:55.615988+01:00"
+      "created_at": "2026-11-09T14:06:55.616015+01:00",
+      "updated_at": "2026-11-10T03:07:00.000000+01:00"
     },
     {
-      "caption": "🔥 TONIGHT IN BARCELONA — MARTES! Link in bio to join free guestlists.",
-      "cover_media": "https://litter.catbox.moe/cif3o6.png",
-      "created_at": "2026-11-09T14:06:56.042343+01:00",
       "id": "post_20261110_daily_reel",
+      "title": "Tuesday Clubs of the Day Reel (5 Clubs: Sutton, KU, Opium, Shôko, Twenties)",
       "post_type": "reel",
-      "primary_media": "https://litter.catbox.moe/9jt5wt.mp4",
+      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_020705_clubs_of_the_day_1080x1920.mp4",
+      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_020654_clubs_of_the_day_preview.png",
+      "caption": "🔥 TONIGHT IN BARCELONA — MARTES!\n\nHere is your daily party lineup:\n📍 Sutton Barcelona — LA CASITA (Hits, Reggaeton, Urban)\n📍 KU Barcelona — BADASS (Reggaeton, Urban, Commercial)\n📍 Opium Barcelona — LADIES NIGHT (Commercial, House, Hits)\n📍 Shôko Barcelona — KISS KISS BANG BANG (Hip-Hop, R&B, Urban)\n📍 Twenties Barcelona — TUESDAYS AT TWENTIES (Reggaeton, Hits, Commercial)\n\n✈️ Send this to who you're partying with tonight in Barcelona!\n🎟️ Free guestlist link in bio.\n\n#barcelonanightlife #bcnparties #erasmusbarcelona #lafrenchbcn #suttonbarcelona",
       "scheduled_time": "2026-11-10T16:30",
       "status": "scheduled",
-      "title": "Tuesday Clubs of the Day Reel [PLACEHOLDER]",
-      "updated_at": "2026-11-09T14:06:56.042322+01:00"
+      "created_at": "2026-11-09T14:06:56.042343+01:00",
+      "updated_at": "2026-11-10T03:07:00.000000+01:00"
     },
     {
       "caption": "What happened at Circus Friday... stays at Twenties 🎪🔥\n\n70+ nationalities screaming under the laser lights. \nNext edition this Friday November 13th! \n\nDrop a 🎪 below to join the free VIP guestlist for this week!\n\n#LaFrench #CircusParty #TwentiesBarcelona #BarcelonaNightlife #ErasmusBarcelona",
@@ -497,5 +497,5 @@
       ]
     }
   ],
-  "updated_at": "2026-11-09T14:39:00+01:00"
+  "updated_at": "2026-11-10T03:07:00+01:00"
 }
