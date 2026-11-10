@@ -485,17 +485,30 @@ function renderOnlineCalendarGrid() {
 
             matching.forEach(p => {
                 const pill = document.createElement('div');
-                let statusClass = '';
-                let icon = '<i class="fa-solid fa-clock" style="color: #D4AF37; flex-shrink: 0;"></i>';
+                const isPlaceholder = p.status === 'placeholder' ||
+                                      p.is_placeholder === true ||
+                                      (p.title || '').toUpperCase().includes('PLACEHOLDER') ||
+                                      (p.caption || '').toUpperCase().includes('PLACEHOLDER');
+
+                let statusClass = 'ready';
+                let icon = '<i class="fa-solid fa-circle-play" style="color: #60a5fa; flex-shrink: 0;" title="Ready to post"></i>';
+
                 if (p.status === 'published') {
                     statusClass = 'published';
-                    icon = '<i class="fa-solid fa-circle-check" style="color: #10b981; flex-shrink: 0;"></i>';
+                    icon = '<i class="fa-solid fa-circle-check" style="color: #10b981; flex-shrink: 0;" title="Published"></i>';
                 } else if (p.status === 'failed') {
                     statusClass = 'failed';
-                    icon = '<i class="fa-solid fa-circle-xmark" style="color: #ef4444; flex-shrink: 0;"></i>';
+                    icon = '<i class="fa-solid fa-circle-xmark" style="color: #ef4444; flex-shrink: 0;" title="Failed"></i>';
                 } else if (p.status === 'missed') {
                     statusClass = 'failed';
                     icon = '<i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b; flex-shrink: 0;" title="Missed scheduled window - Blocked to protect algorithm"></i>';
+                } else if (isPlaceholder) {
+                    statusClass = 'placeholder';
+                    icon = '<i class="fa-solid fa-bookmark" style="color: #facc15; flex-shrink: 0;" title="Placeholder Slot"></i>';
+                } else {
+                    // Ready but not posted yet -> BLUE
+                    statusClass = 'ready';
+                    icon = '<i class="fa-solid fa-circle-play" style="color: #60a5fa; flex-shrink: 0;" title="Ready (Scheduled)"></i>';
                 }
                 pill.className = `sched-pill ${statusClass}`;
                 pill.title = `${p.scheduled_time ? p.scheduled_time.replace('T', ' ') : ''} — ${p.title || (p.post_type || '').toUpperCase()}`;
@@ -556,14 +569,41 @@ function renderOnlineQueueList() {
         item.style.flexWrap = 'wrap';
         item.style.gap = '15px';
 
-        let statusBadge = '<span style="padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: rgba(59,130,246,0.15); color: #60a5fa;">SCHEDULED</span>';
-        if (p.status === 'published') statusBadge = '<span style="padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: rgba(16,185,129,0.15); color: #34d399;">PUBLISHED</span>';
-        if (p.status === 'failed') statusBadge = '<span style="padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: rgba(239,68,68,0.15); color: #f87171;">FAILED</span>';
-        if (p.status === 'missed') statusBadge = '<span style="padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: rgba(245,158,11,0.15); color: #fbbf24;">MISSED</span>';
+        const isPlaceholder = p.status === 'placeholder' ||
+                              p.is_placeholder === true ||
+                              (p.title || '').toUpperCase().includes('PLACEHOLDER') ||
+                              (p.caption || '').toUpperCase().includes('PLACEHOLDER');
+
+        let statusBadge = '<span style="padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: rgba(59,130,246,0.18); color: #93c5fd; border: 1px solid rgba(59,130,246,0.4);">READY</span>';
+        let mediaIconBg = 'rgba(59,130,246,0.1)';
+        let mediaIconBorder = 'rgba(59,130,246,0.3)';
+        let mediaIconColor = '#60a5fa';
+
+        if (p.status === 'published') {
+            statusBadge = '<span style="padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3);">PUBLISHED</span>';
+            mediaIconBg = 'rgba(16,185,129,0.1)';
+            mediaIconBorder = 'rgba(16,185,129,0.3)';
+            mediaIconColor = '#10b981';
+        } else if (p.status === 'failed') {
+            statusBadge = '<span style="padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3);">FAILED</span>';
+            mediaIconBg = 'rgba(239,68,68,0.1)';
+            mediaIconBorder = 'rgba(239,68,68,0.3)';
+            mediaIconColor = '#ef4444';
+        } else if (p.status === 'missed') {
+            statusBadge = '<span style="padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3);">MISSED</span>';
+            mediaIconBg = 'rgba(245,158,11,0.1)';
+            mediaIconBorder = 'rgba(245,158,11,0.3)';
+            mediaIconColor = '#f59e0b';
+        } else if (isPlaceholder) {
+            statusBadge = '<span style="padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: rgba(234,179,8,0.18); color: #fef08a; border: 1px solid rgba(234,179,8,0.4);">PLACEHOLDER</span>';
+            mediaIconBg = 'rgba(234,179,8,0.1)';
+            mediaIconBorder = 'rgba(234,179,8,0.3)';
+            mediaIconColor = '#eab308';
+        }
 
         item.innerHTML = `
             <div style="display: flex; align-items: center; gap: 15px;">
-                <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #D4AF37;">
+                <div style="width: 44px; height: 44px; border-radius: 10px; background: ${mediaIconBg}; border: 1px solid ${mediaIconBorder}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: ${mediaIconColor};">
                     ${p.post_type === 'both' ? '<i class="fa-solid fa-rocket"></i>' : p.post_type === 'reel' ? '<i class="fa-solid fa-film"></i>' : '<i class="fa-brands fa-instagram"></i>'}
                 </div>
                 <div>

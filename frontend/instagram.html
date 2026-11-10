@@ -82,10 +82,10 @@
             align-items: center;
             justify-content: space-between;
             gap: 4px;
-            border: 1px solid rgba(212, 175, 55, 0.4);
-            background: rgba(212, 175, 55, 0.15);
-            color: #F3E5AB;
-            transition: transform 0.15s;
+            border: 1px solid rgba(59, 130, 246, 0.45);
+            background: rgba(59, 130, 246, 0.16);
+            color: #bfdbfe;
+            transition: transform 0.15s, background 0.15s, border-color 0.15s;
             min-width: 0;
             max-width: 100%;
             box-sizing: border-box;
@@ -94,10 +94,32 @@
         .sched-pill:hover {
             transform: scale(1.01);
         }
+        .sched-pill.ready {
+            border: 1px solid rgba(59, 130, 246, 0.55);
+            background: rgba(59, 130, 246, 0.2);
+            color: #bfdbfe;
+        }
+        .sched-pill.ready:hover {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: #60a5fa;
+        }
+        .sched-pill.placeholder {
+            border: 1px solid rgba(234, 179, 8, 0.6);
+            background: rgba(234, 179, 8, 0.18);
+            color: #fef08a;
+        }
+        .sched-pill.placeholder:hover {
+            background: rgba(234, 179, 8, 0.28);
+            border-color: #facc15;
+        }
         .sched-pill.published {
             border-color: rgba(16, 185, 129, 0.5);
             background: rgba(16, 185, 129, 0.15);
             color: #a7f3d0;
+        }
+        .sched-pill.published:hover {
+            background: rgba(16, 185, 129, 0.25);
+            border-color: #34d399;
         }
         .sched-pill.failed {
             border-color: rgba(239, 68, 68, 0.5);
@@ -224,6 +246,18 @@
                         <button onclick="goToCurrentWeek()" class="sub-tab-btn" style="padding: 6px 14px;">Today</button>
                         <button onclick="navigateWeek(1)" class="sub-tab-btn" style="padding: 6px 12px;"><i class="fa-solid fa-chevron-right"></i></button>
                         <strong id="weekRangeLabel" style="margin-left: 10px; font-size: 0.95rem; color: #fff;">Nov 9 – Nov 15, 2026</strong>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 12px; font-size: 0.72rem;">
+                        <span style="display: inline-flex; align-items: center; gap: 5px; color: #93c5fd; font-weight: 600;">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #3b82f6; box-shadow: 0 0 6px rgba(59,130,246,0.6);"></span> Ready
+                        </span>
+                        <span style="display: inline-flex; align-items: center; gap: 5px; color: #fef08a; font-weight: 600;">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #eab308; box-shadow: 0 0 6px rgba(234,179,8,0.6);"></span> Placeholder
+                        </span>
+                        <span style="display: inline-flex; align-items: center; gap: 5px; color: #a7f3d0; font-weight: 600;">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 6px rgba(16,185,129,0.6);"></span> Published
+                        </span>
                     </div>
 
                     <div style="display: flex; gap: 8px;">
