@@ -7,6 +7,8 @@ import mimetypes
 import urllib.request
 import urllib.parse
 import re
+import random
+import requests
 from flask import Blueprint, jsonify, request, send_file, Response
 from werkzeug.utils import secure_filename
 
@@ -35,6 +37,21 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 SCHEDULE_DB_PATH = os.path.join(DATA_DIR, 'instagram_schedule.json')
 LOCK = threading.Lock()
+GCS_BUCKET = os.environ.get("GCS_BUCKET", "promotersdashboard-optimal-relic-data")
+
+def get_gcp_token():
+    """Fetches GCP Service Account token from metadata server when running inside Cloud Run."""
+    try:
+        r = requests.get(
+            "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
+            headers={"Metadata-Flavor": "Google"},
+            timeout=1.5
+        )
+        if r.status_code == 200:
+            return r.json().get("access_token")
+    except Exception:
+        pass
+    return None
 
 def get_now_bcn():
     if ZoneInfo:
@@ -46,6 +63,25 @@ def get_now_bcn():
 
 def load_schedule_db():
     with LOCK:
+        # 1. Try remote GCS if on Cloud Run
+        gcp_token = get_gcp_token()
+        if gcp_token and GCS_BUCKET:
+            try:
+                gcs_url = f"https://storage.googleapis.com/storage/v1/b/{GCS_BUCKET}/o/instagram_schedule.json?alt=media"
+                r = requests.get(gcs_url, headers={"Authorization": f"Bearer {gcp_token}"}, timeout=2.5)
+                if r.status_code == 200:
+                    data = r.json()
+                    # Cache locally
+                    try:
+                        with open(SCHEDULE_DB_PATH, "w", encoding="utf-8") as f:
+                            json.dump(data, f, indent=2)
+                    except Exception:
+                        pass
+                    return data
+            except Exception as e:
+                print(f"⚠️ GCS load error (using local cache): {e}")
+
+        # 2. Local fallback
         if not os.path.exists(SCHEDULE_DB_PATH):
             default_data = {"posts": []}
             with open(SCHEDULE_DB_PATH, "w", encoding="utf-8") as f:
@@ -59,8 +95,96 @@ def load_schedule_db():
 
 def save_schedule_db(data):
     with LOCK:
-        with open(SCHEDULE_DB_PATH, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+        # 1. Save locally
+        try:
+            with open(SCHEDULE_DB_PATH, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+        except Exception as e:
+            print(f"Error saving local DB: {e}")
+
+        # 2. Sync to GCS if on Cloud Run
+        gcp_token = get_gcp_token()
+        if gcp_token and GCS_BUCKET:
+            try:
+                upload_url = f"https://storage.googleapis.com/upload/storage/v1/b/{GCS_BUCKET}/o?uploadType=media&name=instagram_schedule.json"
+                payload = json.dumps(data)
+                requests.post(upload_url, headers={"Authorization": f"Bearer {gcp_token}", "Content-Type": "application/json"}, data=payload, timeout=3.0)
+            except Exception as e:
+                print(f"⚠️ GCS save error: {e}")
+
+def acquire_publish_lock(post_id):
+    """
+    Acquires an atomic distributed lock for post_id across all Cloud Run instances.
+    Returns (True, None) if lock acquired.
+    Returns (False, reason) if post is already in-flight or completed.
+    """
+    now_ts = time.time()
+    instance_id = os.environ.get("K_REVISION") or os.environ.get("HOSTNAME") or "local"
+
+    # 1. Local lock check
+    tmp_lock = f"/tmp/lock_{post_id}.json"
+    if os.path.exists(tmp_lock):
+        try:
+            with open(tmp_lock, "r") as f:
+                d = json.load(f)
+            if d.get("status") == "completed":
+                return False, f"Post already published (Media ID: {d.get('media_id')})"
+            if d.get("status") == "in_flight" and (now_ts - d.get("ts", 0)) < 600:
+                return False, f"Post is currently being published by instance {d.get('instance')} (started {int(now_ts - d.get('ts', 0))}s ago)"
+        except Exception:
+            pass
+
+    # 2. Remote GCS lock check (Cloud Run)
+    gcp_token = get_gcp_token()
+    if gcp_token and GCS_BUCKET:
+        try:
+            lock_url = f"https://storage.googleapis.com/storage/v1/b/{GCS_BUCKET}/o/locks%2F{post_id}.json?alt=media"
+            r = requests.get(lock_url, headers={"Authorization": f"Bearer {gcp_token}"}, timeout=2.0)
+            if r.status_code == 200:
+                d = r.json()
+                if d.get("status") == "completed":
+                    return False, f"Post already published on instance {d.get('instance')} (Media ID: {d.get('media_id')})"
+                if d.get("status") == "in_flight" and (now_ts - d.get("ts", 0)) < 600:
+                    return False, f"Post is currently being published by instance {d.get('instance')} (started {int(now_ts - d.get('ts', 0))}s ago)"
+
+            # Write lock to GCS
+            upload_url = f"https://storage.googleapis.com/upload/storage/v1/b/{GCS_BUCKET}/o?uploadType=media&name=locks/{post_id}.json"
+            lock_payload = json.dumps({"status": "in_flight", "ts": now_ts, "instance": instance_id})
+            requests.post(upload_url, headers={"Authorization": f"Bearer {gcp_token}", "Content-Type": "application/json"}, data=lock_payload, timeout=2.5)
+        except Exception as e:
+            print(f"⚠️ GCS acquire lock error: {e}")
+
+    # Write local lock
+    try:
+        with open(tmp_lock, "w") as f:
+            json.dump({"status": "in_flight", "ts": now_ts, "instance": instance_id}, f)
+    except Exception:
+        pass
+
+    return True, None
+
+def release_publish_lock(post_id, media_id=None, success=True):
+    now_ts = time.time()
+    instance_id = os.environ.get("K_REVISION") or os.environ.get("HOSTNAME") or "local"
+    status = "completed" if success else "failed"
+
+    # Local release
+    tmp_lock = f"/tmp/lock_{post_id}.json"
+    try:
+        with open(tmp_lock, "w") as f:
+            json.dump({"status": status, "ts": now_ts, "instance": instance_id, "media_id": media_id}, f)
+    except Exception:
+        pass
+
+    # Remote release
+    gcp_token = get_gcp_token()
+    if gcp_token and GCS_BUCKET:
+        try:
+            upload_url = f"https://storage.googleapis.com/upload/storage/v1/b/{GCS_BUCKET}/o?uploadType=media&name=locks/{post_id}.json"
+            lock_payload = json.dumps({"status": status, "ts": now_ts, "instance": instance_id, "media_id": media_id})
+            requests.post(upload_url, headers={"Authorization": f"Bearer {gcp_token}", "Content-Type": "application/json"}, data=lock_payload, timeout=2.5)
+        except Exception as e:
+            print(f"⚠️ GCS release lock error: {e}")
 
 def get_credentials():
     account_id = os.environ.get("INSTAGRAM_ACCOUNT_ID") or os.environ.get("IG_ACCOUNT_ID")
@@ -292,31 +416,32 @@ def publish_photo_meta(image_url, caption, account_id=None, token=None):
     return pub_data["id"]
 
 def check_duplicate_reel_on_instagram(caption, account_id, token):
-    """Checks if a reel with similar caption was already published in the last 4 hours on Instagram."""
+    """Checks if a reel with similar caption was already published in the last 24 hours on Instagram."""
     try:
         import requests
         url = f"https://graph.facebook.com/v21.0/{account_id}/media"
-        r = requests.get(url, params={"fields": "id,caption,timestamp,media_product_type", "limit": 10, "access_token": token}, timeout=15)
+        r = requests.get(url, params={"fields": "id,caption,timestamp,media_product_type", "limit": 25, "access_token": token}, timeout=15)
         if r.status_code == 200:
             data = r.json().get("data", [])
-            cap_prefix = caption.strip()[:50].lower() if caption else ""
+            cap_prefix = caption.strip()[:40].lower() if caption else ""
             now = datetime.datetime.now(datetime.timezone.utc)
             for m in data:
-                if m.get("media_product_type") == "REELS":
+                m_prod = m.get("media_product_type", "")
+                if m_prod in ["REELS", "FEED", "VIDEO"]:
                     ts_str = m.get("timestamp")
                     if ts_str:
                         m_dt = parse_iso_timestamp(ts_str)
                         if m_dt:
                             hours_ago = (now - m_dt).total_seconds() / 3600.0
-                            if hours_ago < 4.0:
-                                m_cap = (m.get("caption") or "").strip()[:50].lower()
-                                if cap_prefix and (cap_prefix in m_cap or m_cap in cap_prefix):
+                            if hours_ago < 24.0:
+                                m_cap = (m.get("caption") or "").strip()[:40].lower()
+                                if cap_prefix and len(cap_prefix) > 10 and (cap_prefix in m_cap or m_cap in cap_prefix):
                                     return m.get("id")
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Error checking duplicate: {e}")
     return None
 
-def check_duplicate_stories_on_instagram(account_id, token, min_minutes=30):
+def check_duplicate_stories_on_instagram(account_id, token, min_minutes=60):
     """Checks if stories were already published on Instagram within min_minutes ago."""
     try:
         import requests
@@ -343,8 +468,17 @@ def execute_publish_job(post, base_request_url=""):
         logs.append(f"[{get_now_bcn().strftime('%H:%M:%S')}] {msg}")
         print(f"🚀 [Online Scheduler] {msg}")
 
+    post_id = post.get("id") or "unknown"
+
+    # Step 0: Atomic Distributed In-Flight Lock Check
+    acquired, lock_reason = acquire_publish_lock(post_id)
+    if not acquired:
+        log(f"🛡️ [Deduplication Guard] Skipped: {lock_reason}")
+        return True, logs
+
     account_id, token = get_credentials()
     if not account_id or not token:
+        release_publish_lock(post_id, success=False)
         log("Error: INSTAGRAM_ACCOUNT_ID or IG_ACCESS_TOKEN missing.")
         return False, logs
 
@@ -355,16 +489,19 @@ def execute_publish_job(post, base_request_url=""):
     story1 = post.get("story_part1")
     story2 = post.get("story_part2")
     user_tags = post.get("user_tags", [])
+    published_media_id = None
 
     try:
         # 1. Reel
         if post_type in ["reel", "both"]:
             dup_id = check_duplicate_reel_on_instagram(caption, account_id, token)
             if dup_id:
+                published_media_id = dup_id
                 log(f"⚠️ Deduplication Guard: Reel already live on Instagram! (Media ID: {dup_id}). Skipping duplicate publish.")
             else:
                 if not primary:
                     log("Error: No primary media specified for Reel.")
+                    release_publish_lock(post_id, success=False)
                     return False, logs
 
                 log(f"Resolving public URL for Reel: {primary}...")
@@ -381,15 +518,18 @@ def execute_publish_job(post, base_request_url=""):
 
                 log(f"Creating Reel container on Instagram Account {account_id}...")
                 reel_id = publish_reel_meta(video_url, caption, cover_url, user_tags, account_id, token)
+                published_media_id = reel_id
                 log(f"✅ Reel successfully published! Media ID: {reel_id}")
 
         # 2. Photo
         elif post_type == "photo":
             if not primary:
                 log("Error: No photo specified.")
+                release_publish_lock(post_id, success=False)
                 return False, logs
             image_url = get_public_url(primary, base_request_url)
             photo_id = publish_photo_meta(image_url, caption, account_id, token)
+            published_media_id = photo_id
             log(f"✅ Photo successfully published! Media ID: {photo_id}")
 
         # 3. Carousel (Multiple Slides)
@@ -399,23 +539,27 @@ def execute_publish_job(post, base_request_url=""):
                 items = [primary]
             if not items:
                 log("Error: No items provided for Carousel.")
+                release_publish_lock(post_id, success=False)
                 return False, logs
             log(f"Publishing Carousel with {len(items)} slides...")
             pub_urls = [get_public_url(x, base_request_url) for x in items]
             cid = publish_carousel_meta(pub_urls, caption, account_id, token)
+            published_media_id = cid
             log(f"✅ Carousel successfully published! Media ID: {cid}")
 
         # 4. Stories
         if post_type in ["story_parts", "both"]:
-            dup_s_id = check_duplicate_stories_on_instagram(account_id, token, min_minutes=30)
+            dup_s_id = check_duplicate_stories_on_instagram(account_id, token, min_minutes=60)
             if dup_s_id:
-                log(f"⚠️ Deduplication Guard: Stories were already published within last 30m (Media ID: {dup_s_id}). Skipping duplicate publish.")
+                published_media_id = dup_s_id
+                log(f"⚠️ Deduplication Guard: Stories were already published within last 60m (Media ID: {dup_s_id}). Skipping duplicate publish.")
             elif story1 and story2:
                 log("Publishing 2-Part Synchronized Stories...")
                 log("   [1/2] Publishing Story Part 1...")
                 url1 = get_public_url(story1, base_request_url)
                 is_vid1 = story1.lower().endswith((".mp4", ".mov"))
                 s1_id = publish_story_meta(url1, is_video=is_vid1, account_id=account_id, token=token)
+                published_media_id = s1_id
                 log(f"   ✅ Story Part 1 published! Media ID: {s1_id}")
 
                 log("   ⏳ Waiting 8s for sequential Instagram ordering...")
@@ -425,24 +569,31 @@ def execute_publish_job(post, base_request_url=""):
                 url2 = get_public_url(story2, base_request_url)
                 is_vid2 = story2.lower().endswith((".mp4", ".mov"))
                 s2_id = publish_story_meta(url2, is_video=is_vid2, account_id=account_id, token=token)
+                published_media_id = s2_id
                 log(f"   ✅ Story Part 2 published! Media ID: {s2_id}")
 
         elif post_type == "story_single":
-            dup_s_id = check_duplicate_stories_on_instagram(account_id, token, min_minutes=10)
+            dup_s_id = check_duplicate_stories_on_instagram(account_id, token, min_minutes=60)
             if dup_s_id:
-                log(f"⚠️ Deduplication Guard: A story was already published within last 10m (Media ID: {dup_s_id}). Skipping duplicate publish.")
+                published_media_id = dup_s_id
+                log(f"⚠️ Deduplication Guard: A story was already published within last 60m (Media ID: {dup_s_id}). Skipping duplicate publish.")
+                release_publish_lock(post_id, media_id=dup_s_id, success=True)
                 return True, logs
             target = primary or story1
             if not target:
                 log("Error: No media provided for single story.")
+                release_publish_lock(post_id, success=False)
                 return False, logs
             url = get_public_url(target, base_request_url)
             is_vid = target.lower().endswith((".mp4", ".mov"))
             sid = publish_story_meta(url, is_video=is_vid, account_id=account_id, token=token)
+            published_media_id = sid
             log(f"✅ Story published! Media ID: {sid}")
 
+        release_publish_lock(post_id, media_id=published_media_id, success=True)
         return True, logs
     except Exception as e:
+        release_publish_lock(post_id, success=False)
         log(f"❌ Execution failed: {e}")
         return False, logs
 
@@ -450,6 +601,9 @@ def background_scheduler_worker():
     print("⏰ [Online Social Scheduler] Background daemon thread started...")
     while True:
         try:
+            # Randomized jitter so two parallel containers during deployment do not collide
+            time.sleep(random.uniform(0.5, 3.5))
+
             now = get_now_bcn()
             now_str = now.strftime("%Y-%m-%dT%H:%M")
             db = load_schedule_db()

@@ -41,12 +41,14 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
         run: |
-          ENV_VARS="TZ=Europe/Madrid"
+          ENV_VARS="TZ=Europe/Madrid,GCS_BUCKET=promotersdashboard-optimal-relic-data"
           [ -n "$FOURVENUES_API_KEY" ] && ENV_VARS="$ENV_VARS,FOURVENUES_API_KEY=$FOURVENUES_API_KEY"
           [ -n "$INSTAGRAM_ACCOUNT_ID" ] && ENV_VARS="$ENV_VARS,INSTAGRAM_ACCOUNT_ID=$INSTAGRAM_ACCOUNT_ID"
           [ -n "$INSTAGRAM_ACCESS_TOKEN" ] && ENV_VARS="$ENV_VARS,INSTAGRAM_ACCESS_TOKEN=$INSTAGRAM_ACCESS_TOKEN,IG_ACCESS_TOKEN=$INSTAGRAM_ACCESS_TOKEN"
           [ -n "$GEMINI_API_KEY" ] && ENV_VARS="$ENV_VARS,GEMINI_API_KEY=$GEMINI_API_KEY"
           [ -n "$RECIPIENT_EMAIL" ] && ENV_VARS="$ENV_VARS,RECIPIENT_EMAIL=$RECIPIENT_EMAIL"
+
+          gcloud storage buckets create gs://promotersdashboard-optimal-relic-data --location=europe-west1 || true
 
           gcloud run deploy promoters-dashboard \
             --source . \
@@ -56,6 +58,7 @@ jobs:
             --memory 1Gi \
             --cpu 1 \
             --max-instances 1 \
+            --no-cpu-throttling \
             --timeout 300 \
             --set-env-vars "^##^$(echo "$ENV_VARS" | tr ',' '##')"
 
