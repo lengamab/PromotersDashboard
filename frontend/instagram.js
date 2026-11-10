@@ -680,26 +680,36 @@ function previewOnlineMedia(url, isVideo = null) {
         if (img) {
             img.style.display = 'none';
             img.src = '';
+            img.onerror = null;
         }
         if (vid) {
             vid.style.display = 'block';
-            vid.src = resolvedUrl;
             vid.onerror = () => {
+                if (!vid.src || vid.src === window.location.href) return;
                 if (err) err.style.display = 'block';
             };
+            vid.onloadeddata = () => {
+                if (err) err.style.display = 'none';
+            };
+            vid.src = resolvedUrl;
             vid.load();
         }
     } else {
         if (vid) {
             vid.style.display = 'none';
-            vid.src = '';
+            vid.onerror = null;
+            vid.removeAttribute('src');
+            vid.load();
         }
         if (img) {
             img.style.display = 'block';
-            img.src = resolvedUrl;
             img.onerror = () => {
                 if (err) err.style.display = 'block';
             };
+            img.onload = () => {
+                if (err) err.style.display = 'none';
+            };
+            img.src = resolvedUrl;
         }
     }
 }

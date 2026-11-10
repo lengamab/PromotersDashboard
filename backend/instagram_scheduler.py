@@ -535,30 +535,15 @@ def serve_upload(filename):
         else:
             return "File not found", 404
 
-    file_size = os.path.getsize(file_path)
     mime_type, _ = mimetypes.guess_type(file_path)
     mime_type = mime_type or "application/octet-stream"
 
-    range_header = request.headers.get("Range", None)
-    if range_header and range_header.startswith("bytes="):
-        byte_range = range_header[6:].split("-")
-        start = int(byte_range[0]) if byte_range[0] else 0
-        end = int(byte_range[1]) if byte_range[1] else file_size - 1
-        if start >= file_size:
-            return "Requested Range Not Satisfiable", 416
-        length = end - start + 1
-
-        with open(file_path, "rb") as f:
-            f.seek(start)
-            data = f.read(length)
-
-        resp = Response(data, 206, mimetype=mime_type)
-        resp.headers.add("Content-Range", f"bytes {start}-{end}/{file_size}")
-        resp.headers.add("Accept-Ranges", "bytes")
-        resp.headers.add("Content-Length", str(length))
-        return resp
-    else:
-        return send_file(file_path, mimetype=mime_type)
+    # Flask's send_file supports conditional range requests natively in Werkzeug without duplicate Content-Length headers
+    resp = send_file(file_path, mimetype=mime_type, conditional=True)
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    resp.headers['Access-Control-Allow-Headers'] = 'Range, Content-Type, Accept'
+    resp.headers['Accept-Ranges'] = 'bytes'
+    return resp
 
 @bp.route('/api/schedule', methods=['GET'])
 def get_schedule():
