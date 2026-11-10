@@ -523,17 +523,36 @@ def upload_media():
 @bp.route('/uploads/<path:filename>', methods=['GET'])
 def serve_upload(filename):
     """Serves uploaded media with HTTP Range support for video scrubbing."""
-    import re
+    import re, glob
     safe_name = secure_filename(os.path.basename(filename))
-    file_path = os.path.join(UPLOAD_DIR, safe_name)
-    if not os.path.exists(file_path):
-        # Fallback 1: Strip leading timestamp prefix (e.g. 20261109_115622_name.mp4 -> name.mp4)
-        clean_name = re.sub(r'^\d{8}_\d{6}_', '', safe_name)
-        alt_path = os.path.join(UPLOAD_DIR, clean_name)
-        if os.path.exists(alt_path):
-            file_path = alt_path
-        else:
-            return "File not found", 404
+    clean_name = re.sub(r'^\d{8}_\d{6}_', '', safe_name)
+
+    search_dirs = [
+        UPLOAD_DIR,
+        os.path.join(BASE_DIR, 'uploads'),
+        os.path.join(BASE_DIR, 'backend', 'uploads')
+    ]
+
+    file_path = None
+    for d in search_dirs:
+        if not os.path.isdir(d):
+            continue
+        # Exact name match
+        for candidate in [safe_name, clean_name]:
+            p = os.path.join(d, candidate)
+            if os.path.isfile(p):
+                file_path = p
+                break
+        if file_path:
+            break
+        # Glob fallback (match stripped name)
+        matches = glob.glob(os.path.join(d, f"*{clean_name}"))
+        if matches:
+            file_path = matches[0]
+            break
+
+    if not file_path or not os.path.exists(file_path):
+        return "File not found", 404
 
     mime_type, _ = mimetypes.guess_type(file_path)
     mime_type = mime_type or "application/octet-stream"
