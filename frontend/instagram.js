@@ -500,7 +500,7 @@ function renderOnlineCalendarGrid() {
                     statusClass = 'failed';
                     icon = '<i class="fa-solid fa-circle-xmark" style="color: #ef4444; flex-shrink: 0;" title="Failed"></i>';
                 } else if (p.status === 'missed') {
-                    statusClass = 'failed';
+                    statusClass = 'missed';
                     icon = '<i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b; flex-shrink: 0;" title="Missed scheduled window - Blocked to protect algorithm"></i>';
                 } else if (isPlaceholder) {
                     statusClass = 'placeholder';

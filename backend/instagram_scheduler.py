@@ -38,6 +38,23 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 SCHEDULE_DB_PATH = os.path.join(DATA_DIR, 'instagram_schedule.json')
 LOCK = threading.Lock()
 GCS_BUCKET = os.environ.get("GCS_BUCKET", "promotersdashboard-optimal-relic-data")
+_GCS_STATE = {
+    "bucket_ok": None,
+    "bucket_checked_at": 0.0,
+    "project_id": None,
+    "last_error": None,
+}
+
+def _load_git_seed_data():
+    try:
+        if os.path.exists(SCHEDULE_DB_PATH):
+            with open(SCHEDULE_DB_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {"posts": []}
+
+_GIT_SEED_DATA = _load_git_seed_data()
 
 def get_gcp_token():
     """Fetches GCP Service Account token from metadata server when running inside Cloud Run."""
@@ -53,6 +70,108 @@ def get_gcp_token():
         pass
     return None
 
+def get_gcp_project_id():
+    if _GCS_STATE["project_id"]:
+        return _GCS_STATE["project_id"]
+    try:
+        r = requests.get(
+            "http://metadata.google.internal/computeMetadata/v1/project/project-id",
+            headers={"Metadata-Flavor": "Google"},
+            timeout=1.5
+        )
+        if r.status_code == 200 and r.text.strip():
+            _GCS_STATE["project_id"] = r.text.strip()
+            return _GCS_STATE["project_id"]
+    except Exception:
+        pass
+    return os.environ.get("GOOGLE_CLOUD_PROJECT") or "optimal-relic-482522-d0"
+
+def ensure_gcs_bucket(gcp_token):
+    if not gcp_token or not GCS_BUCKET:
+        return False
+    now_ts = time.time()
+    if _GCS_STATE["bucket_ok"] is True:
+        return True
+    if _GCS_STATE["bucket_ok"] is False and (now_ts - _GCS_STATE["bucket_checked_at"]) < 60:
+        return False
+    _GCS_STATE["bucket_checked_at"] = now_ts
+    try:
+        r = requests.get(
+            f"https://storage.googleapis.com/storage/v1/b/{GCS_BUCKET}",
+            headers={"Authorization": f"Bearer {gcp_token}"},
+            timeout=2.5
+        )
+        if r.status_code == 200:
+            _GCS_STATE["bucket_ok"] = True
+            _GCS_STATE["last_error"] = None
+            return True
+        if r.status_code == 404:
+            project_id = get_gcp_project_id()
+            cr = requests.post(
+                f"https://storage.googleapis.com/storage/v1/b?project={project_id}",
+                headers={"Authorization": f"Bearer {gcp_token}", "Content-Type": "application/json"},
+                json={
+                    "name": GCS_BUCKET,
+                    "location": "EUROPE-WEST1",
+                    "iamConfiguration": {"uniformBucketLevelAccess": {"enabled": True}},
+                },
+                timeout=4.0,
+            )
+            if cr.status_code in (200, 201, 409):
+                _GCS_STATE["bucket_ok"] = True
+                _GCS_STATE["last_error"] = None
+                print(f"✅ [Online Scheduler] Created/verified GCS bucket '{GCS_BUCKET}' in {project_id}")
+                return True
+            _GCS_STATE["bucket_ok"] = False
+            _GCS_STATE["last_error"] = f"Bucket create HTTP {cr.status_code}: {cr.text[:200]}"
+            print(f"⚠️ {_GCS_STATE['last_error']}")
+            return False
+        _GCS_STATE["bucket_ok"] = False
+        _GCS_STATE["last_error"] = f"Bucket check HTTP {r.status_code}: {r.text[:200]}"
+        print(f"⚠️ {_GCS_STATE['last_error']}")
+    except Exception as e:
+        _GCS_STATE["bucket_ok"] = False
+        _GCS_STATE["last_error"] = str(e)
+        print(f"⚠️ ensure_gcs_bucket error: {e}")
+    return False
+
+def merge_schedule_data(gcs_data, seed_data):
+    """Merges persisted GCS state with newly deployed git seed posts without losing published history."""
+    deleted_ids = set(gcs_data.get("deleted_ids", []))
+    by_id = {}
+    for sp in seed_data.get("posts", []):
+        pid = sp.get("id")
+        if pid and pid not in deleted_ids:
+            by_id[pid] = dict(sp)
+
+    for gp in gcs_data.get("posts", []):
+        pid = gp.get("id")
+        if not pid:
+            continue
+        if pid not in by_id:
+            by_id[pid] = dict(gp)
+            continue
+        sp = by_id[pid]
+        g_status = gp.get("status")
+        s_status = sp.get("status")
+        if g_status == "published":
+            by_id[pid] = dict(gp)
+        elif s_status == "published":
+            by_id[pid] = dict(sp)
+        elif g_status == "publishing":
+            by_id[pid] = dict(gp)
+        else:
+            if (sp.get("updated_at") or "") > (gp.get("updated_at") or ""):
+                by_id[pid] = dict(sp)
+            else:
+                by_id[pid] = dict(gp)
+
+    posts = sorted(by_id.values(), key=lambda x: x.get("scheduled_time", ""))
+    res = {"posts": posts}
+    if deleted_ids:
+        res["deleted_ids"] = sorted(deleted_ids)
+    return res
+
 def get_now_bcn():
     if ZoneInfo:
         try:
@@ -65,20 +184,29 @@ def load_schedule_db():
     with LOCK:
         # 1. Try remote GCS if on Cloud Run
         gcp_token = get_gcp_token()
-        if gcp_token and GCS_BUCKET:
+        if gcp_token and GCS_BUCKET and ensure_gcs_bucket(gcp_token):
             try:
                 gcs_url = f"https://storage.googleapis.com/storage/v1/b/{GCS_BUCKET}/o/instagram_schedule.json?alt=media"
                 r = requests.get(gcs_url, headers={"Authorization": f"Bearer {gcp_token}"}, timeout=2.5)
                 if r.status_code == 200:
-                    data = r.json()
-                    # Cache locally
+                    data = merge_schedule_data(r.json(), _GIT_SEED_DATA)
                     try:
                         with open(SCHEDULE_DB_PATH, "w", encoding="utf-8") as f:
                             json.dump(data, f, indent=2)
                     except Exception:
                         pass
                     return data
+                elif r.status_code == 404:
+                    # Seed GCS bucket on first run
+                    upload_url = f"https://storage.googleapis.com/upload/storage/v1/b/{GCS_BUCKET}/o?uploadType=media&name=instagram_schedule.json"
+                    requests.post(
+                        upload_url,
+                        headers={"Authorization": f"Bearer {gcp_token}", "Content-Type": "application/json"},
+                        data=json.dumps(_GIT_SEED_DATA),
+                        timeout=3.0,
+                    )
             except Exception as e:
+                _GCS_STATE["last_error"] = str(e)
                 print(f"⚠️ GCS load error (using local cache): {e}")
 
         # 2. Local fallback
@@ -104,12 +232,16 @@ def save_schedule_db(data):
 
         # 2. Sync to GCS if on Cloud Run
         gcp_token = get_gcp_token()
-        if gcp_token and GCS_BUCKET:
+        if gcp_token and GCS_BUCKET and ensure_gcs_bucket(gcp_token):
             try:
                 upload_url = f"https://storage.googleapis.com/upload/storage/v1/b/{GCS_BUCKET}/o?uploadType=media&name=instagram_schedule.json"
                 payload = json.dumps(data)
-                requests.post(upload_url, headers={"Authorization": f"Bearer {gcp_token}", "Content-Type": "application/json"}, data=payload, timeout=3.0)
+                r = requests.post(upload_url, headers={"Authorization": f"Bearer {gcp_token}", "Content-Type": "application/json"}, data=payload, timeout=3.0)
+                if r.status_code not in (200, 201):
+                    _GCS_STATE["last_error"] = f"GCS save HTTP {r.status_code}: {r.text[:200]}"
+                    print(f"⚠️ {_GCS_STATE['last_error']}")
             except Exception as e:
+                _GCS_STATE["last_error"] = str(e)
                 print(f"⚠️ GCS save error: {e}")
 
 def acquire_publish_lock(post_id):
@@ -441,7 +573,7 @@ def check_duplicate_reel_on_instagram(caption, account_id, token):
         print(f"Error checking duplicate: {e}")
     return None
 
-def check_duplicate_stories_on_instagram(account_id, token, min_minutes=60):
+def check_duplicate_stories_on_instagram(account_id, token, min_minutes=2):
     """Checks if stories were already published on Instagram within min_minutes ago."""
     try:
         import requests
@@ -549,10 +681,10 @@ def execute_publish_job(post, base_request_url=""):
 
         # 4. Stories
         if post_type in ["story_parts", "both"]:
-            dup_s_id = check_duplicate_stories_on_instagram(account_id, token, min_minutes=60)
+            dup_s_id = check_duplicate_stories_on_instagram(account_id, token, min_minutes=2)
             if dup_s_id:
                 published_media_id = dup_s_id
-                log(f"⚠️ Deduplication Guard: Stories were already published within last 60m (Media ID: {dup_s_id}). Skipping duplicate publish.")
+                log(f"⚠️ Deduplication Guard: Stories were already published within last 2m (Media ID: {dup_s_id}). Skipping duplicate publish.")
             elif story1 and story2:
                 log("Publishing 2-Part Synchronized Stories...")
                 log("   [1/2] Publishing Story Part 1...")
@@ -573,10 +705,10 @@ def execute_publish_job(post, base_request_url=""):
                 log(f"   ✅ Story Part 2 published! Media ID: {s2_id}")
 
         elif post_type == "story_single":
-            dup_s_id = check_duplicate_stories_on_instagram(account_id, token, min_minutes=60)
+            dup_s_id = check_duplicate_stories_on_instagram(account_id, token, min_minutes=2)
             if dup_s_id:
                 published_media_id = dup_s_id
-                log(f"⚠️ Deduplication Guard: A story was already published within last 60m (Media ID: {dup_s_id}). Skipping duplicate publish.")
+                log(f"⚠️ Deduplication Guard: A story was already published within last 2m (Media ID: {dup_s_id}). Skipping duplicate publish.")
                 release_publish_lock(post_id, media_id=dup_s_id, success=True)
                 return True, logs
             target = primary or story1
@@ -597,8 +729,112 @@ def execute_publish_job(post, base_request_url=""):
         log(f"❌ Execution failed: {e}")
         return False, logs
 
+def is_placeholder_post(post):
+    if not post:
+        return False
+    if post.get("status") == "placeholder" or post.get("is_placeholder") is True:
+        return True
+    title_u = (post.get("title") or "").upper()
+    cap_u = (post.get("caption") or "").upper()
+    return "PLACEHOLDER" in title_u or "PLACEHOLDER" in cap_u
+
+def reconcile_schedule_with_meta(db):
+    """Reconciles past/pending scheduled or missed posts with live Instagram media & publish locks."""
+    changed = False
+    posts = db.get("posts", [])
+    candidates = [
+        p for p in posts
+        if p.get("status") in ("scheduled", "missed", "failed", "publishing")
+        and not is_placeholder_post(p)
+    ]
+    if not candidates:
+        return False
+
+    gcp_token = get_gcp_token()
+    bcn_tz = ZoneInfo("Europe/Madrid") if ZoneInfo else datetime.timezone(datetime.timedelta(hours=1))
+
+    # 1. Recover from local / GCS completion locks (covers stories as well as reels)
+    for p in candidates:
+        pid = p.get("id")
+        if not pid:
+            continue
+        lock_data = None
+        tmp_lock = f"/tmp/lock_{pid}.json"
+        if os.path.exists(tmp_lock):
+            try:
+                with open(tmp_lock, "r", encoding="utf-8") as f:
+                    lock_data = json.load(f)
+            except Exception:
+                pass
+        if (not lock_data or lock_data.get("status") != "completed") and gcp_token and GCS_BUCKET and ensure_gcs_bucket(gcp_token):
+            try:
+                r = requests.get(
+                    f"https://storage.googleapis.com/storage/v1/b/{GCS_BUCKET}/o/locks%2F{pid}.json?alt=media",
+                    headers={"Authorization": f"Bearer {gcp_token}"},
+                    timeout=2.0,
+                )
+                if r.status_code == 200:
+                    lock_data = r.json()
+            except Exception:
+                pass
+        if lock_data and lock_data.get("status") == "completed":
+            p["status"] = "published"
+            if lock_data.get("media_id"):
+                p["media_id"] = lock_data["media_id"]
+            p["published_at"] = p.get("published_at") or get_now_bcn().isoformat()
+            p["logs"] = [f"🔄 Restored published state from completion lock (Media ID: {lock_data.get('media_id')})"]
+            changed = True
+
+    # 2. Recover feed/reel/carousel posts by matching Meta Graph API /{account_id}/media
+    feed_candidates = [
+        p for p in candidates
+        if p.get("status") != "published"
+        and p.get("post_type") in ("reel", "both", "photo", "carousel")
+    ]
+    if feed_candidates:
+        account_id, token = get_credentials()
+        if account_id and token:
+            try:
+                r = requests.get(
+                    f"https://graph.facebook.com/v21.0/{account_id}/media",
+                    params={"fields": "id,caption,timestamp,media_product_type,permalink", "limit": 30, "access_token": token},
+                    timeout=10,
+                )
+                if r.status_code == 200:
+                    ig_media = r.json().get("data", [])
+                    for p in feed_candidates:
+                        sched_dt = parse_iso_timestamp(p.get("scheduled_time"))
+                        if not sched_dt:
+                            continue
+                        if sched_dt.tzinfo is None:
+                            sched_dt = sched_dt.replace(tzinfo=bcn_tz)
+                        cap_prefix = re.sub(r"\s+", " ", (p.get("caption") or "").strip()).lower()[:35]
+                        if len(cap_prefix) < 12:
+                            continue
+                        for m in ig_media:
+                            m_dt = parse_iso_timestamp(m.get("timestamp"))
+                            if not m_dt:
+                                continue
+                            delta_sec = (m_dt.astimezone(datetime.timezone.utc) - sched_dt.astimezone(datetime.timezone.utc)).total_seconds()
+                            if -7200 <= delta_sec <= 43200:
+                                m_cap = re.sub(r"\s+", " ", (m.get("caption") or "").strip()).lower()
+                                if cap_prefix in m_cap:
+                                    p["status"] = "published"
+                                    p["media_id"] = m.get("id")
+                                    if m.get("permalink"):
+                                        p["permalink"] = m["permalink"]
+                                    p["published_at"] = m.get("timestamp")
+                                    p["logs"] = [f"🔄 Reconciled from Meta Graph API: Already live on Instagram (Media ID: {m.get('id')})"]
+                                    changed = True
+                                    break
+            except Exception as e:
+                print(f"⚠️ Meta reconciliation error: {e}")
+
+    return changed
+
 def background_scheduler_worker():
     print("⏰ [Online Social Scheduler] Background daemon thread started...")
+    did_startup_reconcile = False
     while True:
         try:
             # Randomized jitter so two parallel containers during deployment do not collide
@@ -609,8 +845,17 @@ def background_scheduler_worker():
             db = load_schedule_db()
             posts = db.get("posts", [])
             modified = False
+            checked_meta_this_cycle = False
+
+            if not did_startup_reconcile:
+                if reconcile_schedule_with_meta(db):
+                    modified = True
+                did_startup_reconcile = True
+                checked_meta_this_cycle = True
 
             for p in posts:
+                if is_placeholder_post(p):
+                    continue
                 if p.get("status") == "scheduled":
                     sched_time = p.get("scheduled_time")
                     if sched_time and sched_time <= now_str:
@@ -631,6 +876,13 @@ def background_scheduler_worker():
                                 p["published_at"] = get_now_bcn().isoformat()
                                 modified = True
                             elif diff_sec > 300:
+                                # Double-check Meta & GCS locks before marking missed
+                                if not checked_meta_this_cycle:
+                                    checked_meta_this_cycle = True
+                                    if reconcile_schedule_with_meta(db):
+                                        modified = True
+                                    if p.get("status") == "published":
+                                        continue
                                 # Over 5 minutes late: mark MISSED, do NOT publish late
                                 print(f"⚠️ [Online Scheduler] Post '{p.get('title')}' is {int(diff_sec/60)} minutes late. Marked as missed to protect algorithm.")
                                 p["status"] = "missed"
@@ -752,6 +1004,9 @@ def delete_schedule(post_id):
     db = load_schedule_db()
     posts = [p for p in db.get("posts", []) if p.get("id") != post_id]
     db["posts"] = posts
+    deleted = db.setdefault("deleted_ids", [])
+    if post_id not in deleted:
+        deleted.append(post_id)
     save_schedule_db(db)
     return jsonify({"success": True, "deleted_id": post_id})
 
@@ -781,12 +1036,17 @@ def scheduler_status():
     db = load_schedule_db()
     scheduled_count = sum(1 for p in db.get("posts", []) if p.get("status") == "scheduled")
     published_count = sum(1 for p in db.get("posts", []) if p.get("status") == "published")
+    missed_count = sum(1 for p in db.get("posts", []) if p.get("status") == "missed")
     return jsonify({
         "server_time_bcn": get_now_bcn().strftime("%Y-%m-%d %H:%M:%S"),
         "account_id": f"{account_id[:6]}...{account_id[-4:]}" if account_id and len(account_id) > 10 else (account_id or "Not Configured"),
         "has_token": bool(token),
         "scheduled_count": scheduled_count,
         "published_count": published_count,
+        "missed_count": missed_count,
+        "gcs_bucket": GCS_BUCKET,
+        "gcs_ok": _GCS_STATE["bucket_ok"],
+        "gcs_last_error": _GCS_STATE["last_error"],
         "daemon_running": True
     })
 
