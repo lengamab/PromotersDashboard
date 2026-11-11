@@ -25,6 +25,85 @@ def parse_iso_timestamp(ts_str):
     except Exception:
         return None
 
+MAX_INSTAGRAM_HASHTAGS = 4
+SELF_IG_HANDLES = {"la_french_bcn", "lafrenchbcn"}
+LEGACY_HANDLE_ALIASES = {
+    "lafiraprovenca": "lafiraprovenza",
+    "la_fira_villaroel": "lafiravillarroel",
+    "kubarcelona": "kubarcelonaclub",
+    "whotelbarcelona": "wbarcelona",
+}
+
+def normalize_user_tags(raw_tags, as_at_prefixed=True):
+    """Normalizes, maps legacy aliases, removes self handles, deduplicates, and caps at 20."""
+    if not raw_tags:
+        return []
+    if isinstance(raw_tags, str):
+        items = [x.strip() for x in re.split(r"[\s,]+", raw_tags) if x.strip()]
+    else:
+        items = list(raw_tags)
+
+    cleaned = []
+    seen = set()
+    for item in items:
+        h = str(item or "").strip().lstrip("@").lower()
+        h = re.sub(r"[^a-z0-9._]", "", h)
+        if not h:
+            continue
+        h = LEGACY_HANDLE_ALIASES.get(h, h)
+        if h in SELF_IG_HANDLES or h in seen:
+            continue
+        seen.add(h)
+        cleaned.append(f"@{h}" if as_at_prefixed else h)
+        if len(cleaned) >= 20:
+            break
+    return cleaned
+
+def sanitize_instagram_post_copy(caption, user_tags=None, max_hashtags=MAX_INSTAGRAM_HASHTAGS):
+    """
+    Moves any @mentions out of caption into user_tags (dropping self handles)
+    and strictly limits hashtags in the caption to at most max_hashtags (default 4).
+    """
+    cap = (caption or "").strip()
+    existing_tags = normalize_user_tags(user_tags, as_at_prefixed=False)
+
+    # Extract @mentions from caption (without matching emails like user@domain.com)
+    mention_handles = [m.group(1) for m in re.finditer(r"(?<![A-Za-z0-9._])@([A-Za-z0-9._]+)", cap)]
+    merged_tags = normalize_user_tags(existing_tags + mention_handles, as_at_prefixed=True)
+
+    # Remove @mentions from caption cleanly
+    if mention_handles:
+        # Remove lines that only list @mentions
+        cap = re.sub(r"(?m)^[ \t]*(?:👥|🏷️|Tags?:)?[ \t]*(?:@[A-Za-z0-9._]+[ \t,]*)+$", "", cap)
+        # Clean common prepositions immediately preceding self-mentions
+        cap = re.sub(r"[ \t]*\b(?:to|with|at|on|via)[ \t]+@(?:la_?french_?bcn|lafrenchbcn)\b", "", cap, flags=re.IGNORECASE)
+        # Strip any remaining @mentions
+        cap = re.sub(r"(?<![A-Za-z0-9._])@[A-Za-z0-9._]+", "", cap)
+        # Normalize horizontal spacing line by line without mangling newlines
+        lines = []
+        for ln in cap.splitlines():
+            ln = re.sub(r"[ \t]{2,}", " ", ln)
+            ln = re.sub(r"[ \t]+([!?,.;:])", r"\1", ln)
+            lines.append(ln.rstrip())
+        cap = "\n".join(lines)
+
+    # Strictly cap hashtags to first max_hashtags occurrences
+    matches = list(re.finditer(r"#\w+", cap))
+    if len(matches) > max_hashtags:
+        cut_spans = [(m.start(), m.end()) for m in matches[max_hashtags:]]
+        out_parts = []
+        cursor = 0
+        for start, end in cut_spans:
+            seg = cap[cursor:start]
+            seg = re.sub(r"[ \t]+$", "", seg)
+            out_parts.append(seg)
+            cursor = end
+        out_parts.append(cap[cursor:])
+        cap = "".join(out_parts)
+
+    cap = re.sub(r"\n[ \t]*\n(?:[ \t]*\n)+", "\n\n", cap).strip()
+    return cap, merged_tags
+
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
@@ -396,8 +475,89 @@ def get_public_url(rel_or_filename, base_request_url=""):
 
     raise FileNotFoundError(f"Asset not found: {filename}")
 
-def publish_reel_meta(video_url, caption, cover_url=None, user_tags=None, account_id=None, token=None):
-    import requests
+def _format_user_tags_payload(handles, include_xy=False):
+    if not include_xy:
+        return [{"username": h} for h in handles]
+    tagged = []
+    for i, h in enumerate(handles):
+        x = round(min(0.85, max(0.15, 0.2 + (i % 4) * 0.2)), 2)
+        y = round(min(0.85, max(0.15, 0.25 + (i // 4) * 0.12)), 2)
+        tagged.append({"username": h, "x": x, "y": y})
+    return tagged
+
+def _create_container_with_resilient_tags(graph_url, base_payload, raw_tags=None, include_xy=False, log_fn=None):
+    """Creates a Meta media container, retrying without invalid/private user_tags (2207018) while keeping all valid tags."""
+    current_tags = normalize_user_tags(raw_tags, as_at_prefixed=False)
+    skipped_tags = []
+
+    while True:
+        payload = dict(base_payload)
+        if current_tags:
+            payload["user_tags"] = json.dumps(_format_user_tags_payload(current_tags, include_xy=include_xy))
+        r = requests.post(graph_url, data=payload, timeout=30)
+        if r.status_code == 200:
+            if log_fn:
+                if current_tags:
+                    log_fn(f"👥 Tagged accounts attached: {', '.join('@' + h for h in current_tags)}")
+                if skipped_tags:
+                    log_fn(f"ℹ️ Skipped un-taggable/private accounts: {', '.join('@' + h for h in skipped_tags)}")
+            return r
+
+        try:
+            err = r.json().get("error", {})
+        except Exception:
+            err = {}
+        subcode = err.get("error_subcode")
+        user_msg = err.get("error_user_msg", "")
+
+        if subcode == 2207018 and current_tags:
+            bad_handles = []
+            if ":" in user_msg:
+                tail = user_msg.split(":")[-1]
+                for cand in re.split(r"[,;\n]+", tail):
+                    h = cand.strip().lstrip("@").lower()
+                    h = re.sub(r"[^a-z0-9._]", "", h)
+                    if h in current_tags:
+                        bad_handles.append(h)
+            if bad_handles:
+                for b in bad_handles:
+                    if b not in skipped_tags:
+                        skipped_tags.append(b)
+                current_tags = [h for h in current_tags if h not in bad_handles]
+                continue
+            # Fallback if error_user_msg format wasn't parseable: probe individually when list is small
+            if len(current_tags) > 1 and len(current_tags) <= 15:
+                valid_subset = []
+                for h in current_tags:
+                    probe_payload = dict(base_payload)
+                    probe_payload["user_tags"] = json.dumps(_format_user_tags_payload([h], include_xy=include_xy))
+                    pr = requests.post(graph_url, data=probe_payload, timeout=15)
+                    if pr.status_code == 200:
+                        valid_subset.append(h)
+                    elif h not in skipped_tags:
+                        skipped_tags.append(h)
+                if len(valid_subset) < len(current_tags):
+                    current_tags = valid_subset
+                    continue
+            skipped_tags.extend([h for h in current_tags if h not in skipped_tags])
+            current_tags = []
+            continue
+
+        if subcode == 2207064 and include_xy and current_tags:
+            # Video rejected x/y coordinates; retry without x/y
+            include_xy = False
+            continue
+
+        if current_tags and "user_tags" in payload and ("user_tags" in r.text.lower() or subcode in (2207018, 2207064)):
+            if log_fn:
+                log_fn(f"⚠️ Dropping user_tags after Meta rejection ({r.text[:160]})")
+            skipped_tags.extend([h for h in current_tags if h not in skipped_tags])
+            current_tags = []
+            continue
+
+        return r
+
+def publish_reel_meta(video_url, caption, cover_url=None, user_tags=None, account_id=None, token=None, log_fn=None):
     graph_url = f"https://graph.facebook.com/v21.0/{account_id}/media"
     payload = {
         "media_type": "REELS",
@@ -409,28 +569,10 @@ def publish_reel_meta(video_url, caption, cover_url=None, user_tags=None, accoun
     if cover_url:
         payload["cover_url"] = cover_url
 
-    if user_tags:
-        valid_tags = []
-        for tag in user_tags:
-            h = tag.lstrip("@").strip()
-            if h:
-                valid_tags.append({"username": h, "x": 0.5, "y": 0.5})
-        if valid_tags:
-            # Tag handles
-            for tag_attempt in [valid_tags, valid_tags[:8], []]:
-                if tag_attempt:
-                    payload["user_tags"] = json.dumps(tag_attempt)
-                else:
-                    payload.pop("user_tags", None)
-                r = requests.post(graph_url, data=payload, timeout=30)
-                if r.status_code == 200:
-                    break
-            if r.status_code != 200:
-                raise RuntimeError(f"Reel container creation failed: {r.text}")
-    else:
-        r = requests.post(graph_url, data=payload, timeout=30)
-        if r.status_code != 200:
-            raise RuntimeError(f"Reel container creation failed: {r.text}")
+    # Meta Graph API forbids x/y coordinates on REELS user_tags (error_subcode 2207064)
+    r = _create_container_with_resilient_tags(graph_url, payload, user_tags, include_xy=False, log_fn=log_fn)
+    if r.status_code != 200:
+        raise RuntimeError(f"Reel container creation failed: {r.text}")
 
     container_id = r.json().get("id")
     if not container_id:
@@ -494,11 +636,10 @@ def publish_story_meta(media_url, is_video=True, account_id=None, token=None):
 
     return pub_data["id"]
 
-def publish_carousel_meta(items_urls, caption, account_id=None, token=None):
-    import requests, time
+def publish_carousel_meta(items_urls, caption, user_tags=None, account_id=None, token=None, log_fn=None):
     graph_url = f"https://graph.facebook.com/v21.0/{account_id}/media"
     item_ids = []
-    for url in items_urls:
+    for idx, url in enumerate(items_urls):
         is_video = url.lower().endswith((".mp4", ".mov"))
         payload = {
             "is_carousel_item": "true",
@@ -509,7 +650,13 @@ def publish_carousel_meta(items_urls, caption, account_id=None, token=None):
             payload["video_url"] = url
         else:
             payload["image_url"] = url
-        r = requests.post(graph_url, data=payload, timeout=30)
+        # Attach user_tags to the first carousel slide item
+        if idx == 0 and user_tags:
+            r = _create_container_with_resilient_tags(
+                graph_url, payload, user_tags, include_xy=(not is_video), log_fn=log_fn
+            )
+        else:
+            r = requests.post(graph_url, data=payload, timeout=30)
         if r.status_code != 200:
             raise RuntimeError(f"Carousel item container failed for {url}: {r.text}")
         item_ids.append(r.json().get("id"))
@@ -537,15 +684,14 @@ def publish_carousel_meta(items_urls, caption, account_id=None, token=None):
         raise RuntimeError(f"Carousel publish failed: {pub_data}")
     return pub_data["id"]
 
-def publish_photo_meta(image_url, caption, account_id=None, token=None):
-    import requests
+def publish_photo_meta(image_url, caption, user_tags=None, account_id=None, token=None, log_fn=None):
     graph_url = f"https://graph.facebook.com/v21.0/{account_id}/media"
     payload = {
         "image_url": image_url,
         "caption": caption,
         "access_token": token
     }
-    r = requests.post(graph_url, data=payload, timeout=30)
+    r = _create_container_with_resilient_tags(graph_url, payload, user_tags, include_xy=True, log_fn=log_fn)
     if r.status_code != 200:
         raise RuntimeError(f"Photo container creation failed: {r.text}")
 
@@ -626,12 +772,15 @@ def execute_publish_job(post, base_request_url=""):
         return False, logs
 
     post_type = post.get("post_type", "reel")
-    caption = post.get("caption", "").strip()
+    raw_caption = post.get("caption", "").strip()
+    raw_user_tags = post.get("user_tags", [])
+    caption, user_tags = sanitize_instagram_post_copy(raw_caption, raw_user_tags)
+    post["caption"] = caption
+    post["user_tags"] = user_tags
     primary = post.get("primary_media")
     cover = post.get("cover_media")
     story1 = post.get("story_part1")
     story2 = post.get("story_part2")
-    user_tags = post.get("user_tags", [])
     published_media_id = None
 
     try:
@@ -660,7 +809,7 @@ def execute_publish_job(post, base_request_url=""):
                         log(f"Cover URL skipped: {ec}")
 
                 log(f"Creating Reel container on Instagram Account {account_id}...")
-                reel_id = publish_reel_meta(video_url, caption, cover_url, user_tags, account_id, token)
+                reel_id = publish_reel_meta(video_url, caption, cover_url, user_tags, account_id, token, log_fn=log)
                 published_media_id = reel_id
                 log(f"✅ Reel successfully published! Media ID: {reel_id}")
 
@@ -671,7 +820,7 @@ def execute_publish_job(post, base_request_url=""):
                 release_publish_lock(post_id, success=False)
                 return False, logs
             image_url = get_public_url(primary, base_request_url)
-            photo_id = publish_photo_meta(image_url, caption, account_id, token)
+            photo_id = publish_photo_meta(image_url, caption, user_tags, account_id, token, log_fn=log)
             published_media_id = photo_id
             log(f"✅ Photo successfully published! Media ID: {photo_id}")
 
@@ -686,7 +835,7 @@ def execute_publish_job(post, base_request_url=""):
                 return False, logs
             log(f"Publishing Carousel with {len(items)} slides...")
             pub_urls = [get_public_url(x, base_request_url) for x in items]
-            cid = publish_carousel_meta(pub_urls, caption, account_id, token)
+            cid = publish_carousel_meta(pub_urls, caption, user_tags, account_id, token, log_fn=log)
             published_media_id = cid
             log(f"✅ Carousel successfully published! Media ID: {cid}")
 
@@ -1196,6 +1345,11 @@ def save_schedule():
         data["created_at"] = get_now_bcn().isoformat()
     if "status" not in data:
         data["status"] = "scheduled"
+
+    clean_caption, clean_tags = sanitize_instagram_post_copy(data.get("caption", ""), data.get("user_tags", []))
+    data["caption"] = clean_caption
+    if clean_tags or "user_tags" in data:
+        data["user_tags"] = clean_tags
 
     db = load_schedule_db()
     posts = db.get("posts", [])

@@ -7,7 +7,7 @@ const IG_API_BASE = '/api/ig-proxy';
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadInstagramData();
-    
+
     // Attach event listener to Synergy button
     const btnSynergy = document.getElementById('btn-generate-synergy');
     if (btnSynergy) {
@@ -36,24 +36,24 @@ async function loadInstagramData() {
     try {
         // Step 1: Get the IG Account ID (if not cached)
         let igAccountId = localStorage.getItem(IG_ACCOUNT_ID_KEY);
-        
+
         if (!igAccountId) {
             // Fetch FB Pages
             const pagesRes = await fetch(`${IG_API_BASE}/me/accounts`);
             const pagesData = await pagesRes.json();
-            
+
             if (pagesData.error) throw new Error(pagesData.error.message);
             if (!pagesData.data || pagesData.data.length === 0) throw new Error("No Facebook Pages found.");
-            
+
             const pageId = pagesData.data[0].id;
-            
+
             // Fetch connected IG Account
             const igRes = await fetch(`${IG_API_BASE}/${pageId}?fields=instagram_business_account`);
             const igData = await igRes.json();
-            
+
             if (igData.error) throw new Error(igData.error.message);
             if (!igData.instagram_business_account) throw new Error("No Instagram Business Account linked to the Facebook Page.");
-            
+
             igAccountId = igData.instagram_business_account.id;
             localStorage.setItem(IG_ACCOUNT_ID_KEY, igAccountId);
         }
@@ -61,24 +61,24 @@ async function loadInstagramData() {
         // Step 2: Fetch Profile Data
         const profileRes = await fetch(`${IG_API_BASE}/${igAccountId}?fields=username,followers_count,media_count,name`);
         const profileData = await profileRes.json();
-        
+
         if (profileData.error) throw new Error(profileData.error.message);
-        
+
         // Update UI Profile
         document.getElementById('profile-handle').textContent = `@${profileData.username}`;
         document.getElementById('kpi-followers').textContent = profileData.followers_count.toLocaleString();
         document.getElementById('kpi-media-count').textContent = profileData.media_count.toLocaleString();
-        
+
         // Initialize context for AI
         window.currentInstagramContext = `Instagram Account: @${profileData.username}\nFollowers: ${profileData.followers_count}\nTotal Posts: ${profileData.media_count}\n\n`;
-        
+
         // Note: Profile Views and Reach require the 'insights' edge which has specific metric parameters.
         // For now, we simulate or show pending as we need 28 day metrics which requires a more complex query.
         fetchInsights(igAccountId);
-        
+
         // Step 3: Fetch Recent Media
         await loadRecentMedia(igAccountId);
-        
+
     } catch (error) {
         console.error("Error loading Instagram data:", error);
         alert(`Failed to load Instagram data: ${error.message}\n\nPlease check your backend configuration.`);
@@ -90,15 +90,15 @@ async function fetchInsights(igAccountId) {
         // Fetch 28 day reach (requires daily values sum)
         const reachRes = await fetch(`${IG_API_BASE}/${igAccountId}/insights?metric=reach&period=day`);
         const reachData = await reachRes.json();
-        
+
         let totalReach = 0;
         if (reachData.data && reachData.data.length > 0) {
             const values = reachData.data[0].values;
             if (values) {
                 totalReach = values.reduce((sum, val) => sum + val.value, 0);
                 document.getElementById('kpi-reach').textContent = totalReach.toLocaleString();
-                if(window.currentInstagramContext) window.currentInstagramContext += `Account Reach (last 28d): ${totalReach}\n`;
-                
+                if (window.currentInstagramContext) window.currentInstagramContext += `Account Reach (last 28d): ${totalReach}\n`;
+
                 // --- Reach Chart logic ---
                 const reachCtx = document.getElementById('reachChart').getContext('2d');
                 const reachLabels = values.map(v => {
@@ -107,11 +107,11 @@ async function fetchInsights(igAccountId) {
                     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
                 });
                 const reachValues = values.map(v => v.value);
-                
+
                 if (window.reachChartInstance) {
                     window.reachChartInstance.destroy();
                 }
-                
+
                 window.reachChartInstance = new Chart(reachCtx, {
                     type: 'bar',
                     data: {
@@ -148,15 +148,15 @@ async function fetchInsights(igAccountId) {
         } else {
             document.getElementById('kpi-reach').textContent = "N/A";
         }
-        
+
         // Fetch 28 day profile views (requires total_value metric_type)
         const pvRes = await fetch(`${IG_API_BASE}/${igAccountId}/insights?metric=profile_views&metric_type=total_value&period=day`);
         const pvData = await pvRes.json();
-        
+
         if (pvData.data && pvData.data.length > 0) {
             const totalViews = pvData.data[0].total_value.value;
             document.getElementById('kpi-profile-views').textContent = totalViews.toLocaleString();
-            if(window.currentInstagramContext) window.currentInstagramContext += `Profile Views (last 28d): ${totalViews}\n\n`;
+            if (window.currentInstagramContext) window.currentInstagramContext += `Profile Views (last 28d): ${totalViews}\n\n`;
         } else {
             document.getElementById('kpi-profile-views').textContent = "N/A";
         }
@@ -170,43 +170,43 @@ async function fetchInsights(igAccountId) {
 
 async function loadRecentMedia(accountId = null) {
     const igAccountId = accountId || localStorage.getItem(IG_ACCOUNT_ID_KEY);
-    
+
     if (!igAccountId) return;
-    
+
     const grid = document.getElementById('media-grid');
     grid.innerHTML = '<div style="padding: 40px; text-align: center; width: 100%; grid-column: 1 / -1; color: var(--text-secondary);"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading latest posts...</div>';
-    
+
     try {
         const mediaRes = await fetch(`${IG_API_BASE}/${igAccountId}/media?fields=id,caption,media_type,media_url,thumbnail_url,like_count,comments_count,timestamp,permalink&limit=12`);
         const mediaData = await mediaRes.json();
-        
+
         if (mediaData.error) throw new Error(mediaData.error.message);
-        
+
         const posts = mediaData.data;
         if (!posts || posts.length === 0) {
             grid.innerHTML = '<div style="padding: 40px; text-align: center; width: 100%; grid-column: 1 / -1; color: var(--text-secondary);">No posts found on this account.</div>';
-            if(window.currentInstagramContext) window.currentInstagramContext += "Recent Posts: None found.\n";
+            if (window.currentInstagramContext) window.currentInstagramContext += "Recent Posts: None found.\n";
             return;
         }
-        
+
         grid.innerHTML = '';
-        if(window.currentInstagramContext) window.currentInstagramContext += "Recent Posts Performance:\n";
-        
+        if (window.currentInstagramContext) window.currentInstagramContext += "Recent Posts Performance:\n";
+
         posts.forEach(post => {
             const card = document.createElement('div');
             card.className = 'media-card';
-            
+
             // Format date
             const date = new Date(post.timestamp);
             const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-            
+
             // Media Image
             const imgUrl = post.media_type === 'VIDEO' ? post.thumbnail_url : post.media_url;
             const icon = post.media_type === 'VIDEO' ? '<i class="fa-solid fa-play"></i>' : (post.media_type === 'CAROUSEL_ALBUM' ? '<i class="fa-solid fa-layer-group"></i>' : '<i class="fa-solid fa-image"></i>');
-            
+
             // Truncate caption safely
             const caption = post.caption ? post.caption : "No caption";
-            
+
             card.innerHTML = `
                 <div class="media-img-container">
                     <img src="${imgUrl}" alt="Instagram Post" onerror="this.src='data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22280%22%20height%3D%22280%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20280%20280%22%20preserveAspectRatio%3D%22none%22%3E%3Crect%20width%3D%22280%22%20height%3D%22280%22%20fill%3D%22%232a2a35%22%20%2F%3E%3Ctext%20x%3D%22140%22%20y%3D%22140%22%20fill%3D%22%23777%22%20font-family%3D%22sans-serif%22%20font-size%3D%2214%22%20text-anchor%3D%22middle%22%3EImage Unavailable%3C%2Ftext%3E%3C%2Fsvg%3E'">
@@ -224,17 +224,17 @@ async function loadRecentMedia(accountId = null) {
                     <a href="${post.permalink}" target="_blank" style="color: #c084fc; text-decoration: none; font-size: 0.9em; font-weight: 600; display: block; text-align: center;">View on Instagram <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.8em;"></i></a>
                 </div>
             `;
-            
+
             grid.appendChild(card);
-            
-            if(window.currentInstagramContext) {
+
+            if (window.currentInstagramContext) {
                 window.currentInstagramContext += `- [${dateStr}] [${post.media_type}] Likes: ${post.like_count}, Comments: ${post.comments_count}. Caption snippet: "${caption.substring(0, 100).replace(/\n/g, ' ')}..."\n`;
             }
         });
-        
+
         // --- Engagement Chart logic ---
         const ctx = document.getElementById('engagementChart').getContext('2d');
-        
+
         // Reverse posts so oldest is on the left, newest on right for the chart
         const chartPosts = [...posts].reverse();
         const labels = chartPosts.map(p => new Date(p.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
@@ -306,7 +306,7 @@ async function loadRecentMedia(accountId = null) {
                 }
             }
         });
-        
+
     } catch (error) {
         console.error("Error loading media:", error);
         grid.innerHTML = `<div style="padding: 40px; text-align: center; width: 100%; grid-column: 1 / -1; color: #ff6b6b;">Error loading posts: ${error.message}</div>`;
@@ -322,9 +322,9 @@ let onlineScheduleData = { posts: [] };
 let activeSchedulerView = 'calendar';
 
 const SCHED_DEFAULT_TAGS = [
-    "@opiumbarcelona", "@suttonbarcelona", "@shokobarcelona", "@kubarcelona",
-    "@downtownbarcelona", "@beuhrice", "@lucile_bcn", "@cyruslafrench",
-    "@flore_sbd", "@armand.cprn", "@mael_lafrench"
+    "@opiumbarcelona", "@suttonbarcelona", "@shokobarcelona", "@kubarcelonaclub",
+    "@downtownbarcelona", "@twentiesbarcelona", "@lafiravillarroel", "@beuhrice",
+    "@lucile_bcn", "@cyruslafrench", "@flore_sbd", "@armand.cprn", "@mael_lafrench"
 ];
 
 function getSchedMonday(d) {
@@ -531,7 +531,7 @@ function renderOnlineCalendarGrid() {
             const dayDateStr = formatSchedYMD(days[dayIdx]);
             const cell = document.createElement('div');
             cell.className = `cal-hour-cell ${isPrime ? 'prime-hour' : ''}`;
-            
+
             cell.onclick = (e) => {
                 if (e.target.closest('.sched-pill')) return;
                 openOnlineComposerModal({ date: dayDateStr, time: `${String(hour).padStart(2, '0')}:00` });
@@ -547,9 +547,9 @@ function renderOnlineCalendarGrid() {
             matching.forEach(p => {
                 const pill = document.createElement('div');
                 const isPlaceholder = p.status === 'placeholder' ||
-                                      p.is_placeholder === true ||
-                                      (p.title || '').toUpperCase().includes('PLACEHOLDER') ||
-                                      (p.caption || '').toUpperCase().includes('PLACEHOLDER');
+                    p.is_placeholder === true ||
+                    (p.title || '').toUpperCase().includes('PLACEHOLDER') ||
+                    (p.caption || '').toUpperCase().includes('PLACEHOLDER');
 
                 let statusClass = 'ready';
                 let icon = '<i class="fa-solid fa-circle-play" style="color: #60a5fa; flex-shrink: 0;" title="Ready to post"></i>';
@@ -635,9 +635,9 @@ function renderOnlineQueueList() {
         item.style.gap = '15px';
 
         const isPlaceholder = p.status === 'placeholder' ||
-                              p.is_placeholder === true ||
-                              (p.title || '').toUpperCase().includes('PLACEHOLDER') ||
-                              (p.caption || '').toUpperCase().includes('PLACEHOLDER');
+            p.is_placeholder === true ||
+            (p.title || '').toUpperCase().includes('PLACEHOLDER') ||
+            (p.caption || '').toUpperCase().includes('PLACEHOLDER');
 
         let statusBadge = '<span style="padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; background: rgba(59,130,246,0.18); color: #93c5fd; border: 1px solid rgba(59,130,246,0.4);">READY</span>';
         let mediaIconBg = 'rgba(59,130,246,0.1)';
@@ -939,7 +939,7 @@ function openOnlineComposerModal(initial = null) {
         document.getElementById('schedPrimaryMediaUrl').value = initial.primary_media || '';
         document.getElementById('schedStory1Url').value = initial.story_part1 || '';
         document.getElementById('schedStory2Url').value = initial.story_part2 || '';
-        
+
         if (initial.primary_media) {
             document.getElementById('primaryDropLabel').innerText = `✅ Attached: ${initial.primary_media.split('/').pop()}`;
         }
@@ -1036,8 +1036,10 @@ function setOnlinePreset(preset) {
 function updateOnlineCaptionCounts() {
     const val = document.getElementById('schedInputCaption').value;
     const chars = val.length;
-    const hashtags = (val.match(/#[a-zA-Z0-9_]+/g) || []).length;
-    document.getElementById('schedCaptionCounts').innerText = `${chars} chars · ${hashtags} hashtags`;
+    const hashtags = (val.match(/#\w+/g) || []).length;
+    const el = document.getElementById('schedCaptionCounts');
+    el.innerText = `${chars} chars · ${hashtags} / 4 hashtags (max 4, @moved to tags on save)`;
+    el.style.color = hashtags > 4 ? '#f87171' : 'var(--text-secondary)';
 }
 
 function renderSchedTagPills(selectedTags = SCHED_DEFAULT_TAGS) {
