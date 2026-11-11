@@ -351,6 +351,30 @@
       }
     },
     {
+      "id": "post_20261111_whatsapp_story_midday",
+      "title": "WhatsApp Private Community Story — Wednesday Midday",
+      "post_type": "story_single",
+      "scheduled_time": "2026-11-11T12:24",
+      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/whatsapp_story_authentic_anotr.mp4",
+      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/whatsapp_story_final.png",
+      "caption": "DM \"WHATSAPP\" to join our 800+ private student & expat community in Barcelona 🇪🇸",
+      "user_tags": [
+        "@opiumbarcelona",
+        "@suttonbarcelona",
+        "@shokobarcelona",
+        "@downtownbarcelona",
+        "@beuhrice",
+        "@lucile_bcn",
+        "@cyruslafrench",
+        "@flore_sbd",
+        "@armand.cprn",
+        "@mael_lafrench"
+      ],
+      "status": "scheduled",
+      "created_at": "2026-11-11T11:31:50.140707+01:00",
+      "updated_at": "2026-11-11T11:31:50.140707+01:00"
+    },
+    {
       "caption": "If you’re studying at UPF, ESADE, UB, TBS, UIC or currently on Erasmus in Barcelona, listen up. 🎧\n\nLa French is looking for campus ambassadors to lead their university circles at the biggest international parties in the city.\n\nLead your campus crew, get unlimited VIP guest list, free tables, and earn real cash while living your best semester in Barcelona.\n\nLimited spots available per faculty.\n\nDM us “AMBASSADOR” right now or click the link in bio to apply! 🚀\n\n#LaFrenchBCN #BarcelonaUniversity #ErasmusBarcelona #ESADE #UPFBarcelona #UniversitatDeBarcelona #TBSBarcelona #BarcelonaNightlife #CampusRep #InternationalStudentsBCN",
       "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261111_085719_20261111_amb_reel2_preview_1_hook.jpg",
       "created_at": "2026-11-11T10:34:25.063907+01:00",
@@ -447,6 +471,32 @@
       ]
     },
     {
+      "id": "post_20261112_weekend_guide_carousel",
+      "title": "Barcelona Weekend Nightlife Guide Carousel (6 Slides) — Nov 13–15",
+      "post_type": "carousel",
+      "scheduled_time": "2026-11-12T15:34",
+      "carousel_items": [
+        "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/LA_FRENCH_WEEKEND_GUIDE_NOV13_SLIDE_1.jpg",
+        "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/LA_FRENCH_WEEKEND_GUIDE_NOV13_SLIDE_2.jpg",
+        "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/LA_FRENCH_WEEKEND_GUIDE_NOV13_SLIDE_3.jpg",
+        "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/LA_FRENCH_WEEKEND_GUIDE_NOV13_SLIDE_4.jpg",
+        "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/LA_FRENCH_WEEKEND_GUIDE_NOV13_SLIDE_5.jpg",
+        "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/LA_FRENCH_WEEKEND_GUIDE_NOV13_SLIDE_6.jpg"
+      ],
+      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/LA_FRENCH_WEEKEND_GUIDE_NOV13_SLIDE_1.jpg",
+      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/LA_FRENCH_WEEKEND_GUIDE_NOV13_SLIDE_1.jpg",
+      "caption": "How to get into Barcelona's best clubs FREE this weekend 👇 (save this 📌)\n\n🎪 FRIDAY — Circus Friday: pre-party at La Fira Provença from 22:30 (2 free shots) → free entry to Twenties before 01:30\n🥂 SATURDAY — Opium / Sutton / Bling Bling: free guestlist entry + VIP tables (arrive before the cut-off!)\n🍽️ SUNDAY — Free tapas dinner at Opium from 21:00, welcome drink + live show, then the club\n\n👔 Dress code = #1 reason people get refused. Swipe to slide 5 before you go out.\n\n💬 Comment \"LIST\" and we DM you the free guestlist link\n👯 Tag the crew you're going out with\n📲 Send this to the group chat that never makes a plan\n\n#LaFrench #LaFrenchBCN #BarcelonaNightlife #ErasmusBarcelona #BarcelonaClubs #CircusParty #OpiumBarcelona #FreeGuestlist",
+      "user_tags": [
+        "@twentiesbarcelona",
+        "@lafiraprovenca",
+        "@opiumbarcelona",
+        "@suttonbarcelona"
+      ],
+      "status": "scheduled",
+      "created_at": "2026-11-11T11:31:50.140707+01:00",
+      "updated_at": "2026-11-11T11:31:50.140707+01:00"
+    },
+    {
       "caption": "🔥 TONIGHT IN BARCELONA — JUEVES! Link in bio 🥂",
       "cover_media": "https://litter.catbox.moe/cif3o6.png",
       "created_at": "2026-11-09T14:06:59.121140+01:00",
@@ -471,6 +521,18 @@
       "status": "scheduled",
       "title": "Thursday Clubs of the Day Reel [PLACEHOLDER]",
       "updated_at": "2026-11-11T10:41:51.333511+01:00"
+    },
+    {
+      "id": "post_20261112_poll_story_placeholder",
+      "title": "Interactive Poll Story — Friday Plan? [PLACEHOLDER — post manually with Poll sticker]",
+      "post_type": "story_single",
+      "scheduled_time": "2026-11-12T19:04",
+      "primary_media": "",
+      "caption": "PLACEHOLDER — Raw clip/photo from last Friday + native Instagram POLL sticker:\n\"Friday plan? 🎰 Circus Casino VIP vs 🌴 Opium / Shôko\"\nNote: Meta API cannot add poll stickers — publish this one manually from the Instagram app.",
+      "status": "scheduled",
+      "is_placeholder": true,
+      "created_at": "2026-11-11T11:31:50.140707+01:00",
+      "updated_at": "2026-11-11T11:31:50.140707+01:00"
     },
     {
       "caption": "POV: The girls group chat makes it out and we give you a free VIP table... 🍾✨\n\nCIRCUS FRIDAY · THIS FRIDAY 13 NOVEMBER 🎪\nThe ultimate Friday 2-step experience in Barcelona:\n\n📍 STEP 1: Pre-party at La Fira Provença (Carrer de Provença 171) from 22:30\n👉 2 FREE SHOTS included with your guestlist pass\n\n📍 STEP 2: Main Event at Twenties Barcelona (Carrer del Rosselló 208)\n👉 FREE ENTRY to Twenties Club\n\n👑 SPECIAL FOR GIRLS GROUPS:\nFree VIP table & bottle for girls squads! Send a DM with \"VIP\" to @lafrenchbcn to lock yours in before tables are fully booked 🥂\n\n👔 Dress Code: Elegant, Extravagant — Red, Black & Gold\n🎟️ Free Guestlist & VIP Tables: link in bio or lafrenchbcn.com\n\nSend this to your group chat and see you on Friday! 🔥\n\n#LaFrench #CircusParty #TwentiesBarcelona #LaFiraProvença #BarcelonaNightlife #ErasmusBarcelona",
@@ -551,6 +613,23 @@
       "updated_at": "2026-11-11T10:41:51.333511+01:00"
     },
     {
+      "id": "post_20261113_circus_casino_reel",
+      "title": "CIRCUS CASINO Friday 13 Nov — Main Video Reel",
+      "post_type": "reel",
+      "scheduled_time": "2026-11-13T18:47",
+      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/CIRCUS_CASINO_FRIDAY_13_NOV_REEL_1080x1920.mp4",
+      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/CIRCUS_CASINO_FRIDAY_13_NOV_COVER_1080x1920.png",
+      "caption": "🎪 TONIGHT: CIRCUS CASINO 🎰 — Friday 13 November\n\n📍 STEP 1: Pre-party at La Fira Provença from 22:30\n👉 2 FREE SHOTS with your guestlist pass\n\n📍 STEP 2: Twenties Barcelona\n👉 FREE ENTRY before 01:30 on the La French list\n\n👔 Dress code: Red, Black & Gold\n👑 Girls groups: DM \"VIP\" for a free VIP table\n\nComment \"LIST\" and we'll send you the guestlist link 🎟️\nTag who's coming with you 👇\n\n#LaFrench #CircusParty #TwentiesBarcelona #LaFiraProvença #BarcelonaNightlife #ErasmusBarcelona",
+      "user_tags": [
+        "@twentiesbarcelona",
+        "@lafiraprovenca",
+        "@lafrenchbcn"
+      ],
+      "status": "scheduled",
+      "created_at": "2026-11-11T11:31:50.140707+01:00",
+      "updated_at": "2026-11-11T11:31:50.140707+01:00"
+    },
+    {
       "caption": "We came for a 72-hour holiday.\nThat was 8 months ago.\n\nWe arrived knowing nobody with one suitcase and zero plans.\nNow our camera rolls are 90% blur and 100% pure joy.\n70+ different nationalities, all screaming the exact same beat under the laser lights.\n\nWas it just another night out?\nNot even close.\n\nThis is our youth. Live it while you’re young.\nSee you on the floor tonight. 🔥\n\nSave this reel for when you need a reminder of what Barcelona feels like.\nGuest list & VIP reservations link in bio 🥂\n\n#LaFrench #LaFrenchBCN #BarcelonaParties #BarcelonaNightlife #Hugel",
       "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261113_LA_FRENCH_BRAND_REEL_2_COVER.jpg",
       "created_at": "2026-11-09T14:07:02.263027+01:00",
@@ -561,6 +640,18 @@
       "status": "scheduled",
       "title": "La French Brand Reel 2 — We Never Went Home (Hugel Bam Bam)",
       "updated_at": "2026-11-11T10:41:51.333511+01:00"
+    },
+    {
+      "id": "post_20261114_ambassador_proof_story_placeholder",
+      "title": "Ambassador Social Proof Story [PLACEHOLDER]",
+      "post_type": "story_single",
+      "scheduled_time": "2026-11-14T12:24",
+      "primary_media": "",
+      "caption": "PLACEHOLDER — Share/screenshot of the GTA 6 Ambassador Reel (776 views, 10 comments) with text:\n\"Last spots open for Campus Ambassadors this week — DM PROMOTER\"",
+      "status": "scheduled",
+      "is_placeholder": true,
+      "created_at": "2026-11-11T11:31:50.140707+01:00",
+      "updated_at": "2026-11-11T11:31:50.140707+01:00"
     },
     {
       "caption": "DM \"WHATSAPP\" to join our 800+ private student & expat community in Barcelona 🇪🇸",
@@ -584,6 +675,18 @@
         "@mael_lafrench"
       ],
       "updated_at": "2026-11-11T10:41:51.333511+01:00"
+    },
+    {
+      "id": "post_20261114_pov_hook_reel_placeholder",
+      "title": "POV Door Price Hook Reel (6–8s loop) [PLACEHOLDER]",
+      "post_type": "reel",
+      "scheduled_time": "2026-11-14T14:07",
+      "primary_media": "",
+      "caption": "PLACEHOLDER — 6–8s loopable reel: \"POV: your friends paid at the door while you walked in FREE on the La French guestlist\"\nFast recap cuts + ANOTR / PAWSA audio. CTA: Comment \"LIST\".\n\n#LaFrench #BarcelonaNightlife #ErasmusBarcelona",
+      "status": "scheduled",
+      "is_placeholder": true,
+      "created_at": "2026-11-11T11:31:50.140707+01:00",
+      "updated_at": "2026-11-11T11:31:50.140707+01:00"
     },
     {
       "caption": "🔥 TONIGHT IN BARCELONA — SÁBADO! Link in bio 🥂",
