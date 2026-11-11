@@ -251,15 +251,15 @@
         },
         {
             "caption": "If you’re studying at UPF, ESADE, UB, TBS, UIC or currently on Erasmus in Barcelona, listen up. 🎧\n\nLa French is looking for campus ambassadors to lead their university circles at the biggest international parties in the city.\n\nLead your campus crew, get unlimited VIP guest list, free tables, and earn real cash while living your best semester in Barcelona.\n\nLimited spots available per faculty.\n\nDM us “AMBASSADOR” right now or click the link in bio to apply! 🚀\n\n#LaFrenchBCN #BarcelonaUniversity #ErasmusBarcelona #ESADE #UPFBarcelona #UniversitatDeBarcelona #TBSBarcelona #BarcelonaNightlife #CampusRep #InternationalStudentsBCN",
-            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261111_085719_20261111_amb_reel2_preview_1_hook.jpg",
-            "created_at": "2026-11-11T09:59:28.359616+01:00",
+            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/amb_reel2_preview_1_hook.jpg",
+            "created_at": "2026-11-11T10:25:54.523848+01:00",
             "id": "post_20261111_ambassador_reel2",
             "post_type": "reel",
-            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261111_085856_20261111_LA_FRENCH_AMBASSADOR_REEL_2_CAMPUS_CLOUT.mp4",
+            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/LA_FRENCH_AMBASSADOR_REEL_2_CAMPUS_CLOUT.mp4",
             "scheduled_time": "2026-11-11T13:00",
             "status": "scheduled",
             "title": "Campus Ambassador Reel 2 — Campus Clout (Calling All University Students)",
-            "updated_at": "2026-11-11T09:59:28.359595+01:00",
+            "updated_at": "2026-11-11T10:25:54.523810+01:00",
             "user_tags": [
                 "@upfbarcelona",
                 "@esade",
@@ -328,6 +328,23 @@
             ]
         },
         {
+            "caption": "Nobody warns you before you move here.\n\nFirst it’s just “one drink after work” with people you met three hours ago.\nThen suddenly it’s 4 AM, your shoes are ruined, and you’re screaming the lyrics to songs you thought you forgot.\nAnd the next thing you know... you can never live anywhere else.\n\nThey asked us why we go out every single weekend.\nBecause in this city, strangers become family on the dancefloor.\n\nTag the person who ruined every other city for you 🫂\nDrop a 🍾 below if you’re out with @lafrenchbcn this weekend!\n\nGuest list & VIP tables link in bio 📲\n\n#LaFrench #LaFrenchBCN #BarcelonaNightlife #BarcelonaErasmus #BarcelonaVibes #TwentiesBarcelona #OpiumBarcelona #PAWSA #HouseMusicBarcelona #NightlifeAnthem",
+            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261111_092502_LA_FRENCH_BRAND_REEL_PAWSA_COVER.jpg",
+            "created_at": "2026-11-11T10:25:54.801161+01:00",
+            "id": "post_20261112_brand_reel_pawsa",
+            "post_type": "reel",
+            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261111_092503_LA_FRENCH_BRAND_REEL_PAWSA_1080x1920.mp4",
+            "scheduled_time": "2026-11-12T13:00",
+            "status": "scheduled",
+            "title": "La French Signature Brand Reel — Barcelona After Dark (PAWSA)",
+            "updated_at": "2026-11-11T10:25:54.801141+01:00",
+            "user_tags": [
+                "@twentiesbarcelona",
+                "@opiumbarcelona",
+                "@lafrenchbcn"
+            ]
+        },
+        {
             "caption": "🔥 TONIGHT IN BARCELONA — JUEVES! Link in bio 🥂",
             "cover_media": "https://litter.catbox.moe/cif3o6.png",
             "created_at": "2026-11-09T14:06:59.121140+01:00",
@@ -383,6 +400,24 @@
             "updated_at": "2026-11-11T09:23:56.444620+01:00",
             "user_tags": [
                 "@twentiesbarcelona",
+                "@lafiraprovenca",
+                "@lafrenchbcn"
+            ]
+        },
+        {
+            "caption": "We came for a 72-hour holiday.\nThat was 8 months ago.\n\nWe arrived knowing nobody with one suitcase and zero plans.\nNow our camera rolls are 90% blur and 100% pure joy.\n70+ different nationalities, all screaming the exact same beat under the laser lights.\n\nWas it just another night out?\nNot even close.\n\nThis is our youth. Live it while you’re young.\nSee you on the floor tonight for Circus Friday. 🔥\n\nSave this reel for when you need a reminder of what Barcelona feels like.\nGuest list & VIP reservations link in bio 🥂\n\n#LaFrench #LaFrenchBCN #BarcelonaParties #BarcelonaNightlife #CircusParty #TwentiesBarcelona #OpiumBarcelona #ErasmusBarcelona #BarcelonaMemories",
+            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261111_092503_LA_FRENCH_BRAND_REEL_25S_COVER.jpg",
+            "created_at": "2026-11-11T10:25:55.098143+01:00",
+            "id": "post_20261113_brand_reel_25s",
+            "post_type": "reel",
+            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261111_092505_LA_FRENCH_BRAND_REEL_25S_1080x1920.mp4",
+            "scheduled_time": "2026-11-13T13:00",
+            "status": "scheduled",
+            "title": "La French Signature Brand Reel — The Signature Night (25s Master)",
+            "updated_at": "2026-11-11T10:25:55.098123+01:00",
+            "user_tags": [
+                "@twentiesbarcelona",
+                "@opiumbarcelona",
                 "@lafiraprovenca",
                 "@lafrenchbcn"
             ]
