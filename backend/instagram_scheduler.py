@@ -1305,8 +1305,35 @@ def serve_upload(filename):
 
     mime_type, _ = mimetypes.guess_type(file_path)
     mime_type = mime_type or "application/octet-stream"
+    file_size = os.path.getsize(file_path)
 
-    # Flask's send_file supports conditional range requests natively in Werkzeug without duplicate Content-Length headers
+    # Cap any single HTTP 206 slice at 8 MiB so Cloud Run's 32 MiB response limit never triggers HTTP 500 on Range: bytes=0-
+    range_header = request.headers.get("Range", "").strip()
+    if range_header:
+        m = re.match(r"bytes=(\d+)-(\d*)$", range_header)
+        if m:
+            start = int(m.group(1))
+            req_end = int(m.group(2)) if m.group(2) else (file_size - 1)
+            if start >= file_size:
+                return Response(
+                    status=416,
+                    headers={"Content-Range": f"bytes */{file_size}", "Access-Control-Allow-Origin": "*"},
+                )
+            max_chunk = 8 * 1024 * 1024
+            end = min(req_end, file_size - 1, start + max_chunk - 1)
+            length = (end - start) + 1
+            with open(file_path, "rb") as f:
+                f.seek(start)
+                chunk = f.read(length)
+            resp = Response(chunk, status=206, mimetype=mime_type, direct_passthrough=True)
+            resp.headers["Content-Range"] = f"bytes {start}-{end}/{file_size}"
+            resp.headers["Content-Length"] = str(length)
+            resp.headers["Accept-Ranges"] = "bytes"
+            resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            resp.headers["Access-Control-Allow-Origin"] = "*"
+            resp.headers["Access-Control-Allow-Headers"] = "Range, Content-Type, Accept"
+            return resp
+
     resp = send_file(file_path, mimetype=mime_type, conditional=True)
     resp.headers['Access-Control-Allow-Origin'] = '*'
     resp.headers['Access-Control-Allow-Headers'] = 'Range, Content-Type, Accept'
