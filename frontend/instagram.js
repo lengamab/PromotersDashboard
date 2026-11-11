@@ -396,6 +396,59 @@ function goToCurrentWeek() {
     renderOnlineCalendarGrid();
 }
 
+let metricsRefreshInFlight = false;
+let hasAutoRefreshedMetrics = false;
+
+function formatMetricNum(n) {
+    const num = Number(n || 0);
+    if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    return String(num);
+}
+
+function updatePublishedStatsPill(totals = {}) {
+    const pill = document.getElementById('schedPublishedStatsPill');
+    if (!pill) return;
+    const views = Number(totals.total_views || 0);
+    const likes = Number(totals.total_likes || 0);
+    const reach = Number(totals.total_reach || 0);
+    const comments = Number(totals.total_comments || 0);
+    const pubCount = Number(totals.published_count || 0);
+    const trackedCount = Number(totals.tracked_count || 0);
+    pill.innerHTML = `<i class="fa-solid fa-eye"></i> ${views.toLocaleString()} views · <i class="fa-solid fa-heart"></i> ${likes.toLocaleString()} likes <span style="opacity:0.7; font-weight:400;">(${pubCount} live)</span>`;
+    pill.title = `Published totals (${trackedCount}/${pubCount} tracked) — Reach: ${reach.toLocaleString()} | Comments: ${comments.toLocaleString()} (click to refresh)`;
+}
+
+async function fetchPublishedMetrics(force = false) {
+    if (metricsRefreshInFlight) return;
+    metricsRefreshInFlight = true;
+    const pill = document.getElementById('schedPublishedStatsPill');
+    if (force && pill) {
+        pill.style.opacity = '0.7';
+    }
+    try {
+        const res = await fetch(`/api/schedule/metrics${force ? '?refresh=1' : ''}`);
+        const data = await res.json();
+        if (data && data.success) {
+            const perPost = data.per_post || {};
+            (onlineScheduleData.posts || []).forEach(p => {
+                if (perPost[p.id]) p.metrics = perPost[p.id];
+            });
+            if (data.published_totals) {
+                onlineScheduleData.published_totals = data.published_totals;
+                updatePublishedStatsPill(data.published_totals);
+            }
+            if (activeSchedulerView === 'calendar') renderOnlineCalendarGrid();
+            if (activeSchedulerView === 'queue') renderOnlineQueueList();
+        }
+    } catch (e) {
+        console.error("Failed to fetch published metrics:", e);
+    } finally {
+        metricsRefreshInFlight = false;
+        if (pill) pill.style.opacity = '1';
+    }
+}
+
 async function fetchOnlineSchedule() {
     try {
         const res = await fetch('/api/schedule');
@@ -403,9 +456,17 @@ async function fetchOnlineSchedule() {
         const pendingCount = (onlineScheduleData.posts || []).filter(p => p.status === 'scheduled').length;
         const countPill = document.getElementById('schedQueueCountPill');
         if (countPill) countPill.innerText = `Queue: ${pendingCount} scheduled`;
-        
+        if (onlineScheduleData.published_totals) {
+            updatePublishedStatsPill(onlineScheduleData.published_totals);
+        }
+
         if (activeSchedulerView === 'calendar') renderOnlineCalendarGrid();
         if (activeSchedulerView === 'queue') renderOnlineQueueList();
+
+        if (!hasAutoRefreshedMetrics) {
+            hasAutoRefreshedMetrics = true;
+            fetchPublishedMetrics(false);
+        }
     } catch (e) {
         console.error("Failed to fetch schedule queue:", e);
     }
@@ -511,16 +572,20 @@ function renderOnlineCalendarGrid() {
                     icon = '<i class="fa-solid fa-circle-play" style="color: #60a5fa; flex-shrink: 0;" title="Ready (Scheduled)"></i>';
                 }
                 pill.className = `sched-pill ${statusClass}`;
-                pill.title = `${p.scheduled_time ? p.scheduled_time.replace('T', ' ') : ''} — ${p.title || (p.post_type || '').toUpperCase()}`;
+                const pm = (p.status === 'published' && p.metrics) ? p.metrics : null;
+                pill.title = `${p.scheduled_time ? p.scheduled_time.replace('T', ' ') : ''} — ${p.title || (p.post_type || '').toUpperCase()}${pm ? ` | Views: ${Number(pm.views || 0).toLocaleString()} · Likes: ${Number(pm.likes || 0).toLocaleString()} · Reach: ${Number(pm.reach || 0).toLocaleString()}` : ''}`;
                 const tPart = p.scheduled_time.split('T')[1]?.substring(0, 5) || '';
                 const typeLabel = (p.post_type || 'reel').replace('_', ' ');
+                const rightBadge = pm
+                    ? `<span style="font-size: 0.6rem; padding: 1px 4px; background: rgba(0,0,0,0.55); border-radius: 4px; flex-shrink: 0; font-family: monospace;">👁 ${formatMetricNum(pm.views)} ❤ ${formatMetricNum(pm.likes)}</span>`
+                    : `<span style="font-size: 0.6rem; padding: 1px 4px; background: rgba(0,0,0,0.5); border-radius: 4px; flex-shrink: 0; text-transform: uppercase;">${typeLabel}</span>`;
                 pill.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 4px; overflow: hidden; min-width: 0; flex: 1;">
                         ${icon}
                         <strong style="font-family: monospace; font-size: 0.7rem; flex-shrink: 0;">${tPart}</strong>
                         <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; font-weight: 500;">${p.title || typeLabel.toUpperCase()}</span>
                     </div>
-                    <span style="font-size: 0.6rem; padding: 1px 4px; background: rgba(0,0,0,0.5); border-radius: 4px; flex-shrink: 0; text-transform: uppercase;">${typeLabel}</span>
+                    ${rightBadge}
                 `;
                 pill.onclick = (e) => {
                     e.stopPropagation();
@@ -601,16 +666,26 @@ function renderOnlineQueueList() {
             mediaIconColor = '#eab308';
         }
 
+        const pm = (p.status === 'published' && p.metrics) ? p.metrics : null;
+        const qPermalink = (pm && pm.permalink) || p.permalink || '';
+        const metricsHtml = pm ? `
+            <span class="sched-metric-chip" title="Views"><i class="fa-solid fa-eye"></i> ${Number(pm.views || 0).toLocaleString()}</span>
+            <span class="sched-metric-chip" title="Likes"><i class="fa-solid fa-heart"></i> ${Number(pm.likes || 0).toLocaleString()}</span>
+            <span class="sched-metric-chip" title="Reach"><i class="fa-solid fa-users"></i> ${Number(pm.reach || 0).toLocaleString()}</span>
+            ${qPermalink ? `<a href="${qPermalink}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size: 0.72rem; color: #60a5fa; text-decoration: none;"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>` : ''}
+        ` : '';
+
         item.innerHTML = `
             <div style="display: flex; align-items: center; gap: 15px;">
                 <div style="width: 44px; height: 44px; border-radius: 10px; background: ${mediaIconBg}; border: 1px solid ${mediaIconBorder}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: ${mediaIconColor};">
                     ${p.post_type === 'both' ? '<i class="fa-solid fa-rocket"></i>' : p.post_type === 'reel' ? '<i class="fa-solid fa-film"></i>' : '<i class="fa-brands fa-instagram"></i>'}
                 </div>
                 <div>
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;">
                         <strong style="color: #fff; font-size: 0.95rem;">${p.title || 'Untitled Post'}</strong>
                         ${statusBadge}
                         <span style="font-family: monospace; font-size: 0.8rem; color: var(--text-secondary);">${p.scheduled_time.replace('T', ' ')}</span>
+                        ${metricsHtml}
                     </div>
                     <p style="margin: 0; font-size: 0.8rem; color: var(--text-secondary); max-width: 500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                         ${p.caption || 'No caption provided.'}
@@ -827,6 +902,31 @@ function openOnlineComposerModal(initial = null) {
     const titleInput = document.getElementById('schedInputTitle');
     const capInput = document.getElementById('schedInputCaption');
     const delBtn = document.getElementById('btnOnlineDelete');
+    const metricsBar = document.getElementById('onlineComposerMetricsBar');
+
+    if (metricsBar) {
+        if (initial && initial.id && initial.status === 'published') {
+            const pm = initial.metrics;
+            const link = (pm && pm.permalink) || initial.permalink || '';
+            if (pm) {
+                metricsBar.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 0.85rem; color: #a7f3d0;">
+                        <span><i class="fa-solid fa-eye"></i> <strong>${Number(pm.views || 0).toLocaleString()}</strong> views</span>
+                        <span><i class="fa-solid fa-heart"></i> <strong>${Number(pm.likes || 0).toLocaleString()}</strong> likes</span>
+                        <span><i class="fa-solid fa-users"></i> <strong>${Number(pm.reach || 0).toLocaleString()}</strong> reach</span>
+                        <span><i class="fa-solid fa-comment"></i> <strong>${Number(pm.comments || 0).toLocaleString()}</strong> comments</span>
+                    </div>
+                    ${link ? `<a href="${link}" target="_blank" rel="noopener" style="font-size: 0.78rem; color: #6ee7b7; text-decoration: none; border: 1px solid rgba(16,185,129,0.4); padding: 4px 10px; border-radius: 6px;">View on Instagram <i class="fa-solid fa-arrow-up-right-from-square"></i></a>` : ''}
+                `;
+            } else {
+                metricsBar.innerHTML = `<span style="font-size: 0.8rem; color: var(--text-secondary);"><i class="fa-solid fa-circle-info"></i> Published — Insights unavailable (Story expired after 24h)</span>`;
+            }
+            metricsBar.style.display = 'flex';
+        } else {
+            metricsBar.style.display = 'none';
+            metricsBar.innerHTML = '';
+        }
+    }
 
     if (initial && initial.id) {
         idInput.value = initial.id;

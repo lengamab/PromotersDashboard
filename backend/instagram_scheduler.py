@@ -9,6 +9,7 @@ import urllib.parse
 import re
 import random
 import requests
+from concurrent.futures import ThreadPoolExecutor
 from flask import Blueprint, jsonify, request, send_file, Response
 from werkzeug.utils import secure_filename
 
@@ -154,7 +155,17 @@ def merge_schedule_data(gcs_data, seed_data):
         sp = by_id[pid]
         g_status = gp.get("status")
         s_status = sp.get("status")
-        if g_status == "published":
+        if g_status == "published" and s_status == "published":
+            merged = dict(gp)
+            g_m = gp.get("metrics") if isinstance(gp.get("metrics"), dict) else {}
+            s_m = sp.get("metrics") if isinstance(sp.get("metrics"), dict) else {}
+            if (s_m.get("updated_ts") or 0) > (g_m.get("updated_ts") or 0):
+                merged["metrics"] = dict(s_m)
+            for k in ("media_id", "media_ids", "permalink"):
+                if not merged.get(k) and sp.get(k):
+                    merged[k] = sp[k]
+            by_id[pid] = merged
+        elif g_status == "published":
             by_id[pid] = dict(gp)
         elif s_status == "published":
             by_id[pid] = dict(sp)
@@ -708,6 +719,7 @@ def execute_publish_job(post, base_request_url=""):
             dup_s_id = check_duplicate_stories_on_instagram(account_id, token, min_minutes=2)
             if dup_s_id:
                 published_media_id = dup_s_id
+                post["media_id"] = dup_s_id
                 log(f"⚠️ Deduplication Guard: A story was already published within last 2m (Media ID: {dup_s_id}). Skipping duplicate publish.")
                 release_publish_lock(post_id, media_id=dup_s_id, success=True)
                 return True, logs
@@ -722,7 +734,17 @@ def execute_publish_job(post, base_request_url=""):
             published_media_id = sid
             log(f"✅ Story published! Media ID: {sid}")
 
-        release_publish_lock(post_id, media_id=published_media_id, success=True)
+        found_mids = list(dict.fromkeys(re.findall(r"Media ID:\s*(\d+)", "\n".join(logs))))
+        if published_media_id and published_media_id not in found_mids:
+            found_mids.append(published_media_id)
+        if published_media_id:
+            post["media_id"] = published_media_id
+        elif found_mids:
+            post["media_id"] = found_mids[-1]
+        if found_mids:
+            post["media_ids"] = found_mids
+
+        release_publish_lock(post_id, media_id=post.get("media_id"), success=True)
         return True, logs
     except Exception as e:
         release_publish_lock(post_id, success=False)
@@ -832,9 +854,176 @@ def reconcile_schedule_with_meta(db):
 
     return changed
 
+def _extract_media_ids(post):
+    """Collects unique Instagram numeric media IDs stored on the post or inside publish logs."""
+    mids = []
+    for raw in list(post.get("media_ids") or []) + ([post.get("media_id")] if post.get("media_id") else []):
+        s = str(raw).strip()
+        if s.isdigit() and s not in mids:
+            mids.append(s)
+    for m in re.findall(r"Media ID:\s*(\d+)", "\n".join(post.get("logs") or [])):
+        if m not in mids:
+            mids.append(m)
+    return mids
+
+def fetch_media_metrics_meta(media_id, token):
+    """Fetches views, reach, likes, comments and permalink for one IG media object.
+
+    Returns (metrics_dict_or_None, expired_bool).
+    """
+    if not media_id or not token:
+        return None, False
+    try:
+        r = requests.get(
+            f"https://graph.facebook.com/v21.0/{media_id}",
+            params={"fields": "id,like_count,comments_count,permalink", "access_token": token},
+            timeout=10,
+        )
+        if r.status_code in (400, 404):
+            return None, True
+        if r.status_code != 200:
+            return None, False
+        meta = r.json()
+        likes = int(meta.get("like_count") or 0)
+        comments = int(meta.get("comments_count") or 0)
+        permalink = meta.get("permalink") or ""
+
+        views = 0
+        reach = 0
+        ir = requests.get(
+            f"https://graph.facebook.com/v21.0/{media_id}/insights",
+            params={"metric": "reach,views", "access_token": token},
+            timeout=10,
+        )
+        if ir.status_code == 200:
+            for item in ir.json().get("data", []):
+                name = item.get("name")
+                vals = item.get("values") or []
+                val = int((vals[0] or {}).get("value") or 0) if vals else 0
+                if name == "views":
+                    views = val
+                elif name == "reach":
+                    reach = val
+
+        return {
+            "views": views,
+            "likes": likes,
+            "reach": reach,
+            "comments": comments,
+            "permalink": permalink,
+        }, False
+    except Exception as e:
+        print(f"⚠️ Metric fetch failed for {media_id}: {e}")
+        return None, False
+
+def _refresh_single_post_metrics(post, token):
+    """Fetches latest Meta insights for a published post, preserving cached values if expired."""
+    mids = _extract_media_ids(post)
+    if not mids:
+        return False
+    changed = False
+    if not post.get("media_id"):
+        post["media_id"] = mids[-1]
+        changed = True
+    if post.get("media_ids") != mids:
+        post["media_ids"] = mids
+        changed = True
+
+    agg = {"views": 0, "likes": 0, "reach": 0, "comments": 0, "permalink": ""}
+    fetched_any = False
+    saw_expired = False
+    for mid in mids:
+        data, expired = fetch_media_metrics_meta(mid, token)
+        if data:
+            fetched_any = True
+            agg["views"] += data["views"]
+            agg["likes"] += data["likes"]
+            agg["reach"] += data["reach"]
+            agg["comments"] += data["comments"]
+            if not agg["permalink"] and data.get("permalink"):
+                agg["permalink"] = data["permalink"]
+        elif expired:
+            saw_expired = True
+
+    if not fetched_any:
+        if saw_expired and not post.get("metrics_expired"):
+            post["metrics_expired"] = True
+            changed = True
+        return changed
+
+    existing_permalink = post.get("permalink") or (post.get("metrics") or {}).get("permalink") or ""
+    permalink = agg["permalink"] or existing_permalink
+    post["metrics"] = {
+        "views": agg["views"],
+        "likes": agg["likes"],
+        "reach": agg["reach"],
+        "comments": agg["comments"],
+        "permalink": permalink,
+        "updated_ts": int(time.time()),
+        "updated_at": get_now_bcn().isoformat(),
+    }
+    if permalink:
+        post["permalink"] = permalink
+    post.pop("metrics_expired", None)
+    return True
+
+def compute_published_totals(posts):
+    """Aggregates cached views, likes, reach and comments across all published posts."""
+    totals = {
+        "total_views": 0,
+        "total_likes": 0,
+        "total_reach": 0,
+        "total_comments": 0,
+        "published_count": 0,
+        "tracked_count": 0,
+        "last_updated_ts": 0,
+    }
+    for p in posts or []:
+        if p.get("status") != "published":
+            continue
+        totals["published_count"] += 1
+        m = p.get("metrics")
+        if isinstance(m, dict):
+            totals["tracked_count"] += 1
+            totals["total_views"] += int(m.get("views") or 0)
+            totals["total_likes"] += int(m.get("likes") or 0)
+            totals["total_reach"] += int(m.get("reach") or 0)
+            totals["total_comments"] += int(m.get("comments") or 0)
+            totals["last_updated_ts"] = max(totals["last_updated_ts"], int(m.get("updated_ts") or 0))
+    return totals
+
+def refresh_published_metrics(db, ttl_seconds=600, force=False):
+    """Refreshes stale published post metrics in parallel and persists changes if any."""
+    _, token = get_credentials()
+    posts = db.get("posts", [])
+    if not token:
+        return False, compute_published_totals(posts)
+
+    now_ts = int(time.time())
+    targets = []
+    for p in posts:
+        if p.get("status") != "published":
+            continue
+        if not force and p.get("metrics_expired"):
+            continue
+        m = p.get("metrics") if isinstance(p.get("metrics"), dict) else {}
+        if force or (now_ts - int(m.get("updated_ts") or 0) >= ttl_seconds):
+            targets.append(p)
+
+    changed = False
+    if targets:
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            results = list(pool.map(lambda post: _refresh_single_post_metrics(post, token), targets))
+        changed = any(results)
+        if changed:
+            save_schedule_db(db)
+
+    return changed, compute_published_totals(posts)
+
 def background_scheduler_worker():
     print("⏰ [Online Social Scheduler] Background daemon thread started...")
     did_startup_reconcile = False
+    last_metrics_sync_ts = 0
     while True:
         try:
             # Randomized jitter so two parallel containers during deployment do not collide
@@ -891,6 +1080,11 @@ def background_scheduler_worker():
 
             if modified:
                 save_schedule_db(db)
+
+            # Snapshot metrics every 15 minutes so ephemeral Stories are preserved before 24h expiry
+            if time.time() - last_metrics_sync_ts >= 900:
+                last_metrics_sync_ts = time.time()
+                refresh_published_metrics(db, ttl_seconds=900, force=False)
         except Exception as e:
             print(f"⚠️ [Online Scheduler Worker] Error: {e}")
 
@@ -973,7 +1167,24 @@ def serve_upload(filename):
 @bp.route('/api/schedule', methods=['GET'])
 def get_schedule():
     db = load_schedule_db()
+    db["published_totals"] = compute_published_totals(db.get("posts", []))
     return jsonify(db)
+
+@bp.route('/api/schedule/metrics', methods=['GET'])
+def get_schedule_metrics():
+    force = request.args.get("refresh") in ("1", "true", "yes")
+    db = load_schedule_db()
+    _, totals = refresh_published_metrics(db, ttl_seconds=120 if force else 600, force=force)
+    per_post = {
+        p["id"]: p.get("metrics")
+        for p in db.get("posts", [])
+        if p.get("status") == "published" and p.get("id")
+    }
+    return jsonify({
+        "success": True,
+        "published_totals": totals,
+        "per_post": per_post,
+    })
 
 @bp.route('/api/schedule', methods=['POST'])
 def save_schedule():
@@ -990,6 +1201,10 @@ def save_schedule():
     posts = db.get("posts", [])
     idx = next((i for i, p in enumerate(posts) if p.get("id") == post_id), None)
     if idx is not None:
+        existing = posts[idx]
+        for keep_key in ("metrics", "media_id", "media_ids", "permalink", "logs", "published_at", "metrics_expired"):
+            if keep_key not in data and keep_key in existing:
+                data[keep_key] = existing[keep_key]
         posts[idx] = data
     else:
         posts.append(data)
