@@ -1,535 +1,534 @@
 {
-  "posts": [
-    {
-      "caption": "",
-      "created_at": "2026-11-09T12:33:02.151363+01:00",
-      "id": "post_20261109_113302_a111",
-      "logs": [
-        "[12:35:50] ✅ Story published! Media ID: 18147407173572381"
-      ],
-      "post_type": "story_single",
-      "primary_media": "/uploads/20261109_113249_IMG_5903.MOV",
-      "published_at": "2026-11-09T12:35:50.977559+01:00",
-      "scheduled_time": "2026-11-09T12:34",
-      "status": "published",
-      "story_part1": "",
-      "story_part2": "",
-      "title": "Instagram Post",
-      "updated_at": "2026-11-09T12:33:02.151346+01:00",
-      "user_tags": [
-        "@downtownbarcelona",
-        "@beuhrice",
-        "@lucile_bcn",
-        "@cyruslafrench",
-        "@flore_sbd",
-        "@armand.cprn",
-        "@mael_lafrench"
-      ]
-    },
-    {
-      "caption": "Studying in Barcelona this semester? We’re looking for you. 🎓\n\nWe’re expanding our campus team and selecting ambitious students across Barcelona universities (UPF, ESADE, UB, TBS, UIC, Erasmus & beyond) to represent La French on campus.\n\nWhat you get as a La French Campus Ambassador:\n🥂 Free VIP entry to all our weekly club nights & boat parties (Opium, Downtown, Sutton & more)\n🍾 Complimentary VIP tables & bottle packages for you and your friends\n💶 Uncapped cash commissions on every ticket and table booking (€200 – €800+/month)\n🌐 Direct access to Barcelona’s largest international community of students & nightlife pros\n\nYour missions:\n1️⃣ Represent La French across your campus and student groups\n2️⃣ Bring your crew and classmates on the VIP guest list\n3️⃣ Attend our parties, vibe at VIP tables, and capture content\n\n👉 Swipe through the slides to see full details.\nSpots per university are strictly limited for the semester.\n\n📲 TO APPLY: Send us a DM with “AMBASSADOR” or apply through the link in bio!\n\n#LaFrench #LaFrenchBCN #BarcelonaUniversity #ErasmusBarcelona #UPF",
-      "carousel_items": [
-        "https://litter.catbox.moe/tsei2s.png",
-        "https://litter.catbox.moe/7i7ntf.png",
-        "https://litter.catbox.moe/h8cg6j.png",
-        "https://litter.catbox.moe/di3y2e.png",
-        "https://litter.catbox.moe/rwtapo.png"
-      ],
-      "cover_media": "https://litter.catbox.moe/tsei2s.png",
-      "created_at": "2026-11-09T13:49:48.943932+01:00",
-      "id": "post_20261109_ambassador_carousel",
-      "logs": [
-        "[14:04:57] Publishing Carousel with 5 slides...",
-        "[14:05:46] ✅ Carousel successfully published! Media ID: 18110771687248037"
-      ],
-      "post_type": "carousel",
-      "primary_media": "https://litter.catbox.moe/tsei2s.png",
-      "published_at": "2026-11-09T14:05:46.851786+01:00",
-      "scheduled_time": "2026-11-09T14:00",
-      "status": "published",
-      "title": "Campus Ambassador Recruitment Carousel (5 Slides)",
-      "updated_at": "2026-11-09T22:19:36.741727+01:00",
-      "user_tags": [
-        "@upfbarcelona",
-        "@esade",
-        "@unibarcelona",
-        "@tbsbarcelona"
-      ]
-    },
-    {
-      "caption": "🔥 TONIGHT IN BARCELONA — LUNES! Guestlist link in bio 🥂",
-      "cover_media": "https://litter.catbox.moe/cif3o6.png",
-      "created_at": "2026-11-09T12:56:54.436377+01:00",
-      "id": "post_20261109_115654_2aa3",
-      "logs": [
-        "[19:24:27] ⚠️ Deduplication Guard: Stories were already published within last 30m (Media ID: 18116208341590868). Skipping duplicate publish."
-      ],
-      "post_type": "story_parts",
-      "primary_media": "https://litter.catbox.moe/qs4am8.mp4",
-      "published_at": "2026-11-09T19:24:27.760612+01:00",
-      "scheduled_time": "2026-11-09T16:00",
-      "status": "published",
-      "story_part1": "https://litter.catbox.moe/qs4am8.mp4",
-      "story_part2": "https://litter.catbox.moe/tishbh.mp4",
-      "title": "Monday Night Lineup Stories (KU + Opium + Shôko)",
-      "updated_at": "2026-11-09T12:56:54.436362+01:00",
-      "user_tags": [
-        "@kubarcelona",
-        "@opiumbarcelona",
-        "@shokobarcelona"
-      ]
-    },
-    {
-      "caption": "🔥 TONIGHT IN BARCELONA — LUNES!\n\nHere is your daily party lineup:\n📍 KU Barcelona — MONEY MONDAYS (Reggaeton, Hits, Commercial)\n📍 Opium Barcelona — MONDAY MADNESS (Commercial, House, Hits, Reggaeton)\n📍 Shôko Barcelona — FUCKING MONDAY BY SHÔKO MONDAZE (Hip-Hop, R&B, Urban, Commercial)\n📍 City Hall — Monday Perreo · Tributo Daddy Yankee (Reggaeton, Old School, Hits)\n\n✈️ Send this to who you're partying with tonight in Barcelona!\n\nWhich club are you hitting tonight? 👇\n\n#barcelonanightlife #bcnparties #erasmusbarcelona #lafrenchbcn",
-      "cover_media": "https://litter.catbox.moe/cif3o6.png",
-      "created_at": "2026-11-09T12:56:59.827663+01:00",
-      "id": "post_20261109_115659_81cb",
-      "logs": [
-        "[19:24:30] ⚠️ Deduplication Guard: Reel already live on Instagram! (Media ID: 18141690025739225). Skipping duplicate publish."
-      ],
-      "post_type": "reel",
-      "primary_media": "https://litter.catbox.moe/9jt5wt.mp4",
-      "published_at": "2026-11-09T19:24:30.258799+01:00",
-      "scheduled_time": "2026-11-09T16:30",
-      "status": "published",
-      "title": "Monday Clubs of the Day Reel (KU + Opium + Shôko)",
-      "updated_at": "2026-11-09T12:56:59.827651+01:00",
-      "user_tags": [
-        "@kubarcelona",
-        "@opiumbarcelona",
-        "@shokobarcelona"
-      ]
-    },
-    {
-      "caption": "Studying in Barcelona? What if your semester looked like this? 🚁✨\n\nLa French is expanding our campus team and selecting brand ambassadors across Barcelona universities (UPF, ESADE, UB, TBS, UIC & Erasmus).\n\nHere is what you unlock:\n🍾 Free VIP tables & bottle packages for your crew every weekend\n🥂 Free VIP entry to all top clubs in the city\n💶 Uncapped cash commissions on tickets & VIP reservations (€200 – €800+/month)\n🌐 Gain real international event marketing experience for your CV\n\nLimited spots per faculty.\n\nDrop a comment with “AMBASSADOR” or send us a DM to apply right now! 🔥\n\nLink in bio to fill the 60-second application form. 📲\n\n#LaFrench #GTA6 #BarcelonaStudents #StudentJobBarcelona #ErasmusBarcelona",
-      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112140_amb_reel1_preview_1_hook.jpg",
-      "created_at": "2026-11-09T14:11:54.075124+01:00",
-      "id": "post_20261109_ambassador_reel1",
-      "logs": [
-        "[19:45:12] Resolving public URL for Reel: https://litter.catbox.moe/sp37px.mp4...",
-        "[19:45:12] Public Video URL: https://litter.catbox.moe/sp37px.mp4",
-        "[19:45:12] Cover URL: https://litter.catbox.moe/umg70t.jpg",
-        "[19:45:12] Creating Reel container on Instagram Account 17841472275366270...",
-        "[19:45:54] ✅ Reel successfully published! Media ID: 17977996365070463"
-      ],
-      "post_type": "reel",
-      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112140_LA_FRENCH_AMBASSADOR_REEL_1_STUDENT_REALITY.mp4",
-      "published_at": "2026-11-09T19:45:54.860335+01:00",
-      "scheduled_time": "2026-11-09T19:45",
-      "status": "published",
-      "title": "GTA 6 Campus Ambassador Recruitment Reel (Helicopter VIP)",
-      "updated_at": "2026-11-09T22:19:36.938715+01:00",
-      "user_tags": [
-        "@upfbarcelona",
-        "@esade",
-        "@unibarcelona",
-        "@tbsbarcelona"
-      ]
-    },
-    {
-      "caption": "DM \"WHATSAPP\" to join our 800+ private student & expat community in Barcelona 🇪🇸",
-      "created_at": "2026-11-09T22:19:31.815768+01:00",
-      "id": "post_20261110_whatsapp_story",
-      "post_type": "story_single",
-      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112138_whatsapp_story_authentic_anotr.mp4",
-      "scheduled_time": "2026-11-10T12:00",
-      "status": "published",
-      "story_part1": "",
-      "story_part2": "",
-      "title": "WhatsApp Private Community Story (ANOTR — Relax My Eyes)",
-      "updated_at": "2026-11-11T09:23:56.444620+01:00",
-      "user_tags": [
-        "@opiumbarcelona",
-        "@suttonbarcelona",
-        "@shokobarcelona",
-        "@kubarcelona",
-        "@downtownbarcelona",
-        "@beuhrice",
-        "@lucile_bcn",
-        "@cyruslafrench",
-        "@flore_sbd",
-        "@armand.cprn",
-        "@mael_lafrench"
-      ],
-      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112138_whatsapp_story_final.png",
-      "logs": [
-        "✅ Published on Instagram (Media ID: 17891162682474764) at 2026-11-10 12:23:49 BCN."
-      ],
-      "media_id": "17891162682474764",
-      "published_at": "2026-11-10T11:23:49+0000"
-    },
-    {
-      "caption": "Instead of spending €30 on club tickets every single weekend... what if you were the one hosting the VIP table? 🍾\n\nWe’re hiring student promoters & brand ambassadors across Barcelona campuses for this semester.\n\nWhat’s in it for you:\n✅ Free VIP access to top clubs every weekend\n✅ Free VIP tables & bottles for your friends\n✅ Uncapped commissions per ticket sale\n✅ Gain real event promotion experience for your CV\n\nIf you’re currently in university in Barcelona and love going out, this is your sign.\n\nDrop a comment with “PROMOTER” or send us a DM to join the crew 🔥\n\nLink in bio to fill the 60-second application! 📲\n\n#LaFrench #BarcelonaStudents #StudentLifeBarcelona #ErasmusLife #Erasmus2026",
-      "created_at": "2026-11-09T22:19:08.056487+01:00",
-      "id": "post_20261110_ambassador_reel2",
-      "post_type": "reel",
-      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112140_LA_FRENCH_AMBASSADOR_REEL_1_STUDENT_REALITY.mp4",
-      "scheduled_time": "2026-11-10T12:30",
-      "status": "published",
-      "story_part1": "",
-      "story_part2": "",
-      "title": "Campus Ambassador Reel 1 — Student Reality (Freed From Desire)",
-      "updated_at": "2026-11-11T09:23:56.444620+01:00",
-      "user_tags": [
-        "@opiumbarcelona",
-        "@suttonbarcelona",
-        "@shokobarcelona",
-        "@kubarcelona",
-        "@downtownbarcelona",
-        "@beuhrice",
-        "@lucile_bcn",
-        "@cyruslafrench",
-        "@flore_sbd",
-        "@armand.cprn",
-        "@mael_lafrench"
-      ],
-      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112140_amb_reel1_preview_1_hook.jpg",
-      "media_id": "18146823112606868",
-      "permalink": "https://www.instagram.com/reel/DfjzYXOmZYS/",
-      "published_at": "2026-11-10T11:30:49+0000",
-      "logs": [
-        "✅ Published on Instagram (Media ID: 18146823112606868, https://www.instagram.com/reel/DfjzYXOmZYS/). Duplicate copy removed."
-      ]
-    },
-    {
-      "id": "post_20261110_stories",
-      "title": "Tuesday Night Lineup Stories (Sutton, KU, Opium, Shôko, Twenties)",
-      "post_type": "story_parts",
-      "story_part1": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_030139_clubs_of_the_day_story_part1.mp4",
-      "story_part2": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_030144_clubs_of_the_day_story_part2.mp4",
-      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_030139_clubs_of_the_day_story_part1.mp4",
-      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_030210_clubs_of_the_day_preview.png",
-      "caption": "🔥 TONIGHT IN BARCELONA — MARTES! Guestlist link in bio 🥂",
-      "scheduled_time": "2026-11-10T16:00",
-      "status": "missed",
-      "created_at": "2026-11-09T14:06:55.616015+01:00",
-      "updated_at": "2026-11-11T09:23:56.444620+01:00",
-      "logs": [
-        "⚠️ Skipped yesterday at 16:00: 60-minute story cooldown detected manual phone story uploaded at 15:37 BCN (ID: 17981245833129503). Cooldown reduced to 2m for future stories."
-      ]
-    },
-    {
-      "id": "post_20261110_daily_reel",
-      "title": "Tuesday Clubs of the Day Reel (5 Clubs: Sutton, KU, Opium, Shôko, Twenties)",
-      "post_type": "reel",
-      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_030112_clubs_of_the_day_1080x1920.mp4",
-      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_030210_clubs_of_the_day_preview.png",
-      "caption": "🔥 TONIGHT IN BARCELONA — MARTES!\n\nHere is your daily party lineup:\n📍 Sutton Barcelona — LA CASITA (Hits, Reggaeton, Urban)\n📍 KU Barcelona — BADASS (Reggaeton, Urban, Commercial)\n📍 Opium Barcelona — LADIES NIGHT (Commercial, House, Hits)\n📍 Shôko Barcelona — KISS KISS BANG BANG (Hip-Hop, R&B, Urban)\n📍 Twenties Barcelona — TUESDAYS AT TWENTIES (Reggaeton, Hits, Commercial)\n\n✈️ Send this to who you're partying with tonight in Barcelona!\n🎟️ Free guestlist link in bio.\n\n#barcelonanightlife #bcnparties #erasmusbarcelona #lafrenchbcn #suttonbarcelona",
-      "scheduled_time": "2026-11-10T16:30",
-      "status": "published",
-      "created_at": "2026-11-09T14:06:56.042343+01:00",
-      "updated_at": "2026-11-11T09:23:56.444620+01:00",
-      "media_id": "18121890814954819",
-      "permalink": "https://www.instagram.com/reel/DfkO5vUjH7c/",
-      "published_at": "2026-11-10T15:31:14+0000",
-      "logs": [
-        "✅ Published on Instagram (Media ID: 18121890814954819, https://www.instagram.com/reel/DfkO5vUjH7c/) at 2026-11-10 16:31:14 BCN."
-      ]
-    },
-    {
-      "caption": "What happened at Circus Friday... stays at Twenties 🎪🔥\n\n70+ nationalities screaming under the laser lights. \nNext edition this Friday November 13th! \n\nDrop a 🎪 below to join the free VIP guestlist for this week!\n\n#LaFrench #CircusParty #TwentiesBarcelona #BarcelonaNightlife #ErasmusBarcelona",
-      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_033925_LA_FRENCH_LAST_FRIDAY_RECAP_COVER.jpg",
-      "created_at": "2026-11-09T14:06:56.492448+01:00",
-      "id": "post_20261110_circus_recap",
-      "post_type": "reel",
-      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_033918_LA_FRENCH_LAST_FRIDAY_RECAP_ANOTR_1080x1920.mp4",
-      "scheduled_time": "2026-11-10T18:00",
-      "status": "published",
-      "title": "Circus Friday Recap Reel (ANOTR — Relax My Eyes)",
-      "updated_at": "2026-11-11T09:23:56.444620+01:00",
-      "user_tags": [
-        "@twentiesbarcelona",
-        "@lafrenchbcn",
-        "@beuhrice"
-      ],
-      "media_id": "18158434945511797",
-      "permalink": "https://www.instagram.com/reel/DfkZLUdgbJk/",
-      "published_at": "2026-11-10T17:01:06+0000",
-      "logs": [
-        "✅ Published on Instagram (Media ID: 18158434945511797, https://www.instagram.com/reel/DfkZLUdgbJk/) at 2026-11-10 18:01:06 BCN."
-      ]
-    },
-    {
-      "caption": "🔥 TONIGHT IN BARCELONA — MIÉRCOLES! Guestlist link in bio 🥂",
-      "cover_media": "https://litter.catbox.moe/cif3o6.png",
-      "created_at": "2026-11-09T14:06:57.553617+01:00",
-      "id": "post_20261111_stories",
-      "post_type": "story_parts",
-      "primary_media": "https://litter.catbox.moe/qs4am8.mp4",
-      "scheduled_time": "2026-11-11T16:00",
-      "status": "scheduled",
-      "story_part1": "https://litter.catbox.moe/qs4am8.mp4",
-      "story_part2": "https://litter.catbox.moe/tishbh.mp4",
-      "title": "Wednesday Night Lineup Stories [PLACEHOLDER]",
-      "updated_at": "2026-11-09T14:06:57.553251+01:00"
-    },
-    {
-      "caption": "🔥 TONIGHT IN BARCELONA — MIÉRCOLES! Link in bio.",
-      "cover_media": "https://litter.catbox.moe/cif3o6.png",
-      "created_at": "2026-11-09T14:06:58.063080+01:00",
-      "id": "post_20261111_daily_reel",
-      "post_type": "reel",
-      "primary_media": "https://litter.catbox.moe/9jt5wt.mp4",
-      "scheduled_time": "2026-11-11T16:30",
-      "status": "scheduled",
-      "title": "Wednesday Clubs of the Day Reel [PLACEHOLDER]",
-      "updated_at": "2026-11-09T14:06:58.063037+01:00"
-    },
-    {
-      "caption": "Life in Barcelona isn't a movie... but it feels like GTA 6. 🚁✨\n\nFrom sunset over W Barcelona to VIP tables at the finest clubs in the Mediterranean.\nWelcome to La French.\n\nComment VIP for guestlist access this weekend! 🥂\n\n#LaFrench #GTA6 #BarcelonaLife #BarcelonaNightlife #WBarcelona",
-      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261111_gta6_lafrench_branding_cover.jpg",
-      "created_at": "2026-11-09T14:06:58.597603+01:00",
-      "id": "post_20261111_gta6_branding",
-      "post_type": "reel",
-      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261111_gta6_lafrench_branding.mp4",
-      "scheduled_time": "2026-11-11T18:30",
-      "status": "scheduled",
-      "title": "GTA 6 Lifestyle & Nightlife Branding Reel",
-      "updated_at": "2026-11-11T09:23:56.444620+01:00"
-    },
-    {
-      "caption": "DM \"WHATSAPP\" to join our 800+ private student & expat community in Barcelona 🇪🇸",
-      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112138_whatsapp_story_final.png",
-      "id": "post_20261112_whatsapp_story",
-      "post_type": "story_single",
-      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112138_whatsapp_story_authentic_anotr.mp4",
-      "scheduled_time": "2026-11-12T12:30",
-      "status": "scheduled",
-      "title": "WhatsApp Private Community Story (ANOTR — Relax My Eyes)",
-      "user_tags": [
-        "@opiumbarcelona",
-        "@suttonbarcelona",
-        "@shokobarcelona",
-        "@downtownbarcelona",
-        "@beuhrice",
-        "@lucile_bcn",
-        "@cyruslafrench",
-        "@flore_sbd",
-        "@armand.cprn",
-        "@mael_lafrench"
-      ]
-    },
-    {
-      "caption": "🔥 TONIGHT IN BARCELONA — JUEVES! Link in bio 🥂",
-      "cover_media": "https://litter.catbox.moe/cif3o6.png",
-      "created_at": "2026-11-09T14:06:59.121140+01:00",
-      "id": "post_20261112_stories",
-      "post_type": "story_parts",
-      "primary_media": "https://litter.catbox.moe/qs4am8.mp4",
-      "scheduled_time": "2026-11-12T16:00",
-      "status": "scheduled",
-      "story_part1": "https://litter.catbox.moe/qs4am8.mp4",
-      "story_part2": "https://litter.catbox.moe/tishbh.mp4",
-      "title": "Thursday Night Lineup Stories [PLACEHOLDER]",
-      "updated_at": "2026-11-09T14:06:59.121115+01:00"
-    },
-    {
-      "caption": "🔥 TONIGHT IN BARCELONA — JUEVES! Link in bio.",
-      "cover_media": "https://litter.catbox.moe/cif3o6.png",
-      "created_at": "2026-11-09T14:06:59.638849+01:00",
-      "id": "post_20261112_daily_reel",
-      "post_type": "reel",
-      "primary_media": "https://litter.catbox.moe/9jt5wt.mp4",
-      "scheduled_time": "2026-11-12T16:30",
-      "status": "scheduled",
-      "title": "Thursday Clubs of the Day Reel [PLACEHOLDER]",
-      "updated_at": "2026-11-09T14:06:59.638829+01:00"
-    },
-    {
-      "caption": "CIRCUS CASINO · THIS FRIDAY 13 NOVEMBER 🎪🎰\n\nThe ultimate Friday 2-step experience in Barcelona:\n📍 STEP 1: Pre-party at La Fira Provença (Carrer de Provença 171) from 22:30\n👉 2 FREE SHOTS included with your guestlist pass\n\n📍 STEP 2: Main Event at Twenties Barcelona (Carrer del Rosselló 208)\n👉 FREE ENTRY to Twenties Club\n\n👔 Dress Code: Elegant, Extravagant — Red, Black & Gold\n🎟️ Free Guestlist & VIP Tables: link in bio or lafrenchbcn.com\n\nSend this to your Friday squad and we’ll see you under the lights. 🥂✨\n\n#LaFrench #CircusCasino #TwentiesBarcelona #LaFiraProvença #BarcelonaNightlife",
-      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/CIRCUS_CASINO_FRIDAY_13_NOV_COVER_1080x1920.png",
-      "created_at": "2026-11-09T22:19:26.039286+01:00",
-      "id": "post_20261112_circus_friday_promo",
-      "post_type": "reel",
-      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/CIRCUS_CASINO_FRIDAY_13_NOV_REEL_1080x1920.mp4",
-      "scheduled_time": "2026-11-12T18:30",
-      "status": "scheduled",
-      "title": "CIRCUS CASINO Friday 13 Nov Promo Reel (La Fira + Twenties)",
-      "updated_at": "2026-11-11T09:23:56.444620+01:00",
-      "user_tags": [
-        "@twentiesbarcelona",
-        "@lafiraprovenca",
-        "@lafrenchbcn"
-      ]
-    },
-    {
-      "caption": "🎪 TONIGHT: CIRCUS CASINO! 🎰\nPre-party at La Fira Provença (2 Free Shots) + Free Entry to Twenties Club.\nGuestlist closing soon — tap link to join!\n\n#LaFrench #CircusCasino #TwentiesBarcelona #LaFiraProvença #BarcelonaNightlife",
-      "created_at": "2026-11-09T22:19:31.173227+01:00",
-      "id": "post_20261113_circus_urgency_story",
-      "post_type": "story_single",
-      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/CIRCUS_CASINO_FRIDAY_13_NOV_COVER_1080x1920.png",
-      "scheduled_time": "2026-11-13T12:00",
-      "status": "scheduled",
-      "title": "CIRCUS CASINO Friday Day-Of Urgency Story",
-      "updated_at": "2026-11-11T09:23:56.444620+01:00",
-      "user_tags": [
-        "@twentiesbarcelona",
-        "@lafiraprovenca",
-        "@lafrenchbcn"
-      ],
-      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/CIRCUS_CASINO_FRIDAY_13_NOV_COVER_1080x1920.png"
-    },
-    {
-      "caption": "🔥 TONIGHT IN BARCELONA — VIERNES! Link in bio 🥂",
-      "cover_media": "https://litter.catbox.moe/cif3o6.png",
-      "created_at": "2026-11-09T14:07:01.160636+01:00",
-      "id": "post_20261113_stories",
-      "post_type": "story_parts",
-      "primary_media": "https://litter.catbox.moe/qs4am8.mp4",
-      "scheduled_time": "2026-11-13T16:00",
-      "status": "scheduled",
-      "story_part1": "https://litter.catbox.moe/qs4am8.mp4",
-      "story_part2": "https://litter.catbox.moe/tishbh.mp4",
-      "title": "Friday Full City Lineup Stories [PLACEHOLDER]",
-      "updated_at": "2026-11-09T14:07:01.160588+01:00"
-    },
-    {
-      "caption": "🔥 TONIGHT IN BARCELONA — VIERNES! Circus at Twenties, Opium, Sutton & more.",
-      "cover_media": "https://litter.catbox.moe/cif3o6.png",
-      "created_at": "2026-11-09T14:07:01.702715+01:00",
-      "id": "post_20261113_daily_reel",
-      "post_type": "reel",
-      "primary_media": "https://litter.catbox.moe/9jt5wt.mp4",
-      "scheduled_time": "2026-11-13T16:30",
-      "status": "scheduled",
-      "title": "Friday Clubs of the Day Reel [PLACEHOLDER]",
-      "updated_at": "2026-11-09T14:07:01.702686+01:00"
-    },
-    {
-      "caption": "We came for a 72-hour holiday.\nThat was 8 months ago.\n\nWe arrived knowing nobody with one suitcase and zero plans.\nNow our camera rolls are 90% blur and 100% pure joy.\n70+ different nationalities, all screaming the exact same beat under the laser lights.\n\nWas it just another night out?\nNot even close.\n\nThis is our youth. Live it while you’re young.\nSee you on the floor tonight. 🔥\n\nSave this reel for when you need a reminder of what Barcelona feels like.\nGuest list & VIP reservations link in bio 🥂\n\n#LaFrench #LaFrenchBCN #BarcelonaParties #BarcelonaNightlife #Hugel",
-      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261113_LA_FRENCH_BRAND_REEL_2_COVER.jpg",
-      "created_at": "2026-11-09T14:07:02.263027+01:00",
-      "id": "post_20261113_brand_reel2",
-      "post_type": "reel",
-      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261113_LA_FRENCH_BRAND_REEL_2_HUGEL_BAM_BAM.mp4",
-      "scheduled_time": "2026-11-13T18:30",
-      "status": "scheduled",
-      "title": "La French Brand Reel 2 — We Never Went Home (Hugel Bam Bam)",
-      "updated_at": "2026-11-11T09:23:56.444620+01:00"
-    },
-    {
-      "caption": "DM \"WHATSAPP\" to join our 800+ private student & expat community in Barcelona 🇪🇸",
-      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112138_whatsapp_story_final.png",
-      "id": "post_20261114_whatsapp_story",
-      "post_type": "story_single",
-      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112138_whatsapp_story_authentic_anotr.mp4",
-      "scheduled_time": "2026-11-14T12:30",
-      "status": "scheduled",
-      "title": "WhatsApp Private Community Story (ANOTR — Relax My Eyes)",
-      "user_tags": [
-        "@opiumbarcelona",
-        "@suttonbarcelona",
-        "@shokobarcelona",
-        "@downtownbarcelona",
-        "@beuhrice",
-        "@lucile_bcn",
-        "@cyruslafrench",
-        "@flore_sbd",
-        "@armand.cprn",
-        "@mael_lafrench"
-      ]
-    },
-    {
-      "caption": "🔥 TONIGHT IN BARCELONA — SÁBADO! Link in bio 🥂",
-      "cover_media": "https://litter.catbox.moe/cif3o6.png",
-      "created_at": "2026-11-09T14:07:02.777630+01:00",
-      "id": "post_20261114_stories",
-      "post_type": "story_parts",
-      "primary_media": "https://litter.catbox.moe/qs4am8.mp4",
-      "scheduled_time": "2026-11-14T16:00",
-      "status": "scheduled",
-      "story_part1": "https://litter.catbox.moe/qs4am8.mp4",
-      "story_part2": "https://litter.catbox.moe/tishbh.mp4",
-      "title": "Saturday Night Lineup Stories [PLACEHOLDER]",
-      "updated_at": "2026-11-09T14:07:02.777605+01:00"
-    },
-    {
-      "caption": "🔥 TONIGHT IN BARCELONA — SÁBADO! Saturday club guide.",
-      "cover_media": "https://litter.catbox.moe/cif3o6.png",
-      "created_at": "2026-11-09T14:07:03.259176+01:00",
-      "id": "post_20261114_daily_reel",
-      "post_type": "reel",
-      "primary_media": "https://litter.catbox.moe/9jt5wt.mp4",
-      "scheduled_time": "2026-11-14T16:30",
-      "status": "scheduled",
-      "title": "Saturday Clubs of the Day Reel [PLACEHOLDER]",
-      "updated_at": "2026-11-09T14:07:03.259153+01:00"
-    },
-    {
-      "caption": "Nobody warns you before you move here.\n\nFirst it’s just “one drink after work” with people you met three hours ago.\nThen suddenly it’s 4 AM, your shoes are ruined, and you’re screaming the lyrics to songs you thought you forgot.\nAnd the next thing you know... you can never live anywhere else.\n\nThey asked us why we go out every single weekend.\nBecause in this city, strangers become family on the dancefloor.\n\nTag the person who ruined every other city for you 🫂\nDrop a 🍾 below if you’re out tonight with @lafrenchbcn!\n\nGuest list & VIP tables link in bio 📲\n\n#LaFrench #LaFrenchBCN #BarcelonaNightlife #BarcelonaErasmus #BarcelonaVibes",
-      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261114_LA_FRENCH_BRAND_REEL_1_COVER.jpg",
-      "created_at": "2026-11-09T14:07:03.765651+01:00",
-      "id": "post_20261114_brand_reel1",
-      "post_type": "reel",
-      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261114_LA_FRENCH_BRAND_REEL_1_LOSTBOYJAY.mp4",
-      "scheduled_time": "2026-11-14T18:30",
-      "status": "scheduled",
-      "title": "La French Brand Reel 1 — The Barcelona Curse (Lostboyjay)",
-      "updated_at": "2026-11-11T09:23:56.444620+01:00"
-    },
-    {
-      "caption": "🥂 SUNDAY NIGHT IN BARCELONA — Dinner & Nightclub guide.",
-      "cover_media": "https://litter.catbox.moe/cif3o6.png",
-      "created_at": "2026-11-09T14:07:04.325489+01:00",
-      "id": "post_20261115_stories",
-      "post_type": "story_parts",
-      "primary_media": "https://litter.catbox.moe/qs4am8.mp4",
-      "scheduled_time": "2026-11-15T16:00",
-      "status": "scheduled",
-      "story_part1": "https://litter.catbox.moe/qs4am8.mp4",
-      "story_part2": "https://litter.catbox.moe/tishbh.mp4",
-      "title": "Sunday Lineup & Dinner Stories [PLACEHOLDER]",
-      "updated_at": "2026-11-09T14:07:04.325460+01:00"
-    },
-    {
-      "caption": "🔥 SUNDAY IN BARCELONA: KU Sundays, Opium & more.",
-      "cover_media": "https://litter.catbox.moe/cif3o6.png",
-      "created_at": "2026-11-09T14:07:04.884152+01:00",
-      "id": "post_20261115_daily_reel",
-      "post_type": "reel",
-      "primary_media": "https://litter.catbox.moe/9jt5wt.mp4",
-      "scheduled_time": "2026-11-15T16:30",
-      "status": "scheduled",
-      "title": "Sunday Clubs of the Day Reel [PLACEHOLDER]",
-      "updated_at": "2026-11-09T14:07:04.884116+01:00"
-    },
-    {
-      "caption": "Sundays in Barcelona hit differently. 🍷✨\n\nJoin us for our signature Sunday Dinner & Show:\n🍽️ Gourmet dinner & cocktails\n🎷 Live performers & vocal show\n🥂 Seamless transition straight to VIP party\n\nLimited tables available every Sunday.\nReserve your table via link in bio or DM DINNER!\n\n#SundayDinner #BarcelonaDinnerShow #LaFrenchDinner #BarcelonaNightlife #VIPBarcelona",
-      "carousel_items": [
-        "https://litter.catbox.moe/tsei2s.png"
-      ],
-      "cover_media": "https://litter.catbox.moe/tsei2s.png",
-      "created_at": "2026-11-09T14:07:05.398043+01:00",
-      "id": "post_20261115_sunday_dinner_carousel",
-      "post_type": "carousel",
-      "primary_media": "https://litter.catbox.moe/tsei2s.png",
-      "scheduled_time": "2026-11-15T18:30",
-      "status": "scheduled",
-      "title": "Sunday Dinner & Show Event [PLACEHOLDER — Drop your menu/venue carousel]",
-      "updated_at": "2026-11-09T14:07:05.398024+01:00"
-    },
-    {
-      "caption": "DM \"WHATSAPP\" to join our 800+ private student & expat community in Barcelona 🇪🇸",
-      "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112138_whatsapp_story_final.png",
-      "id": "post_20261116_whatsapp_story",
-      "post_type": "story_single",
-      "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112138_whatsapp_story_authentic_anotr.mp4",
-      "scheduled_time": "2026-11-16T12:30",
-      "status": "scheduled",
-      "title": "WhatsApp Private Community Story (ANOTR — Relax My Eyes)",
-      "user_tags": [
-        "@opiumbarcelona",
-        "@suttonbarcelona",
-        "@shokobarcelona",
-        "@downtownbarcelona",
-        "@beuhrice",
-        "@lucile_bcn",
-        "@cyruslafrench",
-        "@flore_sbd",
-        "@armand.cprn",
-        "@mael_lafrench"
-      ]
-    }
-  ],
-  "updated_at": "2026-11-10T03:07:00+01:00"
+    "posts": [
+        {
+            "caption": "",
+            "created_at": "2026-11-09T12:33:02.151363+01:00",
+            "id": "post_20261109_113302_a111",
+            "logs": [
+                "[12:35:50] ✅ Story published! Media ID: 18147407173572381"
+            ],
+            "post_type": "story_single",
+            "primary_media": "/uploads/20261109_113249_IMG_5903.MOV",
+            "published_at": "2026-11-09T12:35:50.977559+01:00",
+            "scheduled_time": "2026-11-09T12:34",
+            "status": "published",
+            "story_part1": "",
+            "story_part2": "",
+            "title": "Instagram Post",
+            "updated_at": "2026-11-09T12:33:02.151346+01:00",
+            "user_tags": [
+                "@downtownbarcelona",
+                "@beuhrice",
+                "@lucile_bcn",
+                "@cyruslafrench",
+                "@flore_sbd",
+                "@armand.cprn",
+                "@mael_lafrench"
+            ]
+        },
+        {
+            "caption": "Studying in Barcelona this semester? We’re looking for you. 🎓\n\nWe’re expanding our campus team and selecting ambitious students across Barcelona universities (UPF, ESADE, UB, TBS, UIC, Erasmus & beyond) to represent La French on campus.\n\nWhat you get as a La French Campus Ambassador:\n🥂 Free VIP entry to all our weekly club nights & boat parties (Opium, Downtown, Sutton & more)\n🍾 Complimentary VIP tables & bottle packages for you and your friends\n💶 Uncapped cash commissions on every ticket and table booking (€200 – €800+/month)\n🌐 Direct access to Barcelona’s largest international community of students & nightlife pros\n\nYour missions:\n1️⃣ Represent La French across your campus and student groups\n2️⃣ Bring your crew and classmates on the VIP guest list\n3️⃣ Attend our parties, vibe at VIP tables, and capture content\n\n👉 Swipe through the slides to see full details.\nSpots per university are strictly limited for the semester.\n\n📲 TO APPLY: Send us a DM with “AMBASSADOR” or apply through the link in bio!\n\n#LaFrench #LaFrenchBCN #BarcelonaUniversity #ErasmusBarcelona #UPF",
+            "carousel_items": [
+                "https://litter.catbox.moe/tsei2s.png",
+                "https://litter.catbox.moe/7i7ntf.png",
+                "https://litter.catbox.moe/h8cg6j.png",
+                "https://litter.catbox.moe/di3y2e.png",
+                "https://litter.catbox.moe/rwtapo.png"
+            ],
+            "cover_media": "https://litter.catbox.moe/tsei2s.png",
+            "created_at": "2026-11-09T13:49:48.943932+01:00",
+            "id": "post_20261109_ambassador_carousel",
+            "logs": [
+                "[14:04:57] Publishing Carousel with 5 slides...",
+                "[14:05:46] ✅ Carousel successfully published! Media ID: 18110771687248037"
+            ],
+            "post_type": "carousel",
+            "primary_media": "https://litter.catbox.moe/tsei2s.png",
+            "published_at": "2026-11-09T14:05:46.851786+01:00",
+            "scheduled_time": "2026-11-09T14:00",
+            "status": "published",
+            "title": "Campus Ambassador Recruitment Carousel (5 Slides)",
+            "updated_at": "2026-11-09T22:19:36.741727+01:00",
+            "user_tags": [
+                "@upfbarcelona",
+                "@esade",
+                "@unibarcelona",
+                "@tbsbarcelona"
+            ]
+        },
+        {
+            "caption": "🔥 TONIGHT IN BARCELONA — LUNES! Guestlist link in bio 🥂",
+            "cover_media": "https://litter.catbox.moe/cif3o6.png",
+            "created_at": "2026-11-09T12:56:54.436377+01:00",
+            "id": "post_20261109_115654_2aa3",
+            "logs": [
+                "[19:24:27] ⚠️ Deduplication Guard: Stories were already published within last 30m (Media ID: 18116208341590868). Skipping duplicate publish."
+            ],
+            "post_type": "story_parts",
+            "primary_media": "https://litter.catbox.moe/qs4am8.mp4",
+            "published_at": "2026-11-09T19:24:27.760612+01:00",
+            "scheduled_time": "2026-11-09T16:00",
+            "status": "published",
+            "story_part1": "https://litter.catbox.moe/qs4am8.mp4",
+            "story_part2": "https://litter.catbox.moe/tishbh.mp4",
+            "title": "Monday Night Lineup Stories (KU + Opium + Shôko)",
+            "updated_at": "2026-11-09T12:56:54.436362+01:00",
+            "user_tags": [
+                "@kubarcelona",
+                "@opiumbarcelona",
+                "@shokobarcelona"
+            ]
+        },
+        {
+            "caption": "🔥 TONIGHT IN BARCELONA — LUNES!\n\nHere is your daily party lineup:\n📍 KU Barcelona — MONEY MONDAYS (Reggaeton, Hits, Commercial)\n📍 Opium Barcelona — MONDAY MADNESS (Commercial, House, Hits, Reggaeton)\n📍 Shôko Barcelona — FUCKING MONDAY BY SHÔKO MONDAZE (Hip-Hop, R&B, Urban, Commercial)\n📍 City Hall — Monday Perreo · Tributo Daddy Yankee (Reggaeton, Old School, Hits)\n\n✈️ Send this to who you're partying with tonight in Barcelona!\n\nWhich club are you hitting tonight? 👇\n\n#barcelonanightlife #bcnparties #erasmusbarcelona #lafrenchbcn",
+            "cover_media": "https://litter.catbox.moe/cif3o6.png",
+            "created_at": "2026-11-09T12:56:59.827663+01:00",
+            "id": "post_20261109_115659_81cb",
+            "logs": [
+                "[19:24:30] ⚠️ Deduplication Guard: Reel already live on Instagram! (Media ID: 18141690025739225). Skipping duplicate publish."
+            ],
+            "post_type": "reel",
+            "primary_media": "https://litter.catbox.moe/9jt5wt.mp4",
+            "published_at": "2026-11-09T19:24:30.258799+01:00",
+            "scheduled_time": "2026-11-09T16:30",
+            "status": "published",
+            "title": "Monday Clubs of the Day Reel (KU + Opium + Shôko)",
+            "updated_at": "2026-11-09T12:56:59.827651+01:00",
+            "user_tags": [
+                "@kubarcelona",
+                "@opiumbarcelona",
+                "@shokobarcelona"
+            ]
+        },
+        {
+            "caption": "Studying in Barcelona? What if your semester looked like this? 🚁✨\n\nLa French is expanding our campus team and selecting brand ambassadors across Barcelona universities (UPF, ESADE, UB, TBS, UIC & Erasmus).\n\nHere is what you unlock:\n🍾 Free VIP tables & bottle packages for your crew every weekend\n🥂 Free VIP entry to all top clubs in the city\n💶 Uncapped cash commissions on tickets & VIP reservations (€200 – €800+/month)\n🌐 Gain real international event marketing experience for your CV\n\nLimited spots per faculty.\n\nDrop a comment with “AMBASSADOR” or send us a DM to apply right now! 🔥\n\nLink in bio to fill the 60-second application form. 📲\n\n#LaFrench #GTA6 #BarcelonaStudents #StudentJobBarcelona #ErasmusBarcelona",
+            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112140_amb_reel1_preview_1_hook.jpg",
+            "created_at": "2026-11-09T14:11:54.075124+01:00",
+            "id": "post_20261109_ambassador_reel1",
+            "logs": [
+                "[19:45:12] Resolving public URL for Reel: https://litter.catbox.moe/sp37px.mp4...",
+                "[19:45:12] Public Video URL: https://litter.catbox.moe/sp37px.mp4",
+                "[19:45:12] Cover URL: https://litter.catbox.moe/umg70t.jpg",
+                "[19:45:12] Creating Reel container on Instagram Account 17841472275366270...",
+                "[19:45:54] ✅ Reel successfully published! Media ID: 17977996365070463"
+            ],
+            "post_type": "reel",
+            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112140_LA_FRENCH_AMBASSADOR_REEL_1_STUDENT_REALITY.mp4",
+            "published_at": "2026-11-09T19:45:54.860335+01:00",
+            "scheduled_time": "2026-11-09T19:45",
+            "status": "published",
+            "title": "GTA 6 Campus Ambassador Recruitment Reel (Helicopter VIP)",
+            "updated_at": "2026-11-09T22:19:36.938715+01:00",
+            "user_tags": [
+                "@upfbarcelona",
+                "@esade",
+                "@unibarcelona",
+                "@tbsbarcelona"
+            ]
+        },
+        {
+            "caption": "DM \"WHATSAPP\" to join our 800+ private student & expat community in Barcelona 🇪🇸",
+            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112138_whatsapp_story_final.png",
+            "created_at": "2026-11-09T22:19:31.815768+01:00",
+            "id": "post_20261110_whatsapp_story",
+            "logs": [
+                "✅ Published on Instagram (Media ID: 17891162682474764) at 2026-11-10 12:23:49 BCN."
+            ],
+            "media_id": "17891162682474764",
+            "post_type": "story_single",
+            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112138_whatsapp_story_authentic_anotr.mp4",
+            "published_at": "2026-11-10T11:23:49+0000",
+            "scheduled_time": "2026-11-10T12:00",
+            "status": "published",
+            "story_part1": "",
+            "story_part2": "",
+            "title": "WhatsApp Private Community Story (ANOTR — Relax My Eyes)",
+            "updated_at": "2026-11-11T09:23:56.444620+01:00",
+            "user_tags": [
+                "@opiumbarcelona",
+                "@suttonbarcelona",
+                "@shokobarcelona",
+                "@kubarcelona",
+                "@downtownbarcelona",
+                "@beuhrice",
+                "@lucile_bcn",
+                "@cyruslafrench",
+                "@flore_sbd",
+                "@armand.cprn",
+                "@mael_lafrench"
+            ]
+        },
+        {
+            "caption": "Instead of spending €30 on club tickets every single weekend... what if you were the one hosting the VIP table? 🍾\n\nWe’re hiring student promoters & brand ambassadors across Barcelona campuses for this semester.\n\nWhat’s in it for you:\n✅ Free VIP access to top clubs every weekend\n✅ Free VIP tables & bottles for your friends\n✅ Uncapped commissions per ticket sale\n✅ Gain real event promotion experience for your CV\n\nIf you’re currently in university in Barcelona and love going out, this is your sign.\n\nDrop a comment with “PROMOTER” or send us a DM to join the crew 🔥\n\nLink in bio to fill the 60-second application! 📲\n\n#LaFrench #BarcelonaStudents #StudentLifeBarcelona #ErasmusLife #Erasmus2026",
+            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112140_amb_reel1_preview_1_hook.jpg",
+            "created_at": "2026-11-09T22:19:08.056487+01:00",
+            "id": "post_20261110_ambassador_reel2",
+            "logs": [
+                "✅ Published on Instagram (Media ID: 18146823112606868, https://www.instagram.com/reel/DfjzYXOmZYS/). Duplicate copy removed."
+            ],
+            "media_id": "18146823112606868",
+            "permalink": "https://www.instagram.com/reel/DfjzYXOmZYS/",
+            "post_type": "reel",
+            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112140_LA_FRENCH_AMBASSADOR_REEL_1_STUDENT_REALITY.mp4",
+            "published_at": "2026-11-10T11:30:49+0000",
+            "scheduled_time": "2026-11-10T12:30",
+            "status": "published",
+            "story_part1": "",
+            "story_part2": "",
+            "title": "Campus Ambassador Reel 1 — Student Reality (Freed From Desire)",
+            "updated_at": "2026-11-11T09:23:56.444620+01:00",
+            "user_tags": [
+                "@opiumbarcelona",
+                "@suttonbarcelona",
+                "@shokobarcelona",
+                "@kubarcelona",
+                "@downtownbarcelona",
+                "@beuhrice",
+                "@lucile_bcn",
+                "@cyruslafrench",
+                "@flore_sbd",
+                "@armand.cprn",
+                "@mael_lafrench"
+            ]
+        },
+        {
+            "caption": "🔥 TONIGHT IN BARCELONA — MARTES! Guestlist link in bio 🥂",
+            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_030210_clubs_of_the_day_preview.png",
+            "created_at": "2026-11-09T14:06:55.616015+01:00",
+            "id": "post_20261110_stories",
+            "logs": [
+                "⚠️ Skipped yesterday at 16:00: 60-minute story cooldown detected manual phone story uploaded at 15:37 BCN (ID: 17981245833129503). Cooldown reduced to 2m for future stories."
+            ],
+            "post_type": "story_parts",
+            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_030139_clubs_of_the_day_story_part1.mp4",
+            "scheduled_time": "2026-11-10T16:00",
+            "status": "missed",
+            "story_part1": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_030139_clubs_of_the_day_story_part1.mp4",
+            "story_part2": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_030144_clubs_of_the_day_story_part2.mp4",
+            "title": "Tuesday Night Lineup Stories (Sutton, KU, Opium, Shôko, Twenties)",
+            "updated_at": "2026-11-11T09:23:56.444620+01:00"
+        },
+        {
+            "caption": "🔥 TONIGHT IN BARCELONA — MARTES!\n\nHere is your daily party lineup:\n📍 Sutton Barcelona — LA CASITA (Hits, Reggaeton, Urban)\n📍 KU Barcelona — BADASS (Reggaeton, Urban, Commercial)\n📍 Opium Barcelona — LADIES NIGHT (Commercial, House, Hits)\n📍 Shôko Barcelona — KISS KISS BANG BANG (Hip-Hop, R&B, Urban)\n📍 Twenties Barcelona — TUESDAYS AT TWENTIES (Reggaeton, Hits, Commercial)\n\n✈️ Send this to who you're partying with tonight in Barcelona!\n🎟️ Free guestlist link in bio.\n\n#barcelonanightlife #bcnparties #erasmusbarcelona #lafrenchbcn #suttonbarcelona",
+            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_030210_clubs_of_the_day_preview.png",
+            "created_at": "2026-11-09T14:06:56.042343+01:00",
+            "id": "post_20261110_daily_reel",
+            "logs": [
+                "✅ Published on Instagram (Media ID: 18121890814954819, https://www.instagram.com/reel/DfkO5vUjH7c/) at 2026-11-10 16:31:14 BCN."
+            ],
+            "media_id": "18121890814954819",
+            "permalink": "https://www.instagram.com/reel/DfkO5vUjH7c/",
+            "post_type": "reel",
+            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_030112_clubs_of_the_day_1080x1920.mp4",
+            "published_at": "2026-11-10T15:31:14+0000",
+            "scheduled_time": "2026-11-10T16:30",
+            "status": "published",
+            "title": "Tuesday Clubs of the Day Reel (5 Clubs: Sutton, KU, Opium, Shôko, Twenties)",
+            "updated_at": "2026-11-11T09:23:56.444620+01:00"
+        },
+        {
+            "caption": "What happened at Circus Friday... stays at Twenties 🎪🔥\n\n70+ nationalities screaming under the laser lights. \nNext edition this Friday November 13th! \n\nDrop a 🎪 below to join the free VIP guestlist for this week!\n\n#LaFrench #CircusParty #TwentiesBarcelona #BarcelonaNightlife #ErasmusBarcelona",
+            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_033925_LA_FRENCH_LAST_FRIDAY_RECAP_COVER.jpg",
+            "created_at": "2026-11-09T14:06:56.492448+01:00",
+            "id": "post_20261110_circus_recap",
+            "logs": [
+                "✅ Published on Instagram (Media ID: 18158434945511797, https://www.instagram.com/reel/DfkZLUdgbJk/) at 2026-11-10 18:01:06 BCN."
+            ],
+            "media_id": "18158434945511797",
+            "permalink": "https://www.instagram.com/reel/DfkZLUdgbJk/",
+            "post_type": "reel",
+            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_033918_LA_FRENCH_LAST_FRIDAY_RECAP_ANOTR_1080x1920.mp4",
+            "published_at": "2026-11-10T17:01:06+0000",
+            "scheduled_time": "2026-11-10T18:00",
+            "status": "published",
+            "title": "Circus Friday Recap Reel (ANOTR — Relax My Eyes)",
+            "updated_at": "2026-11-11T09:23:56.444620+01:00",
+            "user_tags": [
+                "@twentiesbarcelona",
+                "@lafrenchbcn",
+                "@beuhrice"
+            ]
+        },
+        {
+            "caption": "🔥 TONIGHT IN BARCELONA — MIÉRCOLES! Guestlist link in bio 🥂",
+            "cover_media": "https://litter.catbox.moe/cif3o6.png",
+            "created_at": "2026-11-09T14:06:57.553617+01:00",
+            "id": "post_20261111_stories",
+            "post_type": "story_parts",
+            "primary_media": "https://litter.catbox.moe/qs4am8.mp4",
+            "scheduled_time": "2026-11-11T16:00",
+            "status": "scheduled",
+            "story_part1": "https://litter.catbox.moe/qs4am8.mp4",
+            "story_part2": "https://litter.catbox.moe/tishbh.mp4",
+            "title": "Wednesday Night Lineup Stories [PLACEHOLDER]",
+            "updated_at": "2026-11-09T14:06:57.553251+01:00"
+        },
+        {
+            "caption": "🔥 TONIGHT IN BARCELONA — MIÉRCOLES! Link in bio.",
+            "cover_media": "https://litter.catbox.moe/cif3o6.png",
+            "created_at": "2026-11-09T14:06:58.063080+01:00",
+            "id": "post_20261111_daily_reel",
+            "post_type": "reel",
+            "primary_media": "https://litter.catbox.moe/9jt5wt.mp4",
+            "scheduled_time": "2026-11-11T16:30",
+            "status": "scheduled",
+            "title": "Wednesday Clubs of the Day Reel [PLACEHOLDER]",
+            "updated_at": "2026-11-09T14:06:58.063037+01:00"
+        },
+        {
+            "caption": "Life in Barcelona isn't a movie... but it feels like GTA 6. 🚁✨\n\nFrom sunset over W Barcelona to VIP tables at the finest clubs in the Mediterranean.\nWelcome to La French.\n\nComment VIP for guestlist access this weekend! 🥂\n\n#LaFrench #GTA6 #BarcelonaLife #BarcelonaNightlife #WBarcelona",
+            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261111_gta6_lafrench_branding_cover.jpg",
+            "created_at": "2026-11-09T14:06:58.597603+01:00",
+            "id": "post_20261111_gta6_branding",
+            "post_type": "reel",
+            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261111_gta6_lafrench_branding.mp4",
+            "scheduled_time": "2026-11-11T18:30",
+            "status": "scheduled",
+            "title": "GTA 6 Lifestyle & Nightlife Branding Reel",
+            "updated_at": "2026-11-11T09:23:56.444620+01:00"
+        },
+        {
+            "caption": "DM \"WHATSAPP\" to join our 800+ private student & expat community in Barcelona 🇪🇸",
+            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112138_whatsapp_story_final.png",
+            "id": "post_20261112_whatsapp_story",
+            "post_type": "story_single",
+            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112138_whatsapp_story_authentic_anotr.mp4",
+            "scheduled_time": "2026-11-12T12:30",
+            "status": "scheduled",
+            "title": "WhatsApp Private Community Story (ANOTR — Relax My Eyes)",
+            "user_tags": [
+                "@opiumbarcelona",
+                "@suttonbarcelona",
+                "@shokobarcelona",
+                "@downtownbarcelona",
+                "@beuhrice",
+                "@lucile_bcn",
+                "@cyruslafrench",
+                "@flore_sbd",
+                "@armand.cprn",
+                "@mael_lafrench"
+            ]
+        },
+        {
+            "caption": "🔥 TONIGHT IN BARCELONA — JUEVES! Link in bio 🥂",
+            "cover_media": "https://litter.catbox.moe/cif3o6.png",
+            "created_at": "2026-11-09T14:06:59.121140+01:00",
+            "id": "post_20261112_stories",
+            "post_type": "story_parts",
+            "primary_media": "https://litter.catbox.moe/qs4am8.mp4",
+            "scheduled_time": "2026-11-12T16:00",
+            "status": "scheduled",
+            "story_part1": "https://litter.catbox.moe/qs4am8.mp4",
+            "story_part2": "https://litter.catbox.moe/tishbh.mp4",
+            "title": "Thursday Night Lineup Stories [PLACEHOLDER]",
+            "updated_at": "2026-11-09T14:06:59.121115+01:00"
+        },
+        {
+            "caption": "🔥 TONIGHT IN BARCELONA — JUEVES! Link in bio.",
+            "cover_media": "https://litter.catbox.moe/cif3o6.png",
+            "created_at": "2026-11-09T14:06:59.638849+01:00",
+            "id": "post_20261112_daily_reel",
+            "post_type": "reel",
+            "primary_media": "https://litter.catbox.moe/9jt5wt.mp4",
+            "scheduled_time": "2026-11-12T16:30",
+            "status": "scheduled",
+            "title": "Thursday Clubs of the Day Reel [PLACEHOLDER]",
+            "updated_at": "2026-11-09T14:06:59.638829+01:00"
+        },
+        {
+            "caption": "POV: The girls group chat makes it out and we give you a free VIP table... 🍾✨\n\nCIRCUS FRIDAY · THIS FRIDAY 13 NOVEMBER 🎪\nThe ultimate Friday 2-step experience in Barcelona:\n\n📍 STEP 1: Pre-party at La Fira Provença (Carrer de Provença 171) from 22:30\n👉 2 FREE SHOTS included with your guestlist pass\n\n📍 STEP 2: Main Event at Twenties Barcelona (Carrer del Rosselló 208)\n👉 FREE ENTRY to Twenties Club\n\n👑 SPECIAL FOR GIRLS GROUPS:\nFree VIP table & bottle for girls squads! Send a DM with \"VIP\" to @lafrenchbcn to lock yours in before tables are fully booked 🥂\n\n👔 Dress Code: Elegant, Extravagant — Red, Black & Gold\n🎟️ Free Guestlist & VIP Tables: link in bio or lafrenchbcn.com\n\nSend this to your group chat and see you on Friday! 🔥\n\n#LaFrench #CircusParty #TwentiesBarcelona #LaFiraProvença #BarcelonaNightlife #ErasmusBarcelona",
+            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261111_085350_CIRCUS_FRIDAY_REEL_2_GIRLS_VIP_COVER.jpg",
+            "created_at": "2026-11-11T09:54:55.686413+01:00",
+            "id": "post_20261112_circus_friday_promo",
+            "post_type": "reel",
+            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261111_085401_CIRCUS_FRIDAY_REEL_2_GIRLS_VIP_HOOK.mp4",
+            "scheduled_time": "2026-11-12T18:30",
+            "status": "scheduled",
+            "title": "Circus Friday Reel 2 — Girls VIP Hook (La Fira + Twenties)",
+            "updated_at": "2026-11-11T09:54:55.686400+01:00",
+            "user_tags": [
+                "@twentiesbarcelona",
+                "@lafiraprovenca",
+                "@lafrenchbcn"
+            ]
+        },
+        {
+            "caption": "🎪 TONIGHT: CIRCUS CASINO! 🎰\nPre-party at La Fira Provença (2 Free Shots) + Free Entry to Twenties Club.\nGuestlist closing soon — tap link to join!\n\n#LaFrench #CircusCasino #TwentiesBarcelona #LaFiraProvença #BarcelonaNightlife",
+            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/CIRCUS_CASINO_FRIDAY_13_NOV_COVER_1080x1920.png",
+            "created_at": "2026-11-09T22:19:31.173227+01:00",
+            "id": "post_20261113_circus_urgency_story",
+            "post_type": "story_single",
+            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/CIRCUS_CASINO_FRIDAY_13_NOV_COVER_1080x1920.png",
+            "scheduled_time": "2026-11-13T12:00",
+            "status": "scheduled",
+            "title": "CIRCUS CASINO Friday Day-Of Urgency Story",
+            "updated_at": "2026-11-11T09:23:56.444620+01:00",
+            "user_tags": [
+                "@twentiesbarcelona",
+                "@lafiraprovenca",
+                "@lafrenchbcn"
+            ]
+        },
+        {
+            "caption": "🔥 TONIGHT IN BARCELONA — VIERNES! Link in bio 🥂",
+            "cover_media": "https://litter.catbox.moe/cif3o6.png",
+            "created_at": "2026-11-09T14:07:01.160636+01:00",
+            "id": "post_20261113_stories",
+            "post_type": "story_parts",
+            "primary_media": "https://litter.catbox.moe/qs4am8.mp4",
+            "scheduled_time": "2026-11-13T16:00",
+            "status": "scheduled",
+            "story_part1": "https://litter.catbox.moe/qs4am8.mp4",
+            "story_part2": "https://litter.catbox.moe/tishbh.mp4",
+            "title": "Friday Full City Lineup Stories [PLACEHOLDER]",
+            "updated_at": "2026-11-09T14:07:01.160588+01:00"
+        },
+        {
+            "caption": "🔥 TONIGHT IN BARCELONA — VIERNES! Circus at Twenties, Opium, Sutton & more.",
+            "cover_media": "https://litter.catbox.moe/cif3o6.png",
+            "created_at": "2026-11-09T14:07:01.702715+01:00",
+            "id": "post_20261113_daily_reel",
+            "post_type": "reel",
+            "primary_media": "https://litter.catbox.moe/9jt5wt.mp4",
+            "scheduled_time": "2026-11-13T16:30",
+            "status": "scheduled",
+            "title": "Friday Clubs of the Day Reel [PLACEHOLDER]",
+            "updated_at": "2026-11-09T14:07:01.702686+01:00"
+        },
+        {
+            "caption": "We came for a 72-hour holiday.\nThat was 8 months ago.\n\nWe arrived knowing nobody with one suitcase and zero plans.\nNow our camera rolls are 90% blur and 100% pure joy.\n70+ different nationalities, all screaming the exact same beat under the laser lights.\n\nWas it just another night out?\nNot even close.\n\nThis is our youth. Live it while you’re young.\nSee you on the floor tonight. 🔥\n\nSave this reel for when you need a reminder of what Barcelona feels like.\nGuest list & VIP reservations link in bio 🥂\n\n#LaFrench #LaFrenchBCN #BarcelonaParties #BarcelonaNightlife #Hugel",
+            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261113_LA_FRENCH_BRAND_REEL_2_COVER.jpg",
+            "created_at": "2026-11-09T14:07:02.263027+01:00",
+            "id": "post_20261113_brand_reel2",
+            "post_type": "reel",
+            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261113_LA_FRENCH_BRAND_REEL_2_HUGEL_BAM_BAM.mp4",
+            "scheduled_time": "2026-11-13T18:30",
+            "status": "scheduled",
+            "title": "La French Brand Reel 2 — We Never Went Home (Hugel Bam Bam)",
+            "updated_at": "2026-11-11T09:23:56.444620+01:00"
+        },
+        {
+            "caption": "DM \"WHATSAPP\" to join our 800+ private student & expat community in Barcelona 🇪🇸",
+            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112138_whatsapp_story_final.png",
+            "id": "post_20261114_whatsapp_story",
+            "post_type": "story_single",
+            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112138_whatsapp_story_authentic_anotr.mp4",
+            "scheduled_time": "2026-11-14T12:30",
+            "status": "scheduled",
+            "title": "WhatsApp Private Community Story (ANOTR — Relax My Eyes)",
+            "user_tags": [
+                "@opiumbarcelona",
+                "@suttonbarcelona",
+                "@shokobarcelona",
+                "@downtownbarcelona",
+                "@beuhrice",
+                "@lucile_bcn",
+                "@cyruslafrench",
+                "@flore_sbd",
+                "@armand.cprn",
+                "@mael_lafrench"
+            ]
+        },
+        {
+            "caption": "🔥 TONIGHT IN BARCELONA — SÁBADO! Link in bio 🥂",
+            "cover_media": "https://litter.catbox.moe/cif3o6.png",
+            "created_at": "2026-11-09T14:07:02.777630+01:00",
+            "id": "post_20261114_stories",
+            "post_type": "story_parts",
+            "primary_media": "https://litter.catbox.moe/qs4am8.mp4",
+            "scheduled_time": "2026-11-14T16:00",
+            "status": "scheduled",
+            "story_part1": "https://litter.catbox.moe/qs4am8.mp4",
+            "story_part2": "https://litter.catbox.moe/tishbh.mp4",
+            "title": "Saturday Night Lineup Stories [PLACEHOLDER]",
+            "updated_at": "2026-11-09T14:07:02.777605+01:00"
+        },
+        {
+            "caption": "🔥 TONIGHT IN BARCELONA — SÁBADO! Saturday club guide.",
+            "cover_media": "https://litter.catbox.moe/cif3o6.png",
+            "created_at": "2026-11-09T14:07:03.259176+01:00",
+            "id": "post_20261114_daily_reel",
+            "post_type": "reel",
+            "primary_media": "https://litter.catbox.moe/9jt5wt.mp4",
+            "scheduled_time": "2026-11-14T16:30",
+            "status": "scheduled",
+            "title": "Saturday Clubs of the Day Reel [PLACEHOLDER]",
+            "updated_at": "2026-11-09T14:07:03.259153+01:00"
+        },
+        {
+            "caption": "Nobody warns you before you move here.\n\nFirst it’s just “one drink after work” with people you met three hours ago.\nThen suddenly it’s 4 AM, your shoes are ruined, and you’re screaming the lyrics to songs you thought you forgot.\nAnd the next thing you know... you can never live anywhere else.\n\nThey asked us why we go out every single weekend.\nBecause in this city, strangers become family on the dancefloor.\n\nTag the person who ruined every other city for you 🫂\nDrop a 🍾 below if you’re out tonight with @lafrenchbcn!\n\nGuest list & VIP tables link in bio 📲\n\n#LaFrench #LaFrenchBCN #BarcelonaNightlife #BarcelonaErasmus #BarcelonaVibes",
+            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261114_LA_FRENCH_BRAND_REEL_1_COVER.jpg",
+            "created_at": "2026-11-09T14:07:03.765651+01:00",
+            "id": "post_20261114_brand_reel1",
+            "post_type": "reel",
+            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261114_LA_FRENCH_BRAND_REEL_1_LOSTBOYJAY.mp4",
+            "scheduled_time": "2026-11-14T18:30",
+            "status": "scheduled",
+            "title": "La French Brand Reel 1 — The Barcelona Curse (Lostboyjay)",
+            "updated_at": "2026-11-11T09:23:56.444620+01:00"
+        },
+        {
+            "caption": "🥂 SUNDAY NIGHT IN BARCELONA — Dinner & Nightclub guide.",
+            "cover_media": "https://litter.catbox.moe/cif3o6.png",
+            "created_at": "2026-11-09T14:07:04.325489+01:00",
+            "id": "post_20261115_stories",
+            "post_type": "story_parts",
+            "primary_media": "https://litter.catbox.moe/qs4am8.mp4",
+            "scheduled_time": "2026-11-15T16:00",
+            "status": "scheduled",
+            "story_part1": "https://litter.catbox.moe/qs4am8.mp4",
+            "story_part2": "https://litter.catbox.moe/tishbh.mp4",
+            "title": "Sunday Lineup & Dinner Stories [PLACEHOLDER]",
+            "updated_at": "2026-11-09T14:07:04.325460+01:00"
+        },
+        {
+            "caption": "🔥 SUNDAY IN BARCELONA: KU Sundays, Opium & more.",
+            "cover_media": "https://litter.catbox.moe/cif3o6.png",
+            "created_at": "2026-11-09T14:07:04.884152+01:00",
+            "id": "post_20261115_daily_reel",
+            "post_type": "reel",
+            "primary_media": "https://litter.catbox.moe/9jt5wt.mp4",
+            "scheduled_time": "2026-11-15T16:30",
+            "status": "scheduled",
+            "title": "Sunday Clubs of the Day Reel [PLACEHOLDER]",
+            "updated_at": "2026-11-09T14:07:04.884116+01:00"
+        },
+        {
+            "caption": "Sundays in Barcelona hit differently. 🍷✨\n\nJoin us for our signature Sunday Dinner & Show:\n🍽️ Gourmet dinner & cocktails\n🎷 Live performers & vocal show\n🥂 Seamless transition straight to VIP party\n\nLimited tables available every Sunday.\nReserve your table via link in bio or DM DINNER!\n\n#SundayDinner #BarcelonaDinnerShow #LaFrenchDinner #BarcelonaNightlife #VIPBarcelona",
+            "carousel_items": [
+                "https://litter.catbox.moe/tsei2s.png"
+            ],
+            "cover_media": "https://litter.catbox.moe/tsei2s.png",
+            "created_at": "2026-11-09T14:07:05.398043+01:00",
+            "id": "post_20261115_sunday_dinner_carousel",
+            "post_type": "carousel",
+            "primary_media": "https://litter.catbox.moe/tsei2s.png",
+            "scheduled_time": "2026-11-15T18:30",
+            "status": "scheduled",
+            "title": "Sunday Dinner & Show Event [PLACEHOLDER — Drop your menu/venue carousel]",
+            "updated_at": "2026-11-09T14:07:05.398024+01:00"
+        },
+        {
+            "caption": "DM \"WHATSAPP\" to join our 800+ private student & expat community in Barcelona 🇪🇸",
+            "cover_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112138_whatsapp_story_final.png",
+            "id": "post_20261116_whatsapp_story",
+            "post_type": "story_single",
+            "primary_media": "https://promotersdashboard-275699211798.europe-west1.run.app/uploads/20261110_112138_whatsapp_story_authentic_anotr.mp4",
+            "scheduled_time": "2026-11-16T12:30",
+            "status": "scheduled",
+            "title": "WhatsApp Private Community Story (ANOTR — Relax My Eyes)",
+            "user_tags": [
+                "@opiumbarcelona",
+                "@suttonbarcelona",
+                "@shokobarcelona",
+                "@downtownbarcelona",
+                "@beuhrice",
+                "@lucile_bcn",
+                "@cyruslafrench",
+                "@flore_sbd",
+                "@armand.cprn",
+                "@mael_lafrench"
+            ]
+        }
+    ]
 }
