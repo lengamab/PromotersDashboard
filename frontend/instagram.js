@@ -849,16 +849,20 @@ function setupPreviewTabs(post) {
     } else {
         if (badge) badge.style.display = 'none';
         if (post.primary_media && post.post_type !== 'story_parts') {
-            mediaList.push({ label: '📹 Reel / Media', url: post.primary_media });
+            mediaList.push({
+                label: '📹 Reel / Media',
+                url: post.primary_media,
+                isVideo: typeof post.is_video === 'boolean' ? post.is_video : null
+            });
         }
         if (post.story_part1) {
-            mediaList.push({ label: '📹 Story Part 1', url: post.story_part1 });
+            mediaList.push({ label: '📹 Story Part 1', url: post.story_part1, isVideo: true });
         }
         if (post.story_part2) {
-            mediaList.push({ label: '📹 Story Part 2', url: post.story_part2 });
+            mediaList.push({ label: '📹 Story Part 2', url: post.story_part2, isVideo: true });
         }
         if (post.cover_media) {
-            mediaList.push({ label: '🖼️ Flyer Preview', url: post.cover_media });
+            mediaList.push({ label: '🖼️ Flyer Preview', url: post.cover_media, isVideo: false });
         }
     }
 
@@ -876,7 +880,7 @@ function setupPreviewTabs(post) {
             btn.onclick = () => {
                 Array.from(tabsContainer.children).forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                previewOnlineMedia(m.url);
+                previewOnlineMedia(m.url, m.isVideo !== undefined ? m.isVideo : null);
             };
             tabsContainer.appendChild(btn);
         });
@@ -885,7 +889,7 @@ function setupPreviewTabs(post) {
     }
 
     if (mediaList.length > 0) {
-        previewOnlineMedia(mediaList[0].url);
+        previewOnlineMedia(mediaList[0].url, mediaList[0].isVideo !== undefined ? mediaList[0].isVideo : null);
     }
 }
 

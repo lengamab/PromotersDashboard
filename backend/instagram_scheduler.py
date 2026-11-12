@@ -1003,6 +1003,181 @@ def reconcile_schedule_with_meta(db):
 
     return changed
 
+
+_LAST_APP_SYNC_TS = 0
+
+
+def _to_bcn_local_dt(ts_str):
+    dt = parse_iso_timestamp(ts_str)
+    if not dt:
+        return None
+    bcn_tz = ZoneInfo("Europe/Madrid") if ZoneInfo else datetime.timezone(datetime.timedelta(hours=1))
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=datetime.timezone.utc)
+    return dt.astimezone(bcn_tz)
+
+
+def sync_manual_instagram_posts(db, ttl_seconds=120, force=False):
+    """Imports posts, reels, carousels, and stories published manually via the Instagram app."""
+    global _LAST_APP_SYNC_TS
+    now_ts = time.time()
+    if not force and (now_ts - _LAST_APP_SYNC_TS) < ttl_seconds:
+        return False
+
+    account_id, token = get_credentials()
+    if not account_id or not token:
+        return False
+
+    _LAST_APP_SYNC_TS = now_ts
+    posts = db.get("posts", [])
+    existing_by_mid = {}
+    for p in posts:
+        for mid in _extract_media_ids(p):
+            existing_by_mid[mid] = p
+
+    fetched_items = []
+    try:
+        r_media = requests.get(
+            f"https://graph.facebook.com/v21.0/{account_id}/media",
+            params={
+                "fields": "id,caption,timestamp,media_type,media_product_type,media_url,thumbnail_url,permalink",
+                "limit": 30,
+                "access_token": token,
+            },
+            timeout=10,
+        )
+        if r_media.status_code == 200:
+            for item in r_media.json().get("data", []):
+                fetched_items.append((item, False))
+    except Exception as e:
+        print(f"⚠️ IG App media sync error: {e}")
+
+    try:
+        r_stories = requests.get(
+            f"https://graph.facebook.com/v21.0/{account_id}/stories",
+            params={
+                "fields": "id,caption,timestamp,media_type,media_url,thumbnail_url,permalink",
+                "limit": 25,
+                "access_token": token,
+            },
+            timeout=10,
+        )
+        if r_stories.status_code != 200:
+            r_stories = requests.get(
+                f"https://graph.facebook.com/v21.0/{account_id}/stories",
+                params={
+                    "fields": "id,timestamp,media_type,media_url,thumbnail_url",
+                    "limit": 25,
+                    "access_token": token,
+                },
+                timeout=10,
+            )
+        if r_stories.status_code == 200:
+            for item in r_stories.json().get("data", []):
+                fetched_items.append((item, True))
+    except Exception as e:
+        print(f"⚠️ IG App stories sync error: {e}")
+
+    changed = False
+    for item, is_story in fetched_items:
+        mid = str(item.get("id") or "").strip()
+        if not mid:
+            continue
+
+        media_type = (item.get("media_type") or "").upper()
+        product_type = (item.get("media_product_type") or "").upper()
+        media_url = (item.get("media_url") or "").strip()
+        thumb_url = (item.get("thumbnail_url") or "").strip()
+        permalink = (item.get("permalink") or "").strip()
+        caption = (item.get("caption") or "").strip()
+        primary_url = media_url or thumb_url
+        cover_url = thumb_url or (media_url if media_type != "VIDEO" else "")
+        primary_is_video = bool(media_url and media_type == "VIDEO")
+
+        if mid in existing_by_mid:
+            existing_post = existing_by_mid[mid]
+            if existing_post.get("source") == "instagram_app":
+                for k, v in (
+                    ("primary_media", primary_url),
+                    ("cover_media", cover_url),
+                    ("permalink", permalink),
+                ):
+                    if v and existing_post.get(k) != v:
+                        existing_post[k] = v
+                        changed = True
+                if existing_post.get("is_video") != primary_is_video:
+                    existing_post["is_video"] = primary_is_video
+                    changed = True
+            continue
+
+        local_dt = _to_bcn_local_dt(item.get("timestamp"))
+        if not local_dt:
+            continue
+        sched_time = local_dt.strftime("%Y-%m-%dT%H:%M")
+
+        # Skip if an already-scheduled/published entry matches this post by caption & timestamp (legacy rows without media_id)
+        cap_norm = re.sub(r"\s+", " ", caption).lower()[:30]
+        matched_legacy = None
+        if len(cap_norm) >= 12:
+            for p in posts:
+                if p.get("source") == "instagram_app" or p.get("status") != "published":
+                    continue
+                p_dt = _to_bcn_local_dt(p.get("published_at") or p.get("scheduled_time"))
+                p_cap = re.sub(r"\s+", " ", (p.get("caption") or "").strip()).lower()
+                if p_dt and abs((local_dt - p_dt).total_seconds()) <= 1800 and cap_norm in p_cap:
+                    matched_legacy = p
+                    break
+        if matched_legacy:
+            matched_legacy["media_id"] = mid
+            existing_by_mid[mid] = matched_legacy
+            changed = True
+            continue
+
+        if is_story or product_type == "STORY":
+            post_type = "story_single"
+            label_kind = "Story"
+        elif product_type == "REELS":
+            post_type = "reel"
+            label_kind = "Reel"
+        elif media_type == "CAROUSEL_ALBUM":
+            post_type = "carousel"
+            label_kind = "Carousel"
+        else:
+            post_type = "photo"
+            label_kind = "Post"
+
+        first_line = next((ln.strip() for ln in caption.splitlines() if ln.strip()), "")
+        snippet = f": {first_line[:42]}…" if len(first_line) > 42 else (f": {first_line}" if first_line else "")
+        title = f"📱 IG App {label_kind}{snippet}"
+
+        new_post = {
+            "id": f"ig_app_{mid}",
+            "title": title,
+            "post_type": post_type,
+            "scheduled_time": sched_time,
+            "status": "published",
+            "source": "instagram_app",
+            "media_id": mid,
+            "media_ids": [mid],
+            "is_video": primary_is_video,
+            "primary_media": primary_url,
+            "cover_media": cover_url,
+            "permalink": permalink,
+            "caption": caption,
+            "published_at": item.get("timestamp"),
+            "created_at": local_dt.isoformat(),
+            "updated_at": get_now_bcn().isoformat(),
+            "logs": [f"📱 Synced from Instagram App (Media ID: {mid})"],
+        }
+        posts.append(new_post)
+        existing_by_mid[mid] = new_post
+        changed = True
+
+    if changed:
+        posts.sort(key=lambda x: x.get("scheduled_time", ""))
+        db["posts"] = posts
+    return changed
+
 def _extract_media_ids(post):
     """Collects unique Instagram numeric media IDs stored on the post or inside publish logs."""
     mids = []
@@ -1100,6 +1275,8 @@ def _refresh_single_post_metrics(post, token):
             changed = True
         return changed
 
+    return changed
+
     existing_permalink = post.get("permalink") or (post.get("metrics") or {}).get("permalink") or ""
     permalink = agg["permalink"] or existing_permalink
     post["metrics"] = {
@@ -1167,6 +1344,8 @@ def refresh_published_metrics(db, ttl_seconds=600, force=False):
         if changed:
             save_schedule_db(db)
 
+    return changed
+
     return changed, compute_published_totals(posts)
 
 def background_scheduler_worker():
@@ -1187,6 +1366,8 @@ def background_scheduler_worker():
 
             if not did_startup_reconcile:
                 if reconcile_schedule_with_meta(db):
+                    modified = True
+                if sync_manual_instagram_posts(db, ttl_seconds=0, force=True):
                     modified = True
                 did_startup_reconcile = True
                 checked_meta_this_cycle = True
@@ -1233,6 +1414,8 @@ def background_scheduler_worker():
             # Snapshot metrics every 15 minutes so ephemeral Stories are preserved before 24h expiry
             if time.time() - last_metrics_sync_ts >= 900:
                 last_metrics_sync_ts = time.time()
+                if sync_manual_instagram_posts(db, ttl_seconds=840):
+                    save_schedule_db(db)
                 refresh_published_metrics(db, ttl_seconds=900, force=False)
         except Exception as e:
             print(f"⚠️ [Online Scheduler Worker] Error: {e}")
@@ -1343,6 +1526,8 @@ def serve_upload(filename):
 @bp.route('/api/schedule', methods=['GET'])
 def get_schedule():
     db = load_schedule_db()
+    if sync_manual_instagram_posts(db, ttl_seconds=120):
+        save_schedule_db(db)
     db["published_totals"] = compute_published_totals(db.get("posts", []))
     return jsonify(db)
 
@@ -1350,6 +1535,8 @@ def get_schedule():
 def get_schedule_metrics():
     force = request.args.get("refresh") in ("1", "true", "yes")
     db = load_schedule_db()
+    if sync_manual_instagram_posts(db, ttl_seconds=0 if force else 120, force=force):
+        save_schedule_db(db)
     _, totals = refresh_published_metrics(db, ttl_seconds=120 if force else 600, force=force)
     per_post = {
         p["id"]: p.get("metrics")
