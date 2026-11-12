@@ -1344,8 +1344,6 @@ def refresh_published_metrics(db, ttl_seconds=600, force=False):
         if changed:
             save_schedule_db(db)
 
-    return changed
-
     return changed, compute_published_totals(posts)
 
 def background_scheduler_worker():
