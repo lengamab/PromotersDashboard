@@ -406,17 +406,61 @@ function formatMetricNum(n) {
     return String(num);
 }
 
-function updatePublishedStatsPill(totals = {}) {
+function updatePublishedStatsPill(customTotals = null) {
     const pill = document.getElementById('schedPublishedStatsPill');
     if (!pill) return;
-    const views = Number(totals.total_views || 0);
-    const likes = Number(totals.total_likes || 0);
-    const reach = Number(totals.total_reach || 0);
-    const comments = Number(totals.total_comments || 0);
-    const pubCount = Number(totals.published_count || 0);
-    const trackedCount = Number(totals.tracked_count || 0);
+
+    let views = 0, likes = 0, reach = 0, comments = 0, pubCount = 0, trackedCount = 0;
+    let isWeekScoped = false;
+
+    if (customTotals) {
+        views = Number(customTotals.total_views || 0);
+        likes = Number(customTotals.total_likes || 0);
+        reach = Number(customTotals.total_reach || 0);
+        comments = Number(customTotals.total_comments || 0);
+        pubCount = Number(customTotals.published_count || 0);
+        trackedCount = Number(customTotals.tracked_count || 0);
+    } else if (activeSchedulerView === 'calendar' && schedCurrentWeekStart) {
+        // Calculate totals dynamically for the currently visible week
+        isWeekScoped = true;
+        const weekStart = new Date(schedCurrentWeekStart);
+        weekStart.setHours(0, 0, 0, 0);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 7);
+
+        (onlineScheduleData.posts || []).forEach(p => {
+            if (p.status === 'published' && p.scheduled_time) {
+                const pDate = new Date(p.scheduled_time);
+                if (pDate >= weekStart && pDate < weekEnd) {
+                    pubCount++;
+                    if (p.metrics) {
+                        views += Number(p.metrics.views || 0);
+                        likes += Number(p.metrics.likes || 0);
+                        reach += Number(p.metrics.reach || 0);
+                        comments += Number(p.metrics.comments || 0);
+                        trackedCount++;
+                    }
+                }
+            }
+        });
+    } else {
+        const totals = onlineScheduleData.published_totals || {};
+        views = Number(totals.total_views || 0);
+        likes = Number(totals.total_likes || 0);
+        reach = Number(totals.total_reach || 0);
+        comments = Number(totals.total_comments || 0);
+        pubCount = Number(totals.published_count || 0);
+        trackedCount = Number(totals.tracked_count || 0);
+    }
+
+    const allTotals = onlineScheduleData.published_totals?.all_time || onlineScheduleData.published_totals || {};
+    const allViews = Number(allTotals.total_views || 0);
+    const allLikes = Number(allTotals.total_likes || 0);
+
     pill.innerHTML = `<i class="fa-solid fa-eye"></i> ${views.toLocaleString()} views · <i class="fa-solid fa-heart"></i> ${likes.toLocaleString()} likes <span style="opacity:0.7; font-weight:400;">(${pubCount} live)</span>`;
-    pill.title = `Published totals (${trackedCount}/${pubCount} tracked) — Reach: ${reach.toLocaleString()} | Comments: ${comments.toLocaleString()} (click to refresh)`;
+    pill.title = isWeekScoped
+        ? `This Week: ${views.toLocaleString()} views · ${likes.toLocaleString()} likes (${trackedCount}/${pubCount} tracked) | All-Time: ${allViews.toLocaleString()} views · ${allLikes.toLocaleString()} likes (click to refresh)`
+        : `Published totals (${trackedCount}/${pubCount} tracked) — Reach: ${reach.toLocaleString()} | Comments: ${comments.toLocaleString()} (click to refresh)`;
 }
 
 async function fetchPublishedMetrics(force = false) {
@@ -473,6 +517,7 @@ async function fetchOnlineSchedule() {
 }
 
 function renderOnlineCalendarGrid() {
+    updatePublishedStatsPill();
     const days = [];
     for (let i = 0; i < 7; i++) {
         const d = new Date(schedCurrentWeekStart);
