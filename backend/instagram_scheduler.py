@@ -1275,8 +1275,6 @@ def _refresh_single_post_metrics(post, token):
             changed = True
         return changed
 
-    return changed
-
     existing_permalink = post.get("permalink") or (post.get("metrics") or {}).get("permalink") or ""
     permalink = agg["permalink"] or existing_permalink
     post["metrics"] = {
