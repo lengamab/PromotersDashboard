@@ -1123,8 +1123,11 @@ async function saveOnlinePostSchedule(targetStatus = 'scheduled') {
     const pills = document.getElementById('schedTagPillsBox').querySelectorAll('span');
     const tags = Array.from(pills).map(p => p.textContent.replace('×', '').trim());
 
+    const editId = document.getElementById('schedEditPostId').value || undefined;
+    const existingPost = editId ? (onlineScheduleData.posts || []).find(p => p.id === editId) : null;
+
     const payload = {
-        id: document.getElementById('schedEditPostId').value || undefined,
+        id: editId,
         title: document.getElementById('schedInputTitle').value.trim() || 'Instagram Post',
         scheduled_time: `${dVal}T${tVal}`,
         post_type: document.getElementById('schedSelectedType').value,
@@ -1135,6 +1138,13 @@ async function saveOnlinePostSchedule(targetStatus = 'scheduled') {
         user_tags: tags,
         status: targetStatus
     };
+
+    if (existingPost && existingPost.carousel_items && Array.isArray(existingPost.carousel_items)) {
+        payload.carousel_items = existingPost.carousel_items;
+    }
+    if (existingPost && existingPost.cover_media && !payload.cover_media) {
+        payload.cover_media = existingPost.cover_media;
+    }
 
     try {
         const res = await fetch('/api/schedule', {

@@ -763,7 +763,9 @@ def execute_publish_job(post, base_request_url=""):
     acquired, lock_reason = acquire_publish_lock(post_id)
     if not acquired:
         log(f"🛡️ [Deduplication Guard] Skipped: {lock_reason}")
-        return True, logs
+        # Only return True if already completed with a valid published media ID
+        is_completed = "already published" in str(lock_reason).lower()
+        return is_completed, logs
 
     account_id, token = get_credentials()
     if not account_id or not token:
@@ -1113,12 +1115,6 @@ def sync_manual_instagram_posts(db, ttl_seconds=120, force=False):
         local_dt = _to_bcn_local_dt(item.get("timestamp"))
         if not local_dt:
             continue
-
-        # Limit manual app sync to last 7 days to avoid importing old account archives
-        now_bcn = get_now_bcn()
-        if (now_bcn - local_dt).total_seconds() > 7 * 86400:
-            continue
-
         sched_time = local_dt.strftime("%Y-%m-%dT%H:%M")
 
         # Skip if an already-scheduled/published entry matches this post by caption & timestamp (legacy rows without media_id)
@@ -1298,11 +1294,7 @@ def _refresh_single_post_metrics(post, token):
     return True
 
 def compute_published_totals(posts):
-    """Aggregates cached views, likes, reach and comments for current week and all-time."""
-    now_bcn = get_now_bcn()
-    current_monday = (now_bcn - datetime.timedelta(days=now_bcn.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-    current_sunday_end = current_monday + datetime.timedelta(days=7)
-
+    """Aggregates cached views, likes, reach and comments across all published posts."""
     totals = {
         "total_views": 0,
         "total_likes": 0,
@@ -1311,52 +1303,19 @@ def compute_published_totals(posts):
         "published_count": 0,
         "tracked_count": 0,
         "last_updated_ts": 0,
-        "all_time": {
-            "total_views": 0,
-            "total_likes": 0,
-            "total_reach": 0,
-            "total_comments": 0,
-            "published_count": 0,
-            "tracked_count": 0,
-        }
     }
     for p in posts or []:
         if p.get("status") != "published":
             continue
-
+        totals["published_count"] += 1
         m = p.get("metrics")
-        views = int(m.get("views") or 0) if isinstance(m, dict) else 0
-        likes = int(m.get("likes") or 0) if isinstance(m, dict) else 0
-        reach = int(m.get("reach") or 0) if isinstance(m, dict) else 0
-        comments = int(m.get("comments") or 0) if isinstance(m, dict) else 0
-        up_ts = int(m.get("updated_ts") or 0) if isinstance(m, dict) else 0
-
-        totals["all_time"]["published_count"] += 1
         if isinstance(m, dict):
-            totals["all_time"]["tracked_count"] += 1
-            totals["all_time"]["total_views"] += views
-            totals["all_time"]["total_likes"] += likes
-            totals["all_time"]["total_reach"] += reach
-            totals["all_time"]["total_comments"] += comments
-
-        p_dt = _to_bcn_local_dt(p.get("scheduled_time") or p.get("published_at"))
-        if p_dt and current_monday <= p_dt < current_sunday_end:
-            totals["published_count"] += 1
-            if isinstance(m, dict):
-                totals["tracked_count"] += 1
-                totals["total_views"] += views
-                totals["total_likes"] += likes
-                totals["total_reach"] += reach
-                totals["total_comments"] += comments
-                totals["last_updated_ts"] = max(totals["last_updated_ts"], up_ts)
-
-    # If current week has no tracked posts yet, fallback to all-time for last_updated_ts
-    if not totals["last_updated_ts"]:
-        for p in posts or []:
-            m = p.get("metrics")
-            if isinstance(m, dict):
-                totals["last_updated_ts"] = max(totals["last_updated_ts"], int(m.get("updated_ts") or 0))
-
+            totals["tracked_count"] += 1
+            totals["total_views"] += int(m.get("views") or 0)
+            totals["total_likes"] += int(m.get("likes") or 0)
+            totals["total_reach"] += int(m.get("reach") or 0)
+            totals["total_comments"] += int(m.get("comments") or 0)
+            totals["last_updated_ts"] = max(totals["last_updated_ts"], int(m.get("updated_ts") or 0))
     return totals
 
 def refresh_published_metrics(db, ttl_seconds=600, force=False):
@@ -1609,7 +1568,7 @@ def save_schedule():
     idx = next((i for i, p in enumerate(posts) if p.get("id") == post_id), None)
     if idx is not None:
         existing = posts[idx]
-        for keep_key in ("metrics", "media_id", "media_ids", "permalink", "logs", "published_at", "metrics_expired"):
+        for keep_key in ("metrics", "media_id", "media_ids", "permalink", "logs", "published_at", "metrics_expired", "carousel_items", "cover_media"):
             if keep_key not in data and keep_key in existing:
                 data[keep_key] = existing[keep_key]
         posts[idx] = data

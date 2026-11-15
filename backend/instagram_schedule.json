@@ -1177,11 +1177,20 @@
       "post_type": "carousel",
       "primary_media": "https://litter.catbox.moe/7jwq3p.png",
       "scheduled_time": "2026-11-15T14:17",
-      "status": "scheduled",
+      "status": "published",
       "title": "Sunday Free Dinner & Show at Opium — 4-Step Guide Carousel",
       "updated_at": "2026-11-11T17:38:20.639285+01:00",
       "user_tags": [
         "@opiumbarcelona"
+      ],
+      "media_id": "17953091592057337",
+      "media_ids": [
+        "17953091592057337"
+      ],
+      "permalink": "https://www.instagram.com/p/Dfw5QolFo9B/",
+      "published_at": "2026-11-15T14:31:57+01:00",
+      "logs": [
+        "[14:31:57] ✅ 5-slide Carousel published to Instagram! Media ID: 17953091592057337 | Permalink: https://www.instagram.com/p/Dfw5QolFo9B/"
       ]
     },
     {
