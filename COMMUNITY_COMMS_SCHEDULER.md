@@ -21,6 +21,10 @@
 | **Delete Group** | `DELETE` | `https://promotersdashboard-275699211798.europe-west1.run.app/api/comms/groups/<id>` | Removes group from directory |
 | **Generate Event Plan** | `POST` | `https://promotersdashboard-275699211798.europe-west1.run.app/api/comms/generate-plan` | Auto-generates and schedules a 5-step cadence for an event |
 | **Format Variants API** | `POST` | `https://promotersdashboard-275699211798.europe-west1.run.app/api/comms/format-variants` | Generates WhatsApp, Telegram, FB, and IG variants from raw text |
+| **AI Strategy Audit** | `POST` | `https://promotersdashboard-275699211798.europe-west1.run.app/api/comms/ai/review-strategy` | Audits entire schedule, cadence, channel mix & returns 1-click fixes |
+| **AI Event Review** | `POST` | `https://promotersdashboard-275699211798.europe-west1.run.app/api/comms/ai/review-event` | Audits specific event lifecycle (T-3 to D-Day), copy & gaps |
+| **AI Suggest Polls** | `POST` | `https://promotersdashboard-275699211798.europe-west1.run.app/api/comms/ai/suggest-polls` | Generates 3 high-engagement WhatsApp/Telegram community polls |
+| **AI Chat & Copy Advisor** | `POST` | `https://promotersdashboard-275699211798.europe-west1.run.app/api/comms/ai/chat` | Conversational strategist for copywriting & distribution advice |
 
 ---
 
@@ -174,3 +178,51 @@ curl -X POST "https://promotersdashboard-275699211798.europe-west1.run.app/api/c
 * Frontend Template: `frontend/comms.html`
 * Frontend Logic & Formatter: `frontend/comms.js`
 * Registration: In `backend/app.py` via `register_comms_scheduler(app)`
+
+---
+
+## 🧠 10. AI Strategist Endpoints (Powered by Gemini 2.5 Flash)
+
+AI agents can programmatically trigger audits, request strategic copy reviews, or generate high-engagement polls:
+
+### A. Run Full Strategy Audit
+```bash
+curl -X POST "https://promotersdashboard-275699211798.europe-west1.run.app/api/comms/ai/review-strategy" \
+  -H "Content-Type: application/json"
+```
+**Returns:**
+- `overall_score`: Integer (0-100)
+- `score_breakdown`: `{ cadence_rhythm, channel_diversity, community_engagement, conversion_power }`
+- `executive_summary`: Concise health overview
+- `strengths`: Array of strengths
+- `critical_gaps`: Array of blind spots or missing messages
+- `actionable_recommendations`: Prioritized action steps
+- `suggested_messages`: Ready-to-schedule message templates that directly fix the identified gaps
+
+### B. Audit a Specific Event (e.g. Wednesday Tapas or Friday Circus)
+```bash
+curl -X POST "https://promotersdashboard-275699211798.europe-west1.run.app/api/comms/ai/review-event" \
+  -H "Content-Type: application/json" \
+  -d '{"event_name": "Wednesday Experience @ Verne"}'
+```
+**Returns:**
+- `readiness_score`: Event readiness (0-100)
+- `cadence_audit`: 5-step checklist (T-3 Teaser, T-2 Guestlist Open, T-1 Apéro Poll, D-Day Cutoff, D-Day Last Call) with statuses (`covered`, `missing`, `improvable`)
+- `copy_critique`: Conversion, FOMO, pricing clarity, and ID reminder critiques
+- `missing_messages_to_add`: Pre-formatted messages ready to schedule
+
+### C. Generate Community Polls for WhatsApp / Telegram
+```bash
+curl -X POST "https://promotersdashboard-275699211798.europe-west1.run.app/api/comms/ai/suggest-polls" \
+  -H "Content-Type: application/json"
+```
+
+### D. Strategic Copy & Planning Chat
+```bash
+curl -X POST "https://promotersdashboard-275699211798.europe-west1.run.app/api/comms/ai/chat" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "How can we increase dinner table reservations for Wednesday among French students?",
+    "event_context": "Wednesday Experience @ Verne"
+  }'
+```

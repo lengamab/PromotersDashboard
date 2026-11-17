@@ -343,6 +343,9 @@
                 </div>
 
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button onclick="openAiStrategistModal()" class="filter-chip" style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: #fff; border: 1px solid rgba(168, 85, 247, 0.4); box-shadow: 0 0 16px rgba(168,85,247,0.35); font-weight: 700;">
+                        <i class="fa-solid fa-brain"></i> AI Strategist
+                    </button>
                     <button onclick="openPlanModal()" class="filter-chip" style="background: linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(225,48,108,0.2) 100%); border-color: #D4AF37; color: #fff;">
                         <i class="fa-solid fa-wand-magic-sparkles" style="color: #D4AF37;"></i> Generate Event Plan
                     </button>
@@ -616,6 +619,171 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- MODAL 4: AI STRATEGIST (POWERED BY GEMINI) -->
+    <div id="modalAiStrategist" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1100; align-items: center; justify-content: center; padding: 16px;">
+        <div style="background: var(--bg-card); border: 1px solid rgba(168, 85, 247, 0.35); box-shadow: 0 10px 40px rgba(0,0,0,0.8), 0 0 30px rgba(168,85,247,0.15); border-radius: 24px; max-width: 860px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+            <!-- Modal Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--border-color); background: rgba(168, 85, 247, 0.06);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 18px rgba(168,85,247,0.4);">
+                        <i class="fa-solid fa-brain" style="color: #fff; font-size: 20px;"></i>
+                    </div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <h3 style="font-size: 1.25rem; font-weight: 800; margin: 0; color: #fff;">La French AI Strategist</h3>
+                            <span style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; font-family: monospace;">GEMINI 2.5 FLASH</span>
+                        </div>
+                        <p style="color: var(--text-secondary); font-size: 0.82rem; margin: 2px 0 0 0;">Nightlife & Community Growth Director • Cadence & Conversion Optimizer</p>
+                    </div>
+                </div>
+                <button onclick="closeAiModal()" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); color: var(--text-secondary); width: 34px; height: 34px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- AI Sub-Tabs -->
+            <div style="display: flex; gap: 8px; padding: 12px 24px; border-bottom: 1px solid var(--border-color); background: var(--surface-100); overflow-x: auto;">
+                <button id="aiTabBtnStrategy" onclick="switchAiTab('strategy')" class="filter-chip active" style="font-size: 0.82rem;">
+                    <i class="fa-solid fa-chart-pie" style="color: #a855f7;"></i> Full Strategy Audit
+                </button>
+                <button id="aiTabBtnEvent" onclick="switchAiTab('event')" class="filter-chip" style="font-size: 0.82rem;">
+                    <i class="fa-solid fa-bullseye" style="color: #3b82f6;"></i> Event Review
+                </button>
+                <button id="aiTabBtnPolls" onclick="switchAiTab('polls')" class="filter-chip" style="font-size: 0.82rem;">
+                    <i class="fa-solid fa-square-poll-vertical" style="color: #10b981;"></i> Community Polls
+                </button>
+                <button id="aiTabBtnChat" onclick="switchAiTab('chat')" class="filter-chip" style="font-size: 0.82rem;">
+                    <i class="fa-regular fa-comments" style="color: #f59e0b;"></i> Strategic Chat
+                </button>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div id="aiModalScrollBody" style="padding: 24px; overflow-y: auto; flex: 1;">
+                
+                <!-- Loading State -->
+                <div id="aiLoadingIndicator" style="display: none; text-align: center; padding: 50px 20px;">
+                    <div style="display: inline-block; width: 44px; height: 44px; border: 3px solid rgba(168,85,247,0.2); border-radius: 50%; border-top-color: #a855f7; animation: spin 0.8s linear infinite; margin-bottom: 16px;"></div>
+                    <h4 style="font-size: 1.1rem; font-weight: 700; margin: 0 0 6px 0; color: #fff;">Gemini is analyzing communications...</h4>
+                    <p style="color: var(--text-secondary); font-size: 0.88rem; margin: 0;" id="aiLoadingSubtext">Auditing schedule cadence, student channel balance, and conversion hooks.</p>
+                </div>
+
+                <!-- TAB 1: FULL STRATEGY AUDIT -->
+                <div id="aiSectionStrategy" style="display: block;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <h4 style="font-size: 1.1rem; font-weight: 700; margin: 0 0 4px 0;">Community Communication Audit</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.84rem; margin: 0;">Evaluates multi-channel coverage, timing distribution, and student engagement health.</p>
+                        </div>
+                        <button onclick="runAiStrategyAudit()" id="btnRunStrategyAudit" class="filter-chip" style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: #fff; border: none; font-weight: 600;">
+                            <i class="fa-solid fa-rotate-right"></i> Run Strategy Audit
+                        </button>
+                    </div>
+
+                    <div id="aiStrategyResultsContainer">
+                        <div style="text-align: center; padding: 50px 20px; background: var(--surface-100); border: 1px dashed var(--border-color); border-radius: 16px;">
+                            <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 2.2rem; color: #a855f7; margin-bottom: 12px;"></i>
+                            <h4 style="margin: 0 0 6px 0; font-size: 1.05rem;">Ready to audit your overall comms strategy</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.88rem; max-width: 480px; margin: 0 auto 16px auto;">Click "Run Strategy Audit" to let Gemini inspect your active groups, message rhythm, and recommend high-impact fixes.</p>
+                            <button onclick="runAiStrategyAudit()" class="filter-chip" style="background: var(--color-primary); color: #fff;">
+                                Start Audit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: SPECIFIC EVENT REVIEW -->
+                <div id="aiSectionEvent" style="display: none;">
+                    <div style="background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 16px; padding: 18px; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                            <div>
+                                <h4 style="font-size: 1.05rem; font-weight: 700; margin: 0 0 4px 0;">Event Cadence & Copy Audit</h4>
+                                <p style="color: var(--text-secondary); font-size: 0.82rem; margin: 0;">Checks your selected event against the gold standard 5-step nightlife launch cadence.</p>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <select id="aiEventSelector" style="flex: 1; min-width: 240px; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; color: #fff; font-size: 0.9rem;">
+                                <option value="">Select an event from your schedule...</option>
+                            </select>
+                            <button onclick="runAiEventReview()" class="filter-chip" style="background: #3b82f6; color: #fff; border: none; font-weight: 600;">
+                                <i class="fa-solid fa-magnifying-glass"></i> Audit Event
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="aiEventResultsContainer">
+                        <div style="text-align: center; padding: 50px 20px; background: var(--surface-100); border: 1px dashed var(--border-color); border-radius: 16px;">
+                            <i class="fa-solid fa-ticket" style="font-size: 2.2rem; color: #3b82f6; margin-bottom: 12px;"></i>
+                            <h4 style="margin: 0 0 6px 0; font-size: 1.05rem;">Select an event to begin audit</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.88rem; max-width: 480px; margin: 0 auto;">Choose any event from the dropdown above to analyze T-3 teasers, guestlist openings, dinner polls, and D-Day cutoff alerts.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: COMMUNITY ENGAGEMENT POLLS -->
+                <div id="aiSectionPolls" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <h4 style="font-size: 1.05rem; font-weight: 700; margin: 0 0 4px 0;">WhatsApp & Telegram Community Polls</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.82rem; margin: 0;">Generate interactive polls for student groups to boost replies without hard-selling.</p>
+                        </div>
+                        <button onclick="runAiSuggestPolls()" class="filter-chip" style="background: #10b981; color: #fff; border: none; font-weight: 600;">
+                            <i class="fa-solid fa-sparkles"></i> Generate New Polls
+                        </button>
+                    </div>
+
+                    <div id="aiPollsResultsContainer">
+                        <div style="text-align: center; padding: 50px 20px; background: var(--surface-100); border: 1px dashed var(--border-color); border-radius: 16px;">
+                            <i class="fa-solid fa-square-poll-vertical" style="font-size: 2.2rem; color: #10b981; margin-bottom: 12px;"></i>
+                            <h4 style="margin: 0 0 6px 0; font-size: 1.05rem;">Generate interactive community polls</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.88rem; max-width: 480px; margin: 0 auto 16px auto;">Click below to let Gemini write 3 tailored polls for pre-drinks meetups, music requests, and guestlist reservations.</p>
+                            <button onclick="runAiSuggestPolls()" class="filter-chip" style="background: #10b981; color: #fff; border: none;">
+                                Generate 3 Polls
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: INTERACTIVE CHAT -->
+                <div id="aiSectionChat" style="display: none;">
+                    <div style="margin-bottom: 14px;">
+                        <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px;">
+                            <button onclick="sendQuickAiPrompt('How can we maximize dinner reservations for Wednesday Tapas at Verne?')" class="filter-chip" style="font-size: 0.78rem; padding: 6px 12px;">
+                                🍽️ Wednesday Dinner Conversions
+                            </button>
+                            <button onclick="sendQuickAiPrompt('Write an engaging WhatsApp poll for Erasmus students at MiCampus')" class="filter-chip" style="font-size: 0.78rem; padding: 6px 12px;">
+                                🎓 MiCampus Erasmus Poll
+                            </button>
+                            <button onclick="sendQuickAiPrompt('Review our Facebook group posting format for French & Expats in Barcelona')" class="filter-chip" style="font-size: 0.78rem; padding: 6px 12px;">
+                                🇫🇷 Facebook Expats Post
+                            </button>
+                            <button onclick="sendQuickAiPrompt('How to create urgency for Friday Circus without sounding spammy?')" class="filter-chip" style="font-size: 0.78rem; padding: 6px 12px;">
+                                🎪 Friday FOMO Urgency
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Chat Messages List -->
+                    <div id="aiChatMessages" style="min-height: 260px; max-height: 380px; overflow-y: auto; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px;">
+                        <div style="background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: 12px; padding: 12px 16px; color: #e9d5ff; font-size: 0.9rem; line-height: 1.5;">
+                            👋 <strong>Bonjour ! I am your La French Community Strategist.</strong><br>
+                            Ask me to write custom message copy, review specific promotions, suggest student perks, or refine your distribution rhythm.
+                        </div>
+                    </div>
+
+                    <!-- Chat Input -->
+                    <form id="aiChatForm" onsubmit="handleSendAiChat(event)" style="display: flex; gap: 8px;">
+                        <input type="text" id="aiChatInput" placeholder="Ask anything about strategy, copy, or cadence..." style="flex: 1; padding: 12px 16px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 12px; color: #fff; font-size: 0.9rem;">
+                        <button type="submit" id="btnSendAiChat" class="filter-chip" style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: #fff; border: none; padding: 0 20px; font-weight: 700;">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+
+            </div>
         </div>
     </div>
 

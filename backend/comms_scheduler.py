@@ -452,3 +452,375 @@ def register_comms_scheduler(app):
             poll_options=poll_options
         )
         return jsonify({"success": True, "variants": variants})
+
+    # =========================================================================
+    # AI STRATEGIST ENDPOINTS (POWERED BY GEMINI 2.5 FLASH)
+    # =========================================================================
+
+    def get_gemini_api_key():
+        key = os.environ.get("GEMINI_API_KEY", "")
+        if not key and os.path.exists(os.path.join(BASE_DIR, '.env')):
+            try:
+                with open(os.path.join(BASE_DIR, '.env'), 'r', encoding='utf-8') as f:
+                    for line in f:
+                        if line.startswith('GEMINI_API_KEY='):
+                            key = line.strip().split('=', 1)[1].strip().strip('"\'')
+                            break
+            except Exception:
+                pass
+        return key
+
+    def call_gemini_ai(prompt, system_instruction=None, json_mode=False, model="gemini-2.5-flash", temperature=0.7):
+        key = get_gemini_api_key()
+        if not key:
+            return {"success": False, "error": "GEMINI_API_KEY is not configured in backend environment"}
+
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": temperature,
+                "maxOutputTokens": 4096
+            }
+        }
+        if system_instruction:
+            payload["systemInstruction"] = {
+                "parts": [{"text": system_instruction}]
+            }
+        if json_mode:
+            payload["generationConfig"]["responseMimeType"] = "application/json"
+
+        try:
+            resp = requests.post(url, json=payload, timeout=35)
+            if resp.status_code == 200:
+                data = resp.json()
+                candidates = data.get("candidates", [])
+                if candidates:
+                    text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                    if json_mode:
+                        try:
+                            clean_text = re.sub(r'^```json\s*', '', text.strip(), flags=re.MULTILINE)
+                            clean_text = re.sub(r'\s*```$', '', clean_text.strip(), flags=re.MULTILINE)
+                            parsed = json.loads(clean_text)
+                            return {"success": True, "data": parsed, "raw": text}
+                        except Exception as je:
+                            return {"success": True, "data": None, "raw": text, "json_error": str(je)}
+                    return {"success": True, "text": text}
+                return {"success": False, "error": "No candidates returned by Gemini model"}
+            else:
+                return {"success": False, "error": f"Gemini API error ({resp.status_code}): {resp.text[:250]}"}
+        except Exception as e:
+            return {"success": False, "error": f"Failed to connect to Gemini API: {str(e)}"}
+
+    AI_SYSTEM_PROMPT = """You are the Chief Community & Growth Marketing Director for 'La French Barcelona', the premier nightlife, student, and expat party brand in Barcelona.
+You specialize in multi-channel community growth across:
+1. WhatsApp Groups (La French core, MiCampus residence, TBS Barcelona student group)
+2. Telegram Groups (ESEI Business School)
+3. Facebook Groups (Français à Barcelone & Expats in Barcelona)
+4. Instagram VIP Broadcast Channel (@la_french_bcn)
+
+Your core weekly events include:
+- Wednesday Experience @ Verne (15€ Tapas dinner + sangria open bar + nightclub afterparty)
+- Friday Circus @ La Fira Villarroel (large student party, free guestlist before 01:30, VIP tables)
+- Weekend & Summer Specials (boat trips, rooftop socials, after-work events)
+
+Ticketing and guestlist link: https://site.fourvenues.com/es/la-french-list
+
+Key principles:
+- Cadence discipline: T-3 teaser, T-2 guestlist opening, T-1 pre-drinks/dinner attendance poll, D-Day afternoon cutoff warning (urgency/FOMO), D-Day night last call with dress code.
+- Platform formatting: WhatsApp uses single *bold*, emojis, number polls. Facebook does not support markdown and requires Unicode bold headers with a clean bilingual FR/EN separator (━━━━━━━━━━━━━━━━━━━━━━). Telegram uses markdown **bold** and clean links. Instagram uses high-energy DM tone with reaction CTA.
+- Tone: High energy, fun, welcoming, exclusive yet accessible for international & French students and expats.
+"""
+
+    @app.route('/api/comms/ai/review-strategy', methods=['POST'])
+    def ai_review_strategy():
+        """Performs a comprehensive AI audit of the entire communication schedule, rhythm, and channel mix."""
+        db = load_comms_db()
+        groups = db.get("groups", [])
+        messages = db.get("messages", [])
+
+        groups_summary = [
+            {"id": g.get("id"), "name": g.get("name"), "platform": g.get("platform"), "audience": g.get("audience"), "active": g.get("active")}
+            for g in groups
+        ]
+
+        messages_summary = [
+            {
+                "id": m.get("id"),
+                "title": m.get("title"),
+                "event_name": m.get("event_name"),
+                "type": m.get("type"),
+                "scheduled_time": m.get("scheduled_time"),
+                "status": m.get("status"),
+                "target_groups": m.get("target_group_ids", []),
+                "preview": (m.get("content_base") or "")[:120]
+            }
+            for m in messages
+        ]
+
+        now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M (%A)")
+
+        prompt = f"""Perform a complete strategic audit of our community communications.
+
+CURRENT DATE & TIME: {now_str} (Europe/Madrid)
+
+CHANNELS & GROUPS DIRECTORY ({len(groups)} total):
+{json.dumps(groups_summary, indent=2, ensure_ascii=False)}
+
+SCHEDULED COMMUNICATIONS ({len(messages)} total):
+{json.dumps(messages_summary, indent=2, ensure_ascii=False)}
+
+Evaluate our strategy and return a strictly valid JSON object with the following exact structure:
+{{
+  "overall_score": 75,
+  "score_breakdown": {{
+    "cadence_rhythm": 80,
+    "channel_diversity": 70,
+    "community_engagement": 65,
+    "conversion_power": 85
+  }},
+  "executive_summary": "Concise 2-3 sentence overview of the health of our comms strategy.",
+  "strengths": [
+    "Strength 1...",
+    "Strength 2...",
+    "Strength 3..."
+  ],
+  "critical_gaps": [
+    "Gap or risk 1...",
+    "Gap 2...",
+    "Gap 3..."
+  ],
+  "actionable_recommendations": [
+    "Action 1...",
+    "Action 2...",
+    "Action 3..."
+  ],
+  "suggested_messages": [
+    {{
+      "title": "Clear descriptive title",
+      "type": "poll",
+      "event_name": "Event name or Community Engagement",
+      "target_group_ids": ["group_whatsapp_lafrench", "group_whatsapp_micampus"],
+      "scheduled_time": "YYYY-MM-DDTHH:MM:00",
+      "content_base": "French base copy with emojis and clear CTA",
+      "poll_options": ["Option 1", "Option 2", "Option 3"]
+    }}
+  ]
+}}
+Ensure suggested_messages contains 2 high-impact messages that directly solve the critical gaps you identified, ready for 1-click addition to our calendar.
+"""
+
+        res = call_gemini_ai(prompt, system_instruction=AI_SYSTEM_PROMPT, json_mode=True, temperature=0.6)
+        if not res.get("success"):
+            return jsonify({"success": False, "error": res.get("error")}), 500
+
+        data = res.get("data")
+        if not data:
+            return jsonify({"success": False, "error": "AI response was not valid JSON", "raw": res.get("raw")}), 500
+
+        # Auto-format platform variants if Gemini didn't fill all of them
+        for msg in data.get("suggested_messages", []):
+            if not msg.get("content_variants") or not msg.get("content_variants", {}).get("whatsapp"):
+                msg["content_variants"] = generate_platform_formats(
+                    base_text=msg.get("content_base", ""),
+                    event_name=msg.get("event_name", ""),
+                    poll_options=msg.get("poll_options")
+                )
+
+        return jsonify({"success": True, "analysis": data})
+
+    @app.route('/api/comms/ai/review-event', methods=['POST'])
+    def ai_review_event():
+        """Performs a deep-dive cadence and copy review for a specific event."""
+        payload = request.json or {}
+        event_name = payload.get("event_name", "").strip()
+        if not event_name:
+            return jsonify({"success": False, "error": "event_name is required"}), 400
+
+        db = load_comms_db()
+        all_messages = db.get("messages", [])
+        
+        # Filter messages for this event (case-insensitive substring)
+        event_lower = event_name.lower()
+        matched_messages = [
+            m for m in all_messages
+            if event_lower in (m.get("event_name") or "").lower() or event_lower in (m.get("title") or "").lower()
+        ]
+
+        now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M (%A)")
+
+        prompt = f"""Perform an in-depth audit of the communications scheduled for the specific event: '{event_name}'.
+
+CURRENT DATE & TIME: {now_str} (Europe/Madrid)
+
+SCHEDULED MESSAGES FOR THIS EVENT ({len(matched_messages)} found):
+{json.dumps(matched_messages, indent=2, ensure_ascii=False)}
+
+Check the event against the gold-standard 5-step nightlife cadence:
+1. T-3 Days: Teaser & Theme Reveal
+2. T-2 Days: Free Guestlist & Early Bird Tickets Opening
+3. T-1 Day: Pre-Drinks / Dinner / Table Attendance Poll
+4. D-Day (15:00): Free Guestlist Closing Cutoff Urgency
+5. D-Day (20:30): Final Tonight Alert & Dress Code Reminder
+
+Evaluate copy conversion, pricing clarity (e.g. 15€ tapas + open bar vs free club entry), FOMO, and channel reach.
+Return a strictly valid JSON object with:
+{{
+  "event_name": "{event_name}",
+  "readiness_score": 82,
+  "verdict": "2-3 sentences evaluating if this event is ready to sell out.",
+  "cadence_audit": [
+    {{
+      "step": "T-3: Teaser & Theme Reveal",
+      "status": "covered",
+      "scheduled_time": "ISO time or null",
+      "comment": "Specific feedback..."
+    }},
+    {{
+      "step": "T-2: Guestlist Opening",
+      "status": "covered",
+      "scheduled_time": "ISO time or null",
+      "comment": "Specific feedback..."
+    }},
+    {{
+      "step": "T-1: Pre-Drinks / Table Attendance Poll",
+      "status": "covered",
+      "scheduled_time": "ISO time or null",
+      "comment": "Specific feedback..."
+    }},
+    {{
+      "step": "D-Day (15:00): Guestlist Closing Warning",
+      "status": "covered",
+      "scheduled_time": "ISO time or null",
+      "comment": "Specific feedback..."
+    }},
+    {{
+      "step": "D-Day (20:30): Tonight Alert & Dress Code",
+      "status": "covered",
+      "scheduled_time": "ISO time or null",
+      "comment": "Specific feedback..."
+    }}
+  ],
+  "channel_coverage": {{
+    "whatsapp": "Strong / Fair / Missing...",
+    "telegram": "Strong / Fair / Missing...",
+    "facebook": "Strong / Fair / Missing...",
+    "instagram": "Strong / Fair / Missing..."
+  }},
+  "copy_critique": [
+    "Critique point 1...",
+    "Critique point 2..."
+  ],
+  "missing_messages_to_add": [
+    {{
+      "title": "[Event] Step Title",
+      "type": "poll",
+      "event_name": "{event_name}",
+      "target_group_ids": ["group_whatsapp_lafrench", "group_whatsapp_tbs", "group_whatsapp_micampus"],
+      "scheduled_time": "YYYY-MM-DDTHH:MM:00",
+      "content_base": "Base French copy with emojis and guestlist link",
+      "poll_options": ["Option 1", "Option 2"]
+    }}
+  ]
+}}
+Ensure status is strictly one of 'covered', 'missing', or 'improvable'.
+"""
+
+        res = call_gemini_ai(prompt, system_instruction=AI_SYSTEM_PROMPT, json_mode=True, temperature=0.5)
+        if not res.get("success"):
+            return jsonify({"success": False, "error": res.get("error")}), 500
+
+        data = res.get("data")
+        if not data:
+            return jsonify({"success": False, "error": "AI response was not valid JSON", "raw": res.get("raw")}), 500
+
+        # Auto-populate platform variants for missing messages to add
+        for msg in data.get("missing_messages_to_add", []):
+            if not msg.get("content_variants"):
+                msg["content_variants"] = generate_platform_formats(
+                    base_text=msg.get("content_base", ""),
+                    event_name=event_name,
+                    poll_options=msg.get("poll_options")
+                )
+
+        return jsonify({"success": True, "analysis": data, "matched_count": len(matched_messages)})
+
+    @app.route('/api/comms/ai/suggest-polls', methods=['POST'])
+    def ai_suggest_polls():
+        """Generates 3 clever, high-engagement community polls tailored for WhatsApp & Telegram groups."""
+        db = load_comms_db()
+        groups = db.get("groups", [])
+        
+        prompt = """Generate 3 interactive, fun, and high-engagement polls for our student & expat WhatsApp and Telegram groups (MiCampus, TBS Barcelona, ESEI, La French Core).
+Themes:
+1. Pre-drinks meetup / dinner table reservations
+2. Music vibe / DJ requests for the upcoming party
+3. Student nightlife perks (e.g. Erasmus discounts, shot competitions, arrival time)
+
+Return strictly JSON format:
+{
+  "polls": [
+    {
+      "title": "Short title",
+      "theme": "pre_drinks",
+      "target_group_ids": ["group_whatsapp_lafrench", "group_whatsapp_micampus", "group_whatsapp_tbs"],
+      "content_base": "Engaging question in French with emojis",
+      "poll_options": [
+        "1️⃣ Option 1...",
+        "2️⃣ Option 2...",
+        "3️⃣ Option 3..."
+      ]
+    }
+  ]
+}
+"""
+        res = call_gemini_ai(prompt, system_instruction=AI_SYSTEM_PROMPT, json_mode=True, temperature=0.7)
+        if not res.get("success") or not res.get("data"):
+            return jsonify({"success": False, "error": res.get("error", "Failed to generate polls")}), 500
+
+        polls = res["data"].get("polls", [])
+        for p in polls:
+            p["content_variants"] = generate_platform_formats(
+                base_text=p.get("content_base", ""),
+                poll_options=p.get("poll_options")
+            )
+            tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+            p["scheduled_time"] = f"{tomorrow.isoformat()}T13:00:00"
+            p["type"] = "poll"
+
+        return jsonify({"success": True, "polls": polls})
+
+    @app.route('/api/comms/ai/chat', methods=['POST'])
+    def ai_chat():
+        """Interactive conversational advisor for community comms planning and copy generation."""
+        payload = request.json or {}
+        user_message = payload.get("message", "").strip()
+        history = payload.get("history", [])
+        event_context = payload.get("event_context", "")
+
+        if not user_message:
+            return jsonify({"success": False, "error": "message is required"}), 400
+
+        db = load_comms_db()
+        now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M (%A)")
+
+        context_prompt = f"""CURRENT DATE & TIME: {now_str} (Europe/Madrid)
+ACTIVE GROUPS: {[g['name'] for g in db.get('groups', []) if g.get('active')]}
+SCHEDULED MESSAGES COUNT: {len(db.get('messages', []))}
+SELECTED EVENT CONTEXT: {event_context or 'None'}
+
+CONVERSATION HISTORY:
+{json.dumps(history[-6:], indent=1, ensure_ascii=False) if history else 'None'}
+
+USER INQUIRY:
+{user_message}
+
+Provide a sharp, knowledgeable, and actionable response as the Chief Community Strategist for La French Barcelona.
+If the user asks for copy, provide platform-ready versions (WhatsApp *bold*, FB unicode bold, Telegram, Instagram).
+Use Markdown formatting with bolding and bullet points."""
+
+        res = call_gemini_ai(context_prompt, system_instruction=AI_SYSTEM_PROMPT, json_mode=False, temperature=0.7)
+        if not res.get("success"):
+            return jsonify({"success": False, "error": res.get("error")}), 500
+
+        return jsonify({"success": True, "reply": res.get("text", "")})

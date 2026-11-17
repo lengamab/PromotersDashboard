@@ -183,7 +183,7 @@ function renderMessageCard(msg) {
                         <span style="padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; ${statusPillStyle}">
                             ${statusLabel}
                         </span>
-                        ${msg.event_name ? `<span style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 600;"><i class="fa-solid fa-ticket"></i> ${escapeHtml(msg.event_name)}</span>` : ''}
+                        ${msg.event_name ? `<span style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; cursor: pointer; transition: all 0.2s;" onclick="openAiForEvent('${escapeAttr(msg.event_name)}')" title="Click to audit this event with AI"><i class="fa-solid fa-ticket"></i> ${escapeHtml(msg.event_name)} <i class="fa-solid fa-brain" style="color: #a855f7; margin-left: 4px;"></i></span>` : ''}
                     </div>
                     <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: #fff;">${escapeHtml(msg.title)}</h3>
                 </div>
@@ -327,6 +327,22 @@ function showToast(text) {
    CALENDAR VIEW
    ========================================================================== */
 
+function formatLocalDate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function formatLocalDateTime(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${y}-${m}-${day}T${hh}:${mm}`;
+}
+
 function changeWeek(offsetDelta) {
     if (offsetDelta === 0) currentWeekOffset = 0;
     else currentWeekOffset += offsetDelta;
@@ -355,7 +371,7 @@ function renderCalendar() {
     for (let i = 0; i < 7; i++) {
         const d = new Date(monday);
         d.setDate(monday.getDate() + i);
-        const dateIso = d.toISOString().split('T')[0];
+        const dateIso = formatLocalDate(d);
         const isToday = (d.toDateString() === new Date().toDateString());
 
         // Find messages scheduled on this day
@@ -499,7 +515,7 @@ function openMessageModal(msg = null) {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         tomorrow.setHours(14, 0, 0, 0);
-        document.getElementById('msgScheduledTime').value = tomorrow.toISOString().slice(0, 16);
+        document.getElementById('msgScheduledTime').value = formatLocalDateTime(tomorrow);
     }
 
     // Populate Group Checkboxes
@@ -672,7 +688,7 @@ function openPlanModal() {
     const day = fri.getDay();
     const diff = (5 - day + 7) % 7 || 7;
     fri.setDate(fri.getDate() + diff);
-    document.getElementById('planEventDate').value = fri.toISOString().split('T')[0];
+    document.getElementById('planEventDate').value = formatLocalDate(fri);
 }
 
 function closePlanModal() {
@@ -815,7 +831,555 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;');
 }
 
+function escapeAttr(str) {
+    if (!str) return '';
+    return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
 function capitalize(s) {
     if (!s) return '';
     return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/* ==========================================================================
+   AI STRATEGIST (POWERED BY GEMINI 2.5 FLASH)
+   ========================================================================== */
+
+let currentAiTab = 'strategy';
+let aiChatHistory = [];
+let aiSuggestedMessagesCache = {};
+
+function openAiStrategistModal(tab = 'strategy', eventName = '') {
+    const modal = document.getElementById('modalAiStrategist');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    populateAiEventSelector(eventName);
+    switchAiTab(tab);
+    if (tab === 'event' && eventName) {
+        runAiEventReview(eventName);
+    }
+}
+
+function closeAiModal() {
+    const modal = document.getElementById('modalAiStrategist');
+    if (modal) modal.style.display = 'none';
+}
+
+function openAiForEvent(eventName) {
+    openAiStrategistModal('event', eventName);
+}
+
+function switchAiTab(tab) {
+    currentAiTab = tab;
+    
+    // Update tab button classes
+    document.getElementById('aiTabBtnStrategy')?.classList.toggle('active', tab === 'strategy');
+    document.getElementById('aiTabBtnEvent')?.classList.toggle('active', tab === 'event');
+    document.getElementById('aiTabBtnPolls')?.classList.toggle('active', tab === 'polls');
+    document.getElementById('aiTabBtnChat')?.classList.toggle('active', tab === 'chat');
+
+    // Update section visibility
+    document.getElementById('aiSectionStrategy').style.display = tab === 'strategy' ? 'block' : 'none';
+    document.getElementById('aiSectionEvent').style.display = tab === 'event' ? 'block' : 'none';
+    document.getElementById('aiSectionPolls').style.display = tab === 'polls' ? 'block' : 'none';
+    document.getElementById('aiSectionChat').style.display = tab === 'chat' ? 'block' : 'none';
+}
+
+function populateAiEventSelector(selectedEvent = '') {
+    const select = document.getElementById('aiEventSelector');
+    if (!select) return;
+
+    // Collect all unique event names from messages
+    const eventNames = new Set();
+    (commsData.messages || []).forEach(m => {
+        if (m.event_name && m.event_name.trim()) eventNames.add(m.event_name.trim());
+    });
+    // Add default events if empty
+    eventNames.add("Wednesday Experience @ Verne");
+    eventNames.add("Friday Circus @ La Fira");
+
+    select.innerHTML = '<option value="">-- Choose an Event to Audit --</option>';
+    eventNames.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        if (selectedEvent && name.toLowerCase() === selectedEvent.toLowerCase()) {
+            opt.selected = true;
+        }
+        select.appendChild(opt);
+    });
+}
+
+function setAiLoading(isLoading, subtext = "Auditing communications & cadence...") {
+    const loader = document.getElementById('aiLoadingIndicator');
+    const subtextEl = document.getElementById('aiLoadingSubtext');
+    if (subtextEl) subtextEl.textContent = subtext;
+    if (loader) loader.style.display = isLoading ? 'block' : 'none';
+
+    // Hide active section body while loading
+    if (document.getElementById('aiSectionStrategy')) document.getElementById('aiSectionStrategy').style.opacity = isLoading ? '0.3' : '1';
+    if (document.getElementById('aiSectionEvent')) document.getElementById('aiSectionEvent').style.opacity = isLoading ? '0.3' : '1';
+    if (document.getElementById('aiSectionPolls')) document.getElementById('aiSectionPolls').style.opacity = isLoading ? '0.3' : '1';
+}
+
+async function runAiStrategyAudit() {
+    setAiLoading(true, "Auditing complete communication schedule and multi-channel balance...");
+    try {
+        const res = await fetch('/api/comms/ai/review-strategy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const json = await res.json();
+        setAiLoading(false);
+        if (json.success && json.analysis) {
+            renderStrategyAuditResults(json.analysis);
+        } else {
+            alert("Strategy audit failed: " + (json.error || "Unknown error"));
+        }
+    } catch (e) {
+        setAiLoading(false);
+        console.error("Strategy audit error:", e);
+        alert("Failed to connect to AI Strategist: " + e.message);
+    }
+}
+
+function renderStrategyAuditResults(analysis) {
+    const container = document.getElementById('aiStrategyResultsContainer');
+    if (!container) return;
+
+    const score = analysis.overall_score || 0;
+    let scoreColor = '#10b981';
+    let scoreBadge = 'OPTIMAL STRATEGY';
+    if (score < 55) {
+        scoreColor = '#ef4444';
+        scoreBadge = 'CRITICAL GAPS';
+    } else if (score < 75) {
+        scoreColor = '#f59e0b';
+        scoreBadge = 'NEEDS IMPROVEMENT';
+    }
+
+    const b = analysis.score_breakdown || {};
+
+    let html = `
+        <div style="background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 18px; padding: 20px; margin-bottom: 20px;">
+            <!-- Score & Executive Summary -->
+            <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 18px; flex-wrap: wrap;">
+                <div style="width: 100px; height: 100px; border-radius: 50%; border: 6px solid ${scoreColor}; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 20px ${scoreColor}33; flex-shrink: 0;">
+                    <span style="font-size: 1.8rem; font-weight: 800; color: #fff; line-height: 1;">${score}</span>
+                    <span style="font-size: 0.65rem; color: var(--text-secondary); font-weight: 700; text-transform: uppercase;">/ 100</span>
+                </div>
+                <div style="flex: 1; min-width: 240px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <span style="background: ${scoreColor}22; color: ${scoreColor}; border: 1px solid ${scoreColor}55; padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 800;">
+                            ${scoreBadge}
+                        </span>
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);">Comprehensive Cadence Audit</span>
+                    </div>
+                    <p style="font-size: 0.95rem; font-weight: 500; color: #fff; margin: 0; line-height: 1.45;">
+                        ${escapeHtml(analysis.executive_summary || "Audit complete.")}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Score Breakdown Meters -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 18px;">
+                <div style="background: rgba(0,0,0,0.25); border-radius: 10px; padding: 10px; text-align: center;">
+                    <div style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 2px;">Cadence Rhythm</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: #3b82f6;">${b.cadence_rhythm || 0}%</div>
+                </div>
+                <div style="background: rgba(0,0,0,0.25); border-radius: 10px; padding: 10px; text-align: center;">
+                    <div style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 2px;">Channel Mix</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: #a855f7;">${b.channel_diversity || 0}%</div>
+                </div>
+                <div style="background: rgba(0,0,0,0.25); border-radius: 10px; padding: 10px; text-align: center;">
+                    <div style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 2px;">Engagement</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: #10b981;">${b.community_engagement || 0}%</div>
+                </div>
+                <div style="background: rgba(0,0,0,0.25); border-radius: 10px; padding: 10px; text-align: center;">
+                    <div style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 2px;">Conversion</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: #f59e0b;">${b.conversion_power || 0}%</div>
+                </div>
+            </div>
+
+            <!-- Strengths & Critical Gaps Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <!-- Strengths -->
+                <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 12px; padding: 14px;">
+                    <h5 style="color: #10b981; margin: 0 0 10px 0; font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-circle-check"></i> Key Strengths
+                    </h5>
+                    <ul style="margin: 0; padding-left: 18px; font-size: 0.84rem; color: var(--text-secondary); line-height: 1.5;">
+                        ${(analysis.strengths || []).map(s => `<li>${escapeHtml(s)}</li>`).join('')}
+                    </ul>
+                </div>
+
+                <!-- Critical Gaps -->
+                <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 12px; padding: 14px;">
+                    <h5 style="color: #ef4444; margin: 0 0 10px 0; font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Critical Gaps & Risks
+                    </h5>
+                    <ul style="margin: 0; padding-left: 18px; font-size: 0.84rem; color: var(--text-secondary); line-height: 1.5;">
+                        ${(analysis.critical_gaps || []).map(g => `<li>${escapeHtml(g)}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Actionable Recommendations -->
+            <div style="margin-top: 16px; background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 12px; padding: 14px;">
+                <h5 style="color: #818cf8; margin: 0 0 10px 0; font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-list-check"></i> Prioritized Action Items
+                </h5>
+                <ol style="margin: 0; padding-left: 20px; font-size: 0.84rem; color: #fff; line-height: 1.6;">
+                    ${(analysis.actionable_recommendations || []).map(r => `<li>${escapeHtml(r)}</li>`).join('')}
+                </ol>
+            </div>
+        </div>
+    `;
+
+    // Suggested messages to solve gaps
+    if (analysis.suggested_messages && analysis.suggested_messages.length > 0) {
+        html += `
+            <div style="margin-top: 24px;">
+                <h4 style="font-size: 1.05rem; font-weight: 700; margin: 0 0 4px 0; color: #fff; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-wand-magic-sparkles" style="color: #a855f7;"></i> AI Recommended Additions (1-Click Schedule)
+                </h4>
+                <p style="color: var(--text-secondary); font-size: 0.82rem; margin: 0 0 14px 0;">These messages directly address the gaps identified in your audit.</p>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    ${analysis.suggested_messages.map((m, idx) => {
+                        aiSuggestedMessagesCache[`strategy_${idx}`] = m;
+                        return renderSuggestedMessageCard(`strategy_${idx}`, m);
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+}
+
+async function runAiEventReview(presetEvent = '') {
+    const select = document.getElementById('aiEventSelector');
+    const eventName = presetEvent || (select ? select.value : "");
+    if (!eventName) {
+        alert("Please select an event to audit.");
+        return;
+    }
+    if (select) select.value = eventName;
+
+    setAiLoading(true, `Auditing 5-step cadence and copy for "${eventName}"...`);
+    try {
+        const res = await fetch('/api/comms/ai/review-event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event_name: eventName })
+        });
+        const json = await res.json();
+        setAiLoading(false);
+        if (json.success && json.analysis) {
+            renderEventReviewResults(json.analysis);
+        } else {
+            alert("Event audit failed: " + (json.error || "Unknown error"));
+        }
+    } catch (e) {
+        setAiLoading(false);
+        console.error("Event review error:", e);
+        alert("Failed to review event: " + e.message);
+    }
+}
+
+function renderEventReviewResults(analysis) {
+    const container = document.getElementById('aiEventResultsContainer');
+    if (!container) return;
+
+    const score = analysis.readiness_score || 0;
+    let scoreColor = '#10b981';
+    if (score < 60) scoreColor = '#ef4444';
+    else if (score < 80) scoreColor = '#f59e0b';
+
+    let html = `
+        <div style="background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 18px; padding: 20px; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 700;">Event Audit</span>
+                    <h3 style="font-size: 1.25rem; font-weight: 800; margin: 2px 0 0 0; color: #fff;">${escapeHtml(analysis.event_name)}</h3>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 8px 16px; border-radius: 12px; border: 1px solid ${scoreColor}44;">
+                    <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">Readiness Score:</span>
+                    <strong style="font-size: 1.3rem; color: ${scoreColor}; font-weight: 800;">${score}/100</strong>
+                </div>
+            </div>
+
+            <p style="font-size: 0.92rem; color: #e2e8f0; line-height: 1.45; margin-bottom: 20px; background: rgba(255,255,255,0.03); padding: 12px 14px; border-radius: 10px; border-left: 4px solid #3b82f6;">
+                ${escapeHtml(analysis.verdict || "")}
+            </p>
+
+            <!-- 5-Step Cadence Checklist -->
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: #fff; margin: 0 0 10px 0;">5-Step Launch Cadence Checklist</h4>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+                ${(analysis.cadence_audit || []).map(c => {
+                    let pillBg = 'rgba(16, 185, 129, 0.15)';
+                    let pillColor = '#10b981';
+                    let icon = 'fa-solid fa-circle-check';
+                    let statusLabel = 'Covered';
+                    if (c.status === 'missing') {
+                        pillBg = 'rgba(239, 68, 68, 0.15)';
+                        pillColor = '#ef4444';
+                        icon = 'fa-solid fa-circle-xmark';
+                        statusLabel = 'Missing';
+                    } else if (c.status === 'improvable') {
+                        pillBg = 'rgba(245, 158, 11, 0.15)';
+                        pillColor = '#f59e0b';
+                        icon = 'fa-solid fa-triangle-exclamation';
+                        statusLabel = 'Improvable';
+                    }
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 14px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 220px;">
+                                <div style="font-size: 0.88rem; font-weight: 700; color: #fff; margin-bottom: 2px;">${escapeHtml(c.step)}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">${escapeHtml(c.comment || "")}</div>
+                            </div>
+                            <span style="background: ${pillBg}; color: ${pillColor}; border: 1px solid ${pillColor}44; padding: 3px 10px; border-radius: 20px; font-size: 0.74rem; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
+                                <i class="${icon}"></i> ${statusLabel}
+                            </span>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+
+            <!-- Copy Critique & Conversion Tips -->
+            <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 12px; padding: 14px;">
+                <h5 style="color: #c084fc; margin: 0 0 10px 0; font-size: 0.88rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-bullhorn"></i> Copy & Conversion Critique
+                </h5>
+                <ul style="margin: 0; padding-left: 18px; font-size: 0.84rem; color: var(--text-secondary); line-height: 1.5;">
+                    ${(analysis.copy_critique || []).map(cc => `<li>${escapeHtml(cc)}</li>`).join('')}
+                </ul>
+            </div>
+        </div>
+    `;
+
+    // Missing messages to add
+    if (analysis.missing_messages_to_add && analysis.missing_messages_to_add.length > 0) {
+        html += `
+            <div style="margin-top: 20px;">
+                <h4 style="font-size: 1.05rem; font-weight: 700; margin: 0 0 4px 0; color: #fff; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-plus-circle" style="color: #10b981;"></i> Complete Cadence (Add Missing Messages)
+                </h4>
+                <p style="color: var(--text-secondary); font-size: 0.82rem; margin: 0 0 14px 0;">Click "Add to Schedule" to fill in the missing cadence steps.</p>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    ${analysis.missing_messages_to_add.map((m, idx) => {
+                        aiSuggestedMessagesCache[`event_${idx}`] = m;
+                        return renderSuggestedMessageCard(`event_${idx}`, m);
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+}
+
+async function runAiSuggestPolls() {
+    setAiLoading(true, "Brainstorming high-engagement WhatsApp & Telegram polls...");
+    try {
+        const res = await fetch('/api/comms/ai/suggest-polls', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const json = await res.json();
+        setAiLoading(false);
+        if (json.success && json.polls) {
+            renderPollsResults(json.polls);
+        } else {
+            alert("Failed to generate polls: " + (json.error || "Unknown error"));
+        }
+    } catch (e) {
+        setAiLoading(false);
+        console.error("Poll generation error:", e);
+        alert("Failed to connect to AI Strategist: " + e.message);
+    }
+}
+
+function renderPollsResults(polls) {
+    const container = document.getElementById('aiPollsResultsContainer');
+    if (!container) return;
+
+    let html = `
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+            ${polls.map((p, idx) => {
+                aiSuggestedMessagesCache[`poll_${idx}`] = p;
+                return renderSuggestedMessageCard(`poll_${idx}`, p);
+            }).join('')}
+        </div>
+    `;
+    container.innerHTML = html;
+}
+
+function renderSuggestedMessageCard(cacheKey, msg) {
+    const previewText = (msg.content_variants && msg.content_variants.whatsapp) || msg.content_base || "";
+    const dt = msg.scheduled_time ? new Date(msg.scheduled_time) : new Date();
+    const timeFormatted = dt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ' ' + 
+                          dt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+    return `
+        <div style="background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px; flex-wrap: wrap;">
+                        <span style="font-size: 0.75rem; font-family: var(--font-mono); color: #3b82f6; font-weight: 700;">
+                            <i class="fa-regular fa-clock"></i> ${timeFormatted}
+                        </span>
+                        <span style="background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); padding: 1px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase;">
+                            ${escapeHtml(msg.type || 'message')}
+                        </span>
+                        ${msg.event_name ? `<span style="background: rgba(99,102,241,0.15); color: #818cf8; padding: 1px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 600;">${escapeHtml(msg.event_name)}</span>` : ''}
+                    </div>
+                    <strong style="font-size: 0.95rem; color: #fff;">${escapeHtml(msg.title)}</strong>
+                </div>
+
+                <button id="btnAddSug_${cacheKey}" onclick="addAiSuggestedMessage('${cacheKey}')" class="filter-chip" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none; font-size: 0.8rem; padding: 6px 14px; font-weight: 700; white-space: nowrap;">
+                    <i class="fa-solid fa-plus"></i> Add to Schedule
+                </button>
+            </div>
+
+            <!-- Preview -->
+            <div class="preview-bubble whatsapp" style="max-height: 120px; font-size: 0.8rem; padding: 10px 12px;">
+                ${renderFormattedText(previewText, 'whatsapp')}
+            </div>
+        </div>
+    `;
+}
+
+async function addAiSuggestedMessage(cacheKey) {
+    const msg = aiSuggestedMessagesCache[cacheKey];
+    if (!msg) {
+        alert("Message data not found in cache.");
+        return;
+    }
+
+    const btn = document.getElementById(`btnAddSug_${cacheKey}`);
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Adding...`;
+    }
+
+    try {
+        const res = await fetch('/api/comms/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ...msg,
+                status: 'scheduled'
+            })
+        });
+        const json = await res.json();
+        if (json.success) {
+            showToast("Added to schedule successfully!");
+            if (btn) {
+                btn.style.background = '#4b5563';
+                btn.innerHTML = `✅ Added to Schedule`;
+            }
+            await fetchCommsData();
+        } else {
+            alert("Failed to save: " + (json.error || "Unknown error"));
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-plus"></i> Add to Schedule`;
+            }
+        }
+    } catch (e) {
+        console.error("Save error:", e);
+        alert("Error saving message: " + e.message);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-plus"></i> Add to Schedule`;
+        }
+    }
+}
+
+async function handleSendAiChat(event) {
+    if (event) event.preventDefault();
+    const input = document.getElementById('aiChatInput');
+    const msgText = input ? input.value.trim() : "";
+    if (!msgText) return;
+
+    input.value = "";
+    appendChatMessage('user', msgText);
+
+    // Get event context if any
+    const select = document.getElementById('aiEventSelector');
+    const eventContext = select ? select.value : "";
+
+    const sendBtn = document.getElementById('btnSendAiChat');
+    if (sendBtn) sendBtn.disabled = true;
+
+    try {
+        const res = await fetch('/api/comms/ai/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: msgText,
+                history: aiChatHistory,
+                event_context: eventContext
+            })
+        });
+        const json = await res.json();
+        if (sendBtn) sendBtn.disabled = false;
+        if (json.success && json.reply) {
+            aiChatHistory.push({ role: 'user', content: msgText });
+            aiChatHistory.push({ role: 'assistant', content: json.reply });
+            appendChatMessage('assistant', json.reply);
+        } else {
+            appendChatMessage('assistant', `⚠️ *Error:* ${json.error || "Failed to generate reply"}`);
+        }
+    } catch (e) {
+        if (sendBtn) sendBtn.disabled = false;
+        console.error("Chat error:", e);
+        appendChatMessage('assistant', `⚠️ *Connection Error:* ${e.message}`);
+    }
+}
+
+function sendQuickAiPrompt(text) {
+    const input = document.getElementById('aiChatInput');
+    if (input) input.value = text;
+    handleSendAiChat(null);
+}
+
+function appendChatMessage(role, text) {
+    const container = document.getElementById('aiChatMessages');
+    if (!container) return;
+
+    const isUser = role === 'user';
+    const bubble = document.createElement('div');
+    bubble.style.cssText = isUser ? `
+        align-self: flex-end;
+        background: var(--color-primary);
+        color: #fff;
+        padding: 10px 14px;
+        border-radius: 14px 14px 2px 14px;
+        max-width: 80%;
+        font-size: 0.88rem;
+        line-height: 1.45;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+    ` : `
+        align-self: flex-start;
+        background: var(--surface-200);
+        color: #e2e8f0;
+        padding: 12px 16px;
+        border-radius: 14px 14px 14px 2px;
+        max-width: 88%;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        border: 1px solid var(--border-color);
+    `;
+
+    // Simple markdown formatting: bold, italic, line breaks
+    let formatted = escapeHtml(text)
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br>');
+
+    bubble.innerHTML = formatted;
+    container.appendChild(bubble);
+    container.scrollTop = container.scrollHeight;
 }
