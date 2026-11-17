@@ -182,11 +182,12 @@ def generate_platform_formats(base_text, event_name="", event_link="", poll_opti
         tg_fr_parts.append(f"\n🎟️ **Billetterie & Inscription Liste :** [Cliquez ici pour réserver]({link_str})\n{link_str}")
     tg_fr = "\n".join(tg_fr_parts)
 
-    ev_header = f" - {to_unicode_bold(ev_clean)}" if ev_clean else ""
+    fb_fr_header = "🇫🇷 " + to_unicode_bold(ev_clean or "SORTIR À BARCELONE")
     fb_fr_parts = [
-        "🇫🇷 " + to_unicode_bold("LA FRENCH BARCELONA") + ev_header,
+        f"Salut à toute la commu des Français & expats à Barcelone ! 👋🇪🇸\n\n{fb_fr_header}",
         fr_body,
-        f"\n🎟️ Inscription Liste Gratuite & Billetterie : {link_str}"
+        f"\n👉 Inscription & liste gratuite ici :\n{link_str}",
+        "\nN'hésitez pas à laisser un commentaire ou à m'envoyer un DM si vous venez en solo ou avec votre team, tout le monde est super bienvenu ! 🥂✨"
     ]
     fb_fr = "\n".join(fb_fr_parts)
 
@@ -227,10 +228,12 @@ def generate_platform_formats(base_text, event_name="", event_link="", poll_opti
     tg_en_parts.append("\n_Note: Valid physical ID strictly required at entrance._")
     tg_en = "\n".join(tg_en_parts)
 
+    fb_en_header = "🇬🇧 " + to_unicode_bold(ev_clean or "BARCELONA NIGHTS & COMMUNITY")
     fb_en_parts = [
-        "🇬🇧 " + to_unicode_bold("LA FRENCH BARCELONA (ENGLISH)") + ev_header,
+        f"Hey everyone in Barcelona! 👋🇪🇸\n\n{fb_en_header}",
         en_body,
-        f"\n🎟️ Free Guestlist Registration & Tickets : {link_str}"
+        f"\n👉 Free guestlist & ticket passes here:\n{link_str}",
+        "\nDrop a comment below or send me a DM if you're coming solo or with friends — everyone is super welcome to join! 🥂✨"
     ]
     fb_en = "\n".join(fb_en_parts)
 
@@ -592,6 +595,7 @@ Your signature weekly experiences:
 Authentic Copywriting Guidelines (Derived from real La French WhatsApp exports):
 - NO SANGRIA: There is NO sangria in the Spanish tapas buffet (it is strictly unlimited Spanish tapas buffet for 15€).
 - NO POLL IN WHATSAPP MESSAGES: Never embed poll blocks (options or numbering) in WhatsApp messages. In WhatsApp groups, native polls are created separately using the platform feature; the WhatsApp message itself must remain clean, direct promotional copy.
+- PERSONAL & ENGAGING FACEBOOK MESSAGING: Facebook posts must NEVER look like corporate flyers or cold ads. They must read like warm, personal community posts written by an active expat/promoter. Open with friendly greetings ('Salut à toute la commu des Français & expats à Barcelone !', 'Hey everyone in Barcelona! 👋'), emphasize that coming solo is 100% welcomed and a great way to make friends, break down the night smoothly, and invite people to comment or DM with questions ('Drop a comment or DM me if you're coming!').
 - Structural Hook: Punchy, high-energy headlines like `🍷🔥 *WEDNESDAY NIGHT JUST GOT BETTER!*`, `🚨 *TICKETS ARE RUNNING LOW!* 🎪🔥`, `*🎪🎰 CIRCUS CASINO — CE SOIR !*`, or `🚨 *LAST CALL FOR TONIGHT!* 🎪🔥`. Never use generic robot labels like "Announcement" or artificial flag badges.
 - Multi-Step Format: Use `*STEP 1 — ...*` and `*STEP 2 — ...*` (or `*ÉTAPE 1 — ...*`) with clear venue locations, timings, and free shot/tapas perks.
 - Signature VIP Incentive: Always include the classic girls group perk: `👑 GIRLS GROUPS: Free VIP Table available! Reply VIP to claim yours.` (FR: `👑 GROUPES DE FILLES : Table VIP offerte disponible ! Répondez VIP en privé pour réserver la vôtre.`).

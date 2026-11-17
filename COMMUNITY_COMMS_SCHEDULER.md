@@ -268,4 +268,10 @@ To ensure messages convert and resonate with Barcelona's student, expat, and Era
 7. **Strict Door Rules**:
    - `🪪 Physical ID strictly required at entrance (no photos on phone)`
    - `👔 Dress code: Club chic & elegant (no sportswear or beachwear)`
+8. **Personal & Engaging Facebook Group Messaging**:
+   - Facebook group posts must **never** read like corporate flyers or commercial ads.
+   - Write from a warm, personal, and friendly community organizer perspective.
+   - Always greet the community warmly (`Salut à toute la commu des Français & expats à Barcelone ! 👋`, `Hey everyone in Barcelona! 👋`).
+   - Reassure readers that coming solo is completely normal and a fantastic way to meet people.
+   - Conclude with an open, conversational call to action (`Qui est chaud pour nous rejoindre ? Laissez un commentaire ou envoyez-moi un DM !`, `Drop a comment or DM me if you're coming or have any questions!`).
 
