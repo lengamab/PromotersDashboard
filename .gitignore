@@ -44,3 +44,6 @@ setup_automation.sh
 test*.js
 Meta Boat/
 25-07 La French (ac meta)/
+
+node_cache/
+scratch/

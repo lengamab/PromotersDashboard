@@ -14,11 +14,62 @@ let currentActiveTab = 'queue';
 let currentWeekOffset = 0;
 let modalSelectedPreviewPlatform = 'whatsapp';
 let cardSelectedPlatforms = {}; // maps msgId -> 'whatsapp' | 'telegram' | 'facebook' | 'instagram'
+let currentLanguage = localStorage.getItem('comms_preferred_lang') || 'fr';
+let cardSelectedLanguages = {}; // maps msgId -> 'fr' | 'en'
 
 document.addEventListener('DOMContentLoaded', () => {
     initClock();
+    initLanguageUI();
     fetchCommsData();
 });
+
+function initLanguageUI() {
+    document.getElementById('globalLangBtnFr')?.classList.toggle('active', currentLanguage === 'fr');
+    document.getElementById('globalLangBtnEn')?.classList.toggle('active', currentLanguage === 'en');
+}
+
+function setGlobalLanguage(lang) {
+    currentLanguage = lang;
+    localStorage.setItem('comms_preferred_lang', lang);
+    initLanguageUI();
+    cardSelectedLanguages = {}; // reset card-level overrides so all cards follow global choice
+    renderCurrentView();
+    showToast(lang === 'fr' ? "Affichage en Français 🇫🇷" : "Displaying in English 🇬🇧");
+}
+
+function switchCardLanguage(msgId, lang) {
+    cardSelectedLanguages[msgId] = lang;
+    renderQueue();
+}
+
+function getMessageVariant(msg, platform, lang = currentLanguage) {
+    if (!msg) return "";
+    const v = msg.content_variants || {};
+    
+    // 1. Structured nested: { fr: { whatsapp: "..." }, en: { whatsapp: "..." } }
+    if (v[lang] && typeof v[lang] === 'object' && v[lang][platform]) {
+        return v[lang][platform];
+    }
+    
+    // 2. Flat keys e.g. "whatsapp_en", "whatsapp_fr"
+    if (v[`${platform}_${lang}`]) {
+        return v[`${platform}_${lang}`];
+    }
+    
+    // 3. Bilingual Facebook splitter
+    if (platform === 'facebook' && v.facebook && v.facebook.includes('━━━━━━━━━━━━━━━━━━━━━━')) {
+        const parts = v.facebook.split('━━━━━━━━━━━━━━━━━━━━━━');
+        if (lang === 'en') return parts[1]?.trim() || v.facebook;
+        if (lang === 'fr') return parts[0]?.trim() || v.facebook;
+    }
+
+    // 4. Default top-level platform
+    if (v[platform]) {
+        return v[platform];
+    }
+    
+    return msg.content_base || "";
+}
 
 function initClock() {
     function updateClock() {
@@ -134,9 +185,10 @@ function getGroupsForMessage(msg) {
 }
 
 function renderMessageCard(msg) {
+    const cardLang = cardSelectedLanguages[msg.id] || currentLanguage;
     const groups = getGroupsForMessage(msg);
     const activePlatform = cardSelectedPlatforms[msg.id] || (groups[0]?.platform || 'whatsapp');
-    const variantText = (msg.content_variants && msg.content_variants[activePlatform]) || msg.content_base || "";
+    const variantText = getMessageVariant(msg, activePlatform, cardLang);
     
     // Scheduled time formatting
     const dt = new Date(msg.scheduled_time);
@@ -204,8 +256,8 @@ function renderMessageCard(msg) {
             </div>
 
             <!-- Platform Preview Switcher Tabs -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; background: rgba(0,0,0,0.25); border-radius: 8px; padding: 4px 8px;">
-                <div style="display: flex; gap: 4px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; background: rgba(0,0,0,0.25); border-radius: 8px; padding: 4px 8px; flex-wrap: wrap; gap: 6px;">
+                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                     <button class="preview-tab-btn ${activePlatform === 'whatsapp' ? 'active' : ''}" onclick="switchCardPreview('${msg.id}', 'whatsapp')">
                         <i class="fab fa-whatsapp" style="color: #25D366;"></i> WhatsApp
                     </button>
@@ -220,9 +272,15 @@ function renderMessageCard(msg) {
                     </button>
                 </div>
 
-                <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">
-                    Formatted for ${activePlatform.toUpperCase()}
-                </span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="display: inline-flex; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 14px; padding: 2px;">
+                        <button class="card-lang-btn ${cardLang === 'fr' ? 'active' : ''}" onclick="switchCardLanguage('${msg.id}', 'fr')" title="Afficher en Français">🇫🇷 FR</button>
+                        <button class="card-lang-btn ${cardLang === 'en' ? 'active' : ''}" onclick="switchCardLanguage('${msg.id}', 'en')" title="Display in English">🇬🇧 EN</button>
+                    </div>
+                    <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">
+                        ${activePlatform.toUpperCase()}
+                    </span>
+                </div>
             </div>
 
             <!-- Formatted Message Bubble -->
@@ -233,8 +291,8 @@ ${renderFormattedText(variantText, activePlatform)}
             <!-- Mobile Ergonomic Action Bar -->
             <div class="card-action-bar" style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 16px; flex-wrap: wrap;">
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <button onclick="copyMessageFormatted('${msg.id}', '${activePlatform}')" class="btn-copy-action">
-                        <i class="fa-regular fa-copy"></i> Copy for ${capitalize(activePlatform)}
+                    <button onclick="copyMessageFormatted('${msg.id}', '${activePlatform}', '${cardLang}')" class="btn-copy-action">
+                        <i class="fa-regular fa-copy"></i> Copy for ${capitalize(activePlatform)} (${cardLang.toUpperCase()})
                     </button>
                     ${openLink ? `
                     <a href="${openLink}" target="_blank" rel="noopener noreferrer" class="btn-open-app">
@@ -291,15 +349,16 @@ function getPlatformFallbackUrl(platform) {
    COPY TO CLIPBOARD & TOAST
    ========================================================================== */
 
-async function copyMessageFormatted(msgId, platform) {
+async function copyMessageFormatted(msgId, platform, lang) {
     const msg = (commsData.messages || []).find(m => m.id === msgId);
     if (!msg) return;
 
-    const textToCopy = (msg.content_variants && msg.content_variants[platform]) || msg.content_base || "";
+    const activeLang = lang || cardSelectedLanguages[msgId] || currentLanguage;
+    const textToCopy = getMessageVariant(msg, platform, activeLang);
     
     try {
         await navigator.clipboard.writeText(textToCopy);
-        showToast(`Copied ready for ${capitalize(platform)}! 📋`);
+        showToast(`Copied ready for ${capitalize(platform)} (${activeLang.toUpperCase()})! 📋`);
     } catch (e) {
         // Fallback
         const textarea = document.createElement('textarea');
@@ -308,7 +367,7 @@ async function copyMessageFormatted(msgId, platform) {
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        showToast(`Copied ready for ${capitalize(platform)}! 📋`);
+        showToast(`Copied ready for ${capitalize(platform)} (${activeLang.toUpperCase()})! 📋`);
     }
 }
 

@@ -97,6 +97,29 @@
             box-shadow: 0 0 14px var(--color-primary-glow);
         }
 
+        /* Card Language Toggle Buttons */
+        .card-lang-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .card-lang-btn:hover {
+            color: #fff;
+        }
+
+        .card-lang-btn.active {
+            background: var(--color-primary);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+        }
+
         /* Message Card */
         .comms-card {
             background: var(--surface-100);
@@ -386,6 +409,18 @@
                     <button onclick="filterStatus('sent')" class="filter-chip filter-queue-status" data-status="sent">
                         ✅ Sent
                     </button>
+
+                    <span style="border-right: 1px solid var(--border-color); margin: 0 4px;"></span>
+
+                    <!-- Global Language Switcher -->
+                    <div style="display: inline-flex; align-items: center; background: rgba(0,0,0,0.35); border: 1px solid var(--border-color); border-radius: 20px; padding: 2px;">
+                        <button id="globalLangBtnFr" onclick="setGlobalLanguage('fr')" class="filter-chip active" style="padding: 6px 14px; border-radius: 18px; margin: 0; font-size: 0.8rem; border: none; font-weight: 700;">
+                            🇫🇷 Français
+                        </button>
+                        <button id="globalLangBtnEn" onclick="setGlobalLanguage('en')" class="filter-chip" style="padding: 6px 14px; border-radius: 18px; margin: 0; font-size: 0.8rem; border: none; font-weight: 700;">
+                            🇬🇧 English
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Messages Feed -->
