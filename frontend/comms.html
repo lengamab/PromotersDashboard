@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>La French - Comms & Community Scheduler</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        :root {
+            --wa-color: #25D366;
+            --wa-bg: rgba(37, 211, 102, 0.12);
+            --tg-color: #229ED9;
+            --tg-bg: rgba(34, 158, 217, 0.12);
+            --fb-color: #1877F2;
+            --fb-bg: rgba(24, 119, 242, 0.12);
+            --ig-color: #E1306C;
+            --ig-bg: rgba(225, 48, 108, 0.12);
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            font-family: var(--font-ui);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        .platform-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .platform-badge.whatsapp {
+            background: var(--wa-bg);
+            color: var(--wa-color);
+            border: 1px solid rgba(37, 211, 102, 0.3);
+        }
+
+        .platform-badge.telegram {
+            background: var(--tg-bg);
+            color: var(--tg-color);
+            border: 1px solid rgba(34, 158, 217, 0.3);
+        }
+
+        .platform-badge.facebook {
+            background: var(--fb-bg);
+            color: var(--fb-color);
+            border: 1px solid rgba(24, 119, 242, 0.3);
+        }
+
+        .platform-badge.instagram {
+            background: var(--ig-bg);
+            color: var(--ig-color);
+            border: 1px solid rgba(225, 48, 108, 0.3);
+        }
+
+        /* Filter Chips */
+        .filter-chip {
+            background: var(--surface-100);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .filter-chip:hover {
+            border-color: var(--color-primary);
+            color: #fff;
+        }
+
+        .filter-chip.active {
+            background: var(--color-primary);
+            border-color: var(--color-primary);
+            color: #fff;
+            box-shadow: 0 0 14px var(--color-primary-glow);
+        }
+
+        /* Message Card */
+        .comms-card {
+            background: var(--surface-100);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .comms-card:hover {
+            border-color: rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+        }
+
+        .comms-card.status-sent {
+            opacity: 0.75;
+            border-left: 4px solid var(--color-success);
+        }
+
+        .comms-card.status-scheduled {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .comms-card.status-draft {
+            border-left: 4px solid #6c757d;
+        }
+
+        /* Preview Bubbles */
+        .preview-bubble {
+            background: #111b21;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 0.92rem;
+            line-height: 1.5;
+            color: #e9edef;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            white-space: pre-wrap;
+            word-break: break-word;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        .preview-bubble.telegram {
+            background: #1e2c3a;
+            color: #f5f5f5;
+        }
+
+        .preview-bubble.facebook {
+            background: #242526;
+            color: #e4e6eb;
+        }
+
+        .preview-bubble.instagram {
+            background: #1c1c1e;
+            color: #ffffff;
+            border: 1px solid rgba(225, 48, 108, 0.2);
+        }
+
+        .preview-tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .preview-tab-btn.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        /* Mobile Ergonomic Action Buttons */
+        .btn-copy-action {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 10px 18px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.15s, box-shadow 0.15s;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-copy-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+        }
+
+        .btn-open-app {
+            background: var(--surface-200);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+            text-decoration: none;
+        }
+
+        .btn-open-app:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Calendar Grid */
+        .cal-day-col {
+            background: var(--surface-100);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .cal-day-col.is-today {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.15);
+        }
+
+        /* Toast Alert */
+        #copyToast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #10b981;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+        }
+
+        #copyToast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .header-nav {
+                display: flex;
+                overflow-x: auto;
+                width: 100%;
+                padding-bottom: 8px;
+            }
+            .header-actions {
+                display: none;
+            }
+            .filter-scroll-container {
+                overflow-x: auto;
+                padding-bottom: 6px;
+            }
+            .comms-card {
+                padding: 14px;
+            }
+            .card-action-bar {
+                flex-direction: column;
+                align-items: stretch !important;
+            }
+            .btn-copy-action, .btn-open-app {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Main Top Header -->
+        <header class="main-header">
+            <div class="header-logo">
+                <i class="fa-solid fa-comments logo-icon" style="color: #25D366; font-size: 28px;"></i>
+                <div class="logo-text">
+                    <h1>LA FRENCH</h1>
+                    <span>COMMUNITY & GROUP COMMS HUB</span>
+                </div>
+            </div>
+
+            <div class="header-nav">
+                <button class="nav-tab active" style="background: rgba(37, 211, 102, 0.15); color: #25D366; border: 1px solid rgba(37, 211, 102, 0.4);">
+                    <i class="fa-solid fa-bullhorn"></i> Comms Hub
+                </button>
+                <button class="nav-tab" onclick="window.location.href='instagram.html'">
+                    <i class="fab fa-instagram"></i> Instagram Studio
+                </button>
+                <button class="nav-tab" onclick="window.location.href='ads.html'" style="background: var(--surface-100); color: #007bff; border: 1px solid #007bff;">
+                    <i class="fa-brands fa-facebook"></i> Meta Ads
+                </button>
+                <button class="nav-tab" onclick="window.location.href='partners.html'" style="background: var(--surface-100); color: var(--color-primary); border: 1px solid var(--color-primary);">
+                    <i class="fa-solid fa-handshake"></i> Partners
+                </button>
+                <button class="nav-tab" onclick="window.location.href='/'">
+                    <i class="fa-solid fa-house"></i> Fourvenues
+                </button>
+            </div>
+
+            <div class="header-actions">
+                <div style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); padding: 6px 14px; border-radius: 10px; font-size: 0.82em; font-family: monospace; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-regular fa-clock" style="color: #25D366;"></i>
+                    <span style="color: var(--text-secondary);">BCN:</span>
+                    <strong id="headerBcnClock" style="color: #fff;">--:--:--</strong>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- View Selector & Action Row -->
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 24px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 16px; padding: 14px 20px;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button id="tabBtnQueue" onclick="switchMainTab('queue')" class="filter-chip active">
+                        <i class="fa-solid fa-list-check"></i> Message Queue
+                    </button>
+                    <button id="tabBtnCalendar" onclick="switchMainTab('calendar')" class="filter-chip">
+                        <i class="fa-regular fa-calendar-days"></i> Calendar View
+                    </button>
+                    <button id="tabBtnGroups" onclick="switchMainTab('groups')" class="filter-chip">
+                        <i class="fa-solid fa-users-rectangle"></i> Groups & Channels Directory (<span id="groupsCountBadge">6</span>)
+                    </button>
+                </div>
+
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button onclick="openPlanModal()" class="filter-chip" style="background: linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(225,48,108,0.2) 100%); border-color: #D4AF37; color: #fff;">
+                        <i class="fa-solid fa-wand-magic-sparkles" style="color: #D4AF37;"></i> Generate Event Plan
+                    </button>
+                    <button onclick="openMessageModal()" class="filter-chip" style="background: var(--color-primary); color: #fff; border-color: var(--color-primary);">
+                        <i class="fa-solid fa-plus"></i> New Message
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 1: MESSAGE QUEUE (DEFAULT) -->
+            <section id="viewQueue">
+                <!-- Filter bar -->
+                <div class="filter-scroll-container" style="display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 4px;">
+                    <button onclick="filterQueue('all')" class="filter-chip active filter-queue-platform" data-platform="all">
+                        All Channels
+                    </button>
+                    <button onclick="filterQueue('whatsapp')" class="filter-chip filter-queue-platform" data-platform="whatsapp">
+                        <i class="fab fa-whatsapp" style="color: #25D366;"></i> WhatsApp Groups
+                    </button>
+                    <button onclick="filterQueue('telegram')" class="filter-chip filter-queue-platform" data-platform="telegram">
+                        <i class="fab fa-telegram" style="color: #229ED9;"></i> Telegram ESEI
+                    </button>
+                    <button onclick="filterQueue('facebook')" class="filter-chip filter-queue-platform" data-platform="facebook">
+                        <i class="fab fa-facebook" style="color: #1877F2;"></i> Facebook Groups
+                    </button>
+                    <button onclick="filterQueue('instagram')" class="filter-chip filter-queue-platform" data-platform="instagram">
+                        <i class="fab fa-instagram" style="color: #E1306C;"></i> Instagram Channel
+                    </button>
+                    
+                    <span style="border-right: 1px solid var(--border-color); margin: 0 4px;"></span>
+
+                    <button onclick="filterStatus('all')" class="filter-chip active filter-queue-status" data-status="all">
+                        All Status
+                    </button>
+                    <button onclick="filterStatus('scheduled')" class="filter-chip filter-queue-status" data-status="scheduled">
+                        ⏰ Scheduled
+                    </button>
+                    <button onclick="filterStatus('sent')" class="filter-chip filter-queue-status" data-status="sent">
+                        ✅ Sent
+                    </button>
+                </div>
+
+                <!-- Messages Feed -->
+                <div id="messagesFeedContainer">
+                    <!-- Populated dynamically by JS -->
+                </div>
+            </section>
+
+            <!-- TAB 2: CALENDAR VIEW -->
+            <section id="viewCalendar" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h2 id="calendarWeekLabel" style="font-size: 1.15rem; font-weight: 700;">This Week</h2>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="changeWeek(-1)" class="filter-chip"><i class="fa-solid fa-chevron-left"></i> Previous</button>
+                        <button onclick="changeWeek(0)" class="filter-chip">Current Week</button>
+                        <button onclick="changeWeek(1)" class="filter-chip">Next <i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                </div>
+
+                <div id="calendarGridWrapper" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                    <!-- 7 Day Columns generated by JS -->
+                </div>
+            </section>
+
+            <!-- TAB 3: GROUPS & CHANNELS DIRECTORY -->
+            <section id="viewGroups" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div>
+                        <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0 0 4px 0;">Target Groups & Channels Directory</h2>
+                        <p style="color: var(--text-secondary); font-size: 0.88rem; margin: 0;">Add and configure the WhatsApp communities, university groups, and Facebook pages you distribute to.</p>
+                    </div>
+                    <button onclick="openGroupModal()" class="filter-chip" style="background: var(--color-primary); color: #fff;">
+                        <i class="fa-solid fa-plus"></i> Add Group / Page
+                    </button>
+                </div>
+
+                <div id="groupsGridContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
+                    <!-- Populated by JS -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL 1: CREATE / EDIT MESSAGE -->
+    <div id="modalMessage" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; overflow-y: auto;">
+        <div style="background: var(--bg-card); backdrop-filter: var(--glass-blur); border: 1px solid var(--border-color); border-radius: 20px; max-width: 650px; width: 100%; padding: 24px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 id="modalMsgHeading" style="font-size: 1.2rem; font-weight: 700; margin: 0;">Schedule New Communication</h3>
+                <button onclick="closeMessageModal()" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.2rem; cursor: pointer;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="formMessage" onsubmit="handleSaveMessage(event)">
+                <input type="hidden" id="msgId">
+
+                <div style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Title / Summary</label>
+                    <input type="text" id="msgTitle" required placeholder="e.g. Wednesday Verne Dinner & Tapas Promo" style="width: 100%; padding: 10px 14px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 10px; color: #fff; box-sizing: border-box;">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Date & Time</label>
+                        <input type="datetime-local" id="msgScheduledTime" required style="width: 100%; padding: 10px 14px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 10px; color: #fff; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Message Type</label>
+                        <select id="msgType" style="width: 100%; padding: 10px 14px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 10px; color: #fff; box-sizing: border-box;">
+                            <option value="event_promo">🎟️ Event Promotion</option>
+                            <option value="poll">📊 WhatsApp / Telegram Poll</option>
+                            <option value="reminder">⏰ Guestlist / Countdown Reminder</option>
+                            <option value="last_call">🔥 Tonight Last Call</option>
+                            <option value="banter">💬 Campus Banter / Community</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Associated Event (Optional)</label>
+                    <input type="text" id="msgEventName" placeholder="e.g. Wednesday Experience, Circus Friday..." style="width: 100%; padding: 10px 14px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 10px; color: #fff; box-sizing: border-box;">
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Target Groups & Channels</label>
+                    <div id="modalGroupsCheckboxes" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 140px; overflow-y: auto; padding: 10px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 10px;">
+                        <!-- Injected by JS -->
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Message Content (Base Draft)</label>
+                        <button type="button" onclick="autoGenerateVariants()" style="background: transparent; border: 1px solid var(--color-primary); color: var(--color-primary); border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; font-weight: 600; cursor: pointer;">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Format Variants
+                        </button>
+                    </div>
+                    <textarea id="msgContentBase" rows="4" placeholder="Tapez votre message ici... (le système génèrera automatiquement la version bold/espacement pour WhatsApp, Telegram, Facebook bilingue et Instagram)" style="width: 100%; padding: 10px 14px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 10px; color: #fff; box-sizing: border-box; font-family: inherit; font-size: 0.9rem;"></textarea>
+                </div>
+
+                <!-- Live Format Preview Tabs -->
+                <div style="margin-bottom: 20px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px;">
+                    <div style="display: flex; gap: 6px; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+                        <button type="button" class="preview-tab-btn active" onclick="switchModalPreview('whatsapp')">
+                            <i class="fab fa-whatsapp" style="color: #25D366;"></i> WhatsApp
+                        </button>
+                        <button type="button" class="preview-tab-btn" onclick="switchModalPreview('telegram')">
+                            <i class="fab fa-telegram" style="color: #229ED9;"></i> Telegram
+                        </button>
+                        <button type="button" class="preview-tab-btn" onclick="switchModalPreview('facebook')">
+                            <i class="fab fa-facebook" style="color: #1877F2;"></i> Facebook (FR/EN)
+                        </button>
+                        <button type="button" class="preview-tab-btn" onclick="switchModalPreview('instagram')">
+                            <i class="fab fa-instagram" style="color: #E1306C;"></i> Instagram Channel
+                        </button>
+                    </div>
+
+                    <div id="modalPreviewBox" class="preview-bubble" style="max-height: 160px;">
+                        Preview will update as you format...
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" onclick="closeMessageModal()" class="filter-chip">Cancel</button>
+                    <button type="submit" class="filter-chip" style="background: var(--color-primary); color: #fff; border-color: var(--color-primary);">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Communication
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: ADD / EDIT GROUP -->
+    <div id="modalGroup" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: var(--bg-card); backdrop-filter: var(--glass-blur); border: 1px solid var(--border-color); border-radius: 20px; max-width: 520px; width: 100%; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 id="modalGroupHeading" style="font-size: 1.2rem; font-weight: 700; margin: 0;">Add Channel / Group</h3>
+                <button onclick="closeGroupModal()" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.2rem; cursor: pointer;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="formGroup" onsubmit="handleSaveGroup(event)">
+                <input type="hidden" id="grpId">
+
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Group / Page Name</label>
+                    <input type="text" id="grpName" required placeholder="e.g. MiCampus Barcelona WhatsApp" style="width: 100%; padding: 10px 14px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 10px; color: #fff; box-sizing: border-box;">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Platform</label>
+                        <select id="grpPlatform" style="width: 100%; padding: 10px 14px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 10px; color: #fff; box-sizing: border-box;">
+                            <option value="whatsapp">WhatsApp Group</option>
+                            <option value="telegram">Telegram Group</option>
+                            <option value="facebook">Facebook Group / Page</option>
+                            <option value="instagram">Instagram Broadcast Channel</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Category</label>
+                        <select id="grpCategory" style="width: 100%; padding: 10px 14px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 10px; color: #fff; box-sizing: border-box;">
+                            <option value="campus">🎓 Student / Residence (TBS, ESEI, MiCampus)</option>
+                            <option value="core">🔥 Core Community (La French Main)</option>
+                            <option value="expat">🌍 Expats & Erasmus</option>
+                            <option value="channel">📢 Broadcast Channel</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Invite Link / Direct URL</label>
+                    <input type="url" id="grpLink" placeholder="https://chat.whatsapp.com/... or https://t.me/..." style="width: 100%; padding: 10px 14px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 10px; color: #fff; box-sizing: border-box;">
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Posting Rules / Notes</label>
+                    <input type="text" id="grpRules" placeholder="e.g. Include student discount, no posts before 12:00" style="width: 100%; padding: 10px 14px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 10px; color: #fff; box-sizing: border-box;">
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;">
+                    <button type="button" onclick="closeGroupModal()" class="filter-chip">Cancel</button>
+                    <button type="submit" class="filter-chip" style="background: var(--color-primary); color: #fff; border-color: var(--color-primary);">
+                        Save Group
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: GENERATE EVENT PLAN -->
+    <div id="modalPlan" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: var(--bg-card); backdrop-filter: var(--glass-blur); border: 1px solid var(--border-color); border-radius: 20px; max-width: 540px; width: 100%; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div>
+                    <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0 0 4px 0;">⚡ Multi-Day Event Plan Generator</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0;">Automatically creates and schedules 5 multi-channel messages (T-3 teaser, T-2 guestlist opening, T-1 pre-drinks poll, D-Day afternoon reminder & D-Day last call).</p>
+                </div>
+                <button onclick="closePlanModal()" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.2rem; cursor: pointer;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="formPlan" onsubmit="handleGeneratePlan(event)">
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Event Name</label>
+                    <input type="text" id="planEventName" required placeholder="e.g. Wednesday Experience (15€ Tapas + Verne)" style="width: 100%; padding: 10px 14px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 10px; color: #fff; box-sizing: border-box;">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Event Date</label>
+                        <input type="date" id="planEventDate" required style="width: 100%; padding: 10px 14px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 10px; color: #fff; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Theme / Hook</label>
+                        <input type="text" id="planTheme" placeholder="e.g. Tapas + Sangria + Club" style="width: 100%; padding: 10px 14px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 10px; color: #fff; box-sizing: border-box;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Ticket / Guestlist Link</label>
+                    <input type="url" id="planEventLink" value="https://site.fourvenues.com/es/la-french-list" style="width: 100%; padding: 10px 14px; background: var(--surface-100); border: 1px solid var(--border-color); border-radius: 10px; color: #fff; box-sizing: border-box;">
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" onclick="closePlanModal()" class="filter-chip">Cancel</button>
+                    <button type="submit" id="btnSubmitPlan" class="filter-chip" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none;">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Generate 5-Message Cadence
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="copyToast">
+        <i class="fa-solid fa-circle-check"></i> <span id="copyToastText">Copied to clipboard!</span>
+    </div>
+
+    <script src="comms.js"></script>
+</body>
+
+</html>

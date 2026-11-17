@@ -731,6 +731,13 @@ try:
 except Exception as e_ig:
     print(f"⚠️ Could not register Instagram Scheduler: {e_ig}")
 
+# Register Multi-Channel Community Comms Hub (WhatsApp, Telegram, Facebook, Instagram)
+try:
+    from comms_scheduler import register_comms_scheduler
+    register_comms_scheduler(app)
+except Exception as e_comms:
+    print(f"⚠️ Could not register Comms Scheduler: {e_comms}")
+
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 5000))
