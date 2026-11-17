@@ -149,74 +149,80 @@ def to_unicode_bold(text):
     return text.translate(trans)
 
 def generate_platform_formats(base_text, event_name="", event_link="", poll_options=None, base_text_en=None):
-    """Generates formatted variants adapted to WhatsApp, Telegram, Facebook, and Instagram in both French and English."""
+    """Generates formatted variants adapted to WhatsApp, Telegram, Facebook, and Instagram matching the authentic La French Barcelona style."""
     link_str = event_link or "https://site.fourvenues.com/es/la-french-list"
     ev_clean = event_name.strip() if event_name else ""
     
+    # Clean base text
+    fr_body = base_text.strip()
+    en_body = base_text_en.strip() if base_text_en else (
+        f"Barcelona, get ready for {ev_clean or 'La French'}! Two spots, full student vibes, free guestlist access, and unbeatable energy."
+    )
+
     # 1. FRENCH VARIANTS (fr)
-    wa_fr_parts = [f"🇫🇷 *LA FRENCH BARCELONA* 🇫🇷"]
-    if ev_clean:
-        wa_fr_parts.append(f"✨ *{ev_clean.upper()}* ✨\n")
-    wa_fr_parts.append(base_text.strip())
+    wa_fr_parts = []
+    if ev_clean and not fr_body.startswith("*"):
+        wa_fr_parts.append(f"🔥 *{ev_clean.upper()}* 🔥\n")
+    wa_fr_parts.append(fr_body)
     if poll_options:
         wa_fr_parts.append("\n📊 *SONDAGE (Votez ci-dessous) :*")
         for i, opt in enumerate(poll_options, 1):
             wa_fr_parts.append(f"{i}️⃣ {opt}")
     if link_str:
-        wa_fr_parts.append(f"\n🎟️ *Lien Billetterie & Liste :*\n{link_str}")
+        wa_fr_parts.append(f"\n📲 *RÉSERVEZ VOTRE PASS ICI :*\n{link_str}")
+    wa_fr_parts.append("\nOn se voit sur le dancefloor ! 🍾🔥")
     wa_fr = re.sub(r'\*\*(.*?)\*\*', r'*\1*', "\n".join(wa_fr_parts))
 
-    tg_fr_parts = [f"🍷 **LA FRENCH BARCELONA** 🇫🇷\n*(Édition Française)*\n"]
+    tg_fr_parts = []
     if ev_clean:
-        tg_fr_parts.append(f"✨ **{ev_clean}** ✨\n")
-    tg_fr_parts.append(base_text.strip())
+        tg_fr_parts.append(f"🍷 **{ev_clean.upper()}** 🇫🇷\n")
+    tg_fr_parts.append(fr_body)
     if poll_options:
         tg_fr_parts.append("\n📊 **SONDAGE :**")
         for i, opt in enumerate(poll_options, 1):
             tg_fr_parts.append(f"{i}️⃣ {opt}")
     if link_str:
-        tg_fr_parts.append(f"\n🎟️ **Billetterie & Liste :** [Cliquez ici pour réserver]({link_str})\n{link_str}")
+        tg_fr_parts.append(f"\n🎟️ **Billetterie & Inscription Liste :** [Cliquez ici pour réserver]({link_str})\n{link_str}")
     tg_fr = "\n".join(tg_fr_parts)
 
     ev_header = f" - {to_unicode_bold(ev_clean)}" if ev_clean else ""
     fb_fr_parts = [
         "🇫🇷 " + to_unicode_bold("LA FRENCH BARCELONA") + ev_header,
-        base_text.strip(),
+        fr_body,
         f"\n🎟️ Inscription Liste Gratuite & Billetterie : {link_str}"
     ]
     fb_fr = "\n".join(fb_fr_parts)
 
     ig_fr_parts = [
-        "🚨 *COMMUNITY DROP* 🚨",
-        base_text.strip()
+        f"🚨 *COMMUNITY DROP* 🚨{f' — {ev_clean.upper()}' if ev_clean else ''}",
+        fr_body
     ]
     if poll_options:
-        ig_fr_parts.append("\n📊 Votez ci-dessous !")
+        ig_fr_parts.append("\n📊 Votez en DM ou réagissez !")
         for opt in poll_options:
             ig_fr_parts.append(f"• {opt}")
     if link_str:
-        ig_fr_parts.append(f"\n🔗 Lien : {link_str}")
-    ig_fr_parts.append("\nDrop un 🔥 si vous venez !")
+        ig_fr_parts.append(f"\n🔗 Pass dispo ici : {link_str}")
+    ig_fr_parts.append("\nDrop un 🔥 si vous venez avec votre team !")
     ig_fr = "\n".join(ig_fr_parts)
 
     # 2. ENGLISH VARIANTS (en)
-    en_body = base_text_en.strip() if base_text_en else f"Join us for {ev_clean or 'La French Barcelona'}! Full party vibes, guestlist privileges, and international student community."
-    
-    wa_en_parts = [f"🇬🇧 *LA FRENCH BARCELONA* 🇬🇧"]
-    if ev_clean:
-        wa_en_parts.append(f"✨ *{ev_clean.upper()}* ✨\n")
+    wa_en_parts = []
+    if ev_clean and not en_body.startswith("*"):
+        wa_en_parts.append(f"🔥 *{ev_clean.upper()}* 🔥\n")
     wa_en_parts.append(en_body)
     if poll_options:
-        wa_en_parts.append("\n📊 *POLL (Vote below) :*")
+        wa_en_parts.append("\n📊 *ATTENDANCE POLL (Vote below) :*")
         for i, opt in enumerate(poll_options, 1):
             wa_en_parts.append(f"{i}️⃣ {opt}")
     if link_str:
-        wa_en_parts.append(f"\n🎟️ *Free Guestlist & Tickets :*\n{link_str}")
+        wa_en_parts.append(f"\n📲 *BOOK YOUR PASS HERE :*\n{link_str}")
+    wa_en_parts.append("\nTag your crew. See you tonight! 🍾🔥")
     wa_en = re.sub(r'\*\*(.*?)\*\*', r'*\1*', "\n".join(wa_en_parts))
 
-    tg_en_parts = [f"🎪 **LA FRENCH BARCELONA** 🇬🇧\n*(International & Erasmus Student Edition)*\n"]
+    tg_en_parts = []
     if ev_clean:
-        tg_en_parts.append(f"✨ **{ev_clean}** ✨\n")
+        tg_en_parts.append(f"🎪 **{ev_clean.upper()}** 🇬🇧\n*(International & Erasmus Student Edition)*\n")
     tg_en_parts.append(en_body)
     if poll_options:
         tg_en_parts.append("\n📊 **POLL / RSVP :**")
@@ -235,11 +241,11 @@ def generate_platform_formats(base_text, event_name="", event_link="", poll_opti
     fb_en = "\n".join(fb_en_parts)
 
     ig_en_parts = [
-        "🚨 *LA FRENCH COMMUNITY DROP* 🚨",
+        f"🚨 *LA FRENCH COMMUNITY DROP* 🚨{f' — {ev_clean.upper()}' if ev_clean else ''}",
         en_body
     ]
     if poll_options:
-        ig_en_parts.append("\n📊 Vote below!")
+        ig_en_parts.append("\n📊 Vote below or reply in DM!")
         for opt in poll_options:
             ig_en_parts.append(f"• {opt}")
     if link_str:
@@ -376,16 +382,16 @@ def register_comms_scheduler(app):
         except Exception:
             ev_date = datetime.date.today() + datetime.timedelta(days=2)
 
-        # Plan Cadence: T-3 days, T-2 days, T-1 day, D-Day afternoon, D-Day night
+        # Plan Cadence: T-3 days, T-2 days, T-1 day, D-Day afternoon, D-Day night (Authentic La French Style)
         plan_steps = [
             {
                 "offset": -3,
                 "hour": 18,
                 "minute": 30,
-                "title": f"T-3 Days: Save the Date & Theme Reveal",
+                "title": f"T-3 Days: Save the Date & Two-Step Experience Reveal",
                 "type": "event_promo",
-                "text": f"🎉 Nouvelle date annoncée ! Ce {ev_date.strftime('%A %d')} c'est {event_name}.\nAu programme : {theme}.\nPlaces très limitées pour le dîner, réservez vite !",
-                "text_en": f"🎉 New date announced! This {ev_date.strftime('%A %d')} is {event_name}.\nOn the lineup: {theme}.\nLimited spots available for dinner, book your tickets now!"
+                "text": f"🎪 *{event_name.upper()} — CE {ev_date.strftime('%A %d').upper()} !*\n\nOn vous prépare un nouveau rendez-vous incontournable à Barcelone !\n\n🔥 Ambiance survoltée & foule internationale\n🍻 Pre-party & animations\n🪩 Club night jusqu'au petit matin\n\n👑 *GROUPES DE FILLES :* Table VIP offerte disponible ! Répondez VIP en privé pour réserver la vôtre.\n\n⚠️ Places limitées sur la liste gratuite. Sécurisez votre pass dès maintenant !",
+                "text_en": f"🎪 *{event_name.upper()} — THIS {ev_date.strftime('%A %d').upper()}!*\n\nBarcelona, don't miss out on this week's main event!\n\n🔥 Wild vibes & international Erasmus crowd\n🍻 Pre-party warm-up & games\n🪩 Club night till 6 AM\n\n👑 *GIRLS GROUPS:* Free VIP Table available! Reply VIP to claim yours.\n\n⚠️ Limited tickets remaining. Secure your spot before they're gone!"
             },
             {
                 "offset": -2,
@@ -393,8 +399,8 @@ def register_comms_scheduler(app):
                 "minute": 0,
                 "title": f"T-2 Days: Guestlist & Early Tickets Opening",
                 "type": "event_promo",
-                "text": f"🎟️ La liste gratuite pour {event_name} est désormais ouverte !\nEntrée offerte avant 01:30 sur La French List. Prenez vos tickets maintenant pour être prioritaires.",
-                "text_en": f"🎟️ Free guestlist for {event_name} is now officially open!\nFree entry before 01:30 on La French List. Get your tickets now for priority access."
+                "text": f"🎟️ *LA LISTE GRATUITE POUR {event_name.upper()} EST OUVERTE !*\n\nEntrée 100% OFFERTE + COUPE-FILE avant 01h00 sur la liste La French.\n\n👑 *GROUPES DE FILLES :* Table VIP offerte disponible ! Répondez VIP pour réserver.\n\n⚠️ Ne tardez pas, les premiers pass partent très vite !",
+                "text_en": f"🎟️ *FREE GUESTLIST FOR {event_name.upper()} IS NOW OPEN!*\n\n100% FREE CLUB ENTRY + SKIP THE LINE before 01:00 on La French List.\n\n👑 *GIRLS GROUPS:* Free VIP Table available! Reply VIP to claim yours.\n\n⚠️ Don't wait until the last minute, early tickets fly fast!"
             },
             {
                 "offset": -1,
@@ -402,23 +408,23 @@ def register_comms_scheduler(app):
                 "minute": 0,
                 "title": f"T-1 Day: Pre-Drinks / Table Attendance Poll",
                 "type": "poll",
-                "text": f"Demain soir c'est {event_name} ! Qui vient à l'apéro avant le club ?",
-                "text_en": f"Tomorrow night is {event_name}! Who is joining pre-drinks before the club?",
+                "text": f"Salut à tous 👋 Petit message avant que demain ne se remplisse pour {event_name} !\n\nOn lance un petit sondage — quel est le plan pour demain soir ? 👇",
+                "text_en": f"Happy days everyone 👋 Quick heads-up before tomorrow night fills up for {event_name}!\n\nDropping a poll below — what's the move tomorrow night? 👇",
                 "poll_options": [
-                    "Je viens au dîner/pre-drinks + club 🍷",
-                    "Je rejoins directement au club 🎉",
-                    "Je suis chaud pour une table VIP 🍾",
-                    "Pas dispo ce coup-ci"
+                    "Full Plan : Pre-Drinks + Club 🍷",
+                    "Apéro en résidence étudiante (MiCampus / TBS / ESEI) 🍻",
+                    "Direct au club à minuit (Gratuit sur liste) 🪩",
+                    "Pas dispo ce coup-ci 😴"
                 ]
             },
             {
                 "offset": 0,
-                "hour": 15,
+                "hour": 14,
                 "minute": 0,
-                "title": f"D-Day (15:00): Free Guestlist Closing Warning",
+                "title": f"D-Day (14:00): Free Guestlist Closing Warning",
                 "type": "reminder",
-                "text": f"⚠️ DERNIÈRE LIGNE DROITE POUR CE SOIR !\n{event_name}.\nLa liste gratuite ferme à 20h pile. Inscrivez-vous et arrivez avant 01:00 pour éviter la queue.",
-                "text_en": f"⚠️ FINAL CALL FOR TONIGHT!\n{event_name}.\nFree guestlist closes at 20:00 sharp. Register now and arrive before 01:00 to skip lines."
+                "text": f"🚨 *LES PLACES PARTENT TRÈS VITE POUR CE SOIR !* 🎪🔥\n\nBarcelone, n'attendez pas la dernière minute ! La soirée {event_name} de ce soir est presque complète !\n\n🎟️ ENTRÉE GRATUITE SUR LA LISTE LA FRENCH\n⏰ Arrivez tôt pour éviter la file d'attente !\n\n👑 *GROUPES DE FILLES :* Dernières tables VIP offertes disponibles ! Répondez VIP.",
+                "text_en": f"🚨 *TICKETS ARE RUNNING LOW FOR TONIGHT!* 🎪🔥\n\nBarcelona, don't wait until the last minute! Tonight's {event_name} is filling up fast and tickets are flying! 🎟️\n\n🎟️ FREE CLUB ENTRY ON LA FRENCH LIST\n⏰ Arrive early to skip the entrance line!\n\n👑 *GIRLS GROUPS:* Free VIP Table available for tonight! Reply VIP to claim yours."
             },
             {
                 "offset": 0,
@@ -426,8 +432,8 @@ def register_comms_scheduler(app):
                 "minute": 30,
                 "title": f"D-Day (20:30): Final Tonight Alert & Dress Code",
                 "type": "last_call",
-                "text": f"🔥 C'EST CE SOIR ! Rendez-vous pour {event_name}.\nDress code : Chic & Festive. N'oubliez pas votre pièce d'identité physique !",
-                "text_en": f"🔥 TONIGHT IS THE NIGHT! See you for {event_name}.\nDress code: Smart casual / Party chic. Don't forget your physical ID!"
+                "text": f"🚨 *DERNIER RAPPEL POUR CE SOIR !* 🎪🔥\n\nIl est presque 21h et les places sont presque épuisées pour {event_name} !\n\n🎟️ Annoncez \"LISTE LA FRENCH\" à l'entrée\n🪪 Pièce d'identité physique strictement obligatoire (pas de photo)\n👔 Dress code : Club chic & soigné (no sportswear)\n\nPrenez votre pass maintenant avant la fermeture des portes !",
+                "text_en": f"🚨 *LAST CALL FOR TONIGHT!* 🎪🔥\n\nIt's almost 9PM and tickets are running LOW for {event_name}!\n\n🎟️ At the entrance, simply say: \"LA FRENCH LIST\"\n🪪 Physical ID strictly required (no photos on phone)\n👔 Dress code: Club chic & elegant (no sportswear)\n\nGrab your ticket now before cutoff!"
             }
         ]
 
@@ -576,23 +582,27 @@ def register_comms_scheduler(app):
         return {"success": False, "error": f"All AI models failed. Last error: {last_error}"}
 
     AI_SYSTEM_PROMPT = """You are the Chief Community & Growth Marketing Director for 'La French Barcelona', the premier nightlife, student, and expat party brand in Barcelona.
-You specialize in multi-channel community growth across:
+You write in the exact, authentic, high-converting voice of the La French Barcelona founders and promoters.
+
+Your core channels:
 1. WhatsApp Groups (La French core, MiCampus residence, TBS Barcelona student group)
 2. Telegram Groups (ESEI Business School)
 3. Facebook Groups (Français à Barcelone & Expats in Barcelona)
 4. Instagram VIP Broadcast Channel (@la_french_bcn)
 
-Your core weekly events include:
-- Wednesday Experience @ Verne (15€ Tapas dinner + sangria open bar + nightclub afterparty)
-- Friday Circus @ La Fira Villarroel (large student party, free guestlist before 01:30, VIP tables)
-- Weekend & Summer Specials (boat trips, rooftop socials, after-work events)
+Your signature weekly experiences:
+- Wednesday Experience: 3-step night (Step 1: All-you-can-eat Spanish Tapas buffet at El Jardinet Verde for 15€ with sangria; Step 2: Warmup & free shots at Bar Verne; Step 3: Free Club Entry at Luz de Gas / Sutton).
+- Friday Circus Pre-Party & Twenties: Step 1: Pre-party at La Fira Provença with 2 FREE SHOTS, Beer Pong & DJ; Step 2: Free Club Entry + Skip-the-line at Twenties Barcelona before 01:00 on "La French List".
+- Sunday Off Duty: Free sushi/burger dinner + drink + free club entry at Opium Barcelona.
 
-Ticketing and guestlist link: https://site.fourvenues.com/es/la-french-list
-
-Key principles:
-- Cadence discipline: T-3 teaser, T-2 guestlist opening, T-1 pre-drinks/dinner attendance poll, D-Day afternoon cutoff warning (urgency/FOMO), D-Day night last call with dress code.
-- Platform formatting: WhatsApp uses single *bold*, emojis, number polls. Facebook does not support markdown and requires Unicode bold headers with a clean bilingual FR/EN separator (━━━━━━━━━━━━━━━━━━━━━━). Telegram uses markdown **bold** and clean links. Instagram uses high-energy DM tone with reaction CTA.
-- Tone: High energy, fun, welcoming, exclusive yet accessible for international & French students and expats.
+Authentic Copywriting Guidelines (Derived from real La French WhatsApp exports):
+- Structural Hook: Punchy, high-energy headlines like `🍷🔥 *WEDNESDAY NIGHT JUST GOT BETTER!*`, `🚨 *TICKETS ARE RUNNING LOW!* 🎪🔥`, `*🎪🎰 CIRCUS CASINO — CE SOIR !*`, or `🚨 *LAST CALL FOR TONIGHT!* 🎪🔥`. Never use generic robot labels like "Announcement" or artificial flag badges.
+- Multi-Step Format: Use `*STEP 1 — ...*` and `*STEP 2 — ...*` (or `*ÉTAPE 1 — ...*`) with clear venue locations, timings, and free shot/tapas perks.
+- Signature VIP Incentive: Always include the classic girls group perk: `👑 GIRLS GROUPS: Free VIP Table available! Reply VIP to claim yours.` (FR: `👑 GROUPES DE FILLES : Table VIP offerte disponible ! Répondez VIP en privé pour réserver la vôtre.`).
+- Call To Action: Use `📲 BOOK NOW:` or `📲 RÉSERVEZ VOTRE PASS ICI :` followed by the Fourvenues link directly on its own line.
+- Polls: Introduce polls casually like `Dropping a poll below — what's the move tomorrow night? 👇` with 4 clear numbered options with emojis.
+- Door Policy: Clear reminders on physical ID (`🪪 Physical ID strictly required (no photos on phone)`) and classy dress code (`👔 Dress code: Club chic & elegant, no sportswear`).
+- Tone: Warm, energetic, insider club promoter vibe that gets students hyped without sounding corporate or stiff.
 """
 
     @app.route('/api/comms/ai/review-strategy', methods=['POST'])

@@ -226,3 +226,45 @@ curl -X POST "https://promotersdashboard-275699211798.europe-west1.run.app/api/c
     "event_context": "Wednesday Experience @ Verne"
   }'
 ```
+
+---
+
+## ✍️ 11. Authentic Voice & Copywriting Playbook (Derived from Real WhatsApp Chat Exports)
+
+To ensure messages convert and resonate with Barcelona's student, expat, and Erasmus community, adhere to the **La French Barcelona Copywriting Standard**:
+
+### 🎯 Core Principles:
+1. **Never use robot labels or stiff flag headers**:
+   - ❌ Bad: `🇫🇷 *LA FRENCH BARCELONA* 🇫🇷 \n ✨ *EVENT TITLE* ✨`
+   - ✅ Authentic: `🍷🔥 *WEDNESDAY NIGHT JUST GOT BETTER!*` or `🚨 *TICKETS ARE RUNNING LOW!* 🎪🔥`
+2. **The Signature Multi-Step Flow**:
+   - For 2 or 3 part nights, always break down the journey clearly:
+     ```
+     🌿 *STEP 1 – UNLIMITED SPANISH TAPAS*
+     📍 El Jardinet Verde (Secret indoor garden)
+     🕗 20:00–22:30
+     Enjoy an ALL-YOU-CAN-EAT Spanish tapas buffet for just *15€* with sangria!
+
+     🥃 *STEP 2 – WARMUP & FREE SHOTS*
+     📍 Bar Verne (C/ Aribau 150)
+     🕦 23:30
+     Free shots & meetup before the club!
+
+     🕺 *STEP 3 – CLUB NIGHT*
+     📍 Club Luz de Gas (or Sutton)
+     🕛 From midnight
+     *100% FREE CLUB ENTRY* on the LA FRENCH LIST!
+     ```
+3. **The Signature Girls Group Perk**:
+   - Always include the VIP table offer for girls groups:
+     - EN: `👑 GIRLS GROUPS: Free VIP Table available! Reply VIP to claim yours.`
+     - FR: `👑 GROUPES DE FILLES : Table VIP offerte disponible ! Répondez VIP pour réserver la vôtre.`
+4. **Clean CTA & Bare Links**:
+   - Always place the booking link on its own line immediately under `📲 BOOK NOW:` or `📲 RÉSERVEZ ICI :`.
+5. **Interactive Poll Formatting**:
+   - Introduce polls naturally: `Dropping a poll below — what’s the move tomorrow night? 👇`
+   - Follow with 4 numbered options using clear emoji anchors.
+6. **Strict Door Rules**:
+   - `🪪 Physical ID strictly required at entrance (no photos on phone)`
+   - `👔 Dress code: Club chic & elegant (no sportswear or beachwear)`
+
