@@ -37,7 +37,7 @@ gcloud run deploy "$SERVICE_NAME" \
   --cpu 1 \
   --max-instances 1 \
   --timeout 300 \
-  --set-env-vars "^##^$(echo "$ENV_VARS" | tr ',' '##')"
+  --update-env-vars "^##^$(echo "$ENV_VARS" | tr ',' '##')"
 
 echo "✅ Deployment completed successfully!"
 
