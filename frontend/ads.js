@@ -344,24 +344,41 @@ async function fetchAdsData() {
     const yesterdayISO = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
     try {
-        const [res, hourlyRes, hourlyCampRes, campRes, budgetRes, adRes, adCreativeRes, adsetsTargetingRes] = await Promise.all([
+        const [res, hourlyDataPair, hourlyCampDataPair, campRes, budgetRes, adRes, adCreativeRes, adsetsTargetingRes] = await Promise.all([
             fetch(`${url}?${params.toString()}`),
-            fetch(`${url}?${new URLSearchParams({
-                level: 'account',
-                time_range: JSON.stringify({ since: yesterdayISO, until: todayISO }),
-                breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
-                time_increment: 1,
-                limit: 100,
-                fields: 'spend,clicks,actions'
-            }).toString()}`),
-            fetch(`${url}?${new URLSearchParams({
-                level: 'campaign',
-                time_range: JSON.stringify({ since: yesterdayISO, until: todayISO }),
-                breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
-                time_increment: 1,
-                limit: 2000,
-                fields: 'campaign_id,spend,clicks,impressions,actions'
-            }).toString()}`),
+            // Fetch yesterday and today separately without time_increment to prevent hourly aggregation conflicts and preserve accurate spend/clicks
+            Promise.all([
+                fetch(`${url}?${new URLSearchParams({
+                    level: 'account',
+                    time_range: JSON.stringify({ since: yesterdayISO, until: yesterdayISO }),
+                    breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
+                    limit: 100,
+                    fields: 'spend,impressions,clicks,actions'
+                }).toString()}`).then(r => r.json()).catch(() => ({ data: [] })),
+                fetch(`${url}?${new URLSearchParams({
+                    level: 'account',
+                    time_range: JSON.stringify({ since: todayISO, until: todayISO }),
+                    breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
+                    limit: 100,
+                    fields: 'spend,impressions,clicks,actions'
+                }).toString()}`).then(r => r.json()).catch(() => ({ data: [] }))
+            ]),
+            Promise.all([
+                fetch(`${url}?${new URLSearchParams({
+                    level: 'campaign',
+                    time_range: JSON.stringify({ since: yesterdayISO, until: yesterdayISO }),
+                    breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
+                    limit: 2000,
+                    fields: 'campaign_id,spend,clicks,impressions,actions'
+                }).toString()}`).then(r => r.json()).catch(() => ({ data: [] })),
+                fetch(`${url}?${new URLSearchParams({
+                    level: 'campaign',
+                    time_range: JSON.stringify({ since: todayISO, until: todayISO }),
+                    breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
+                    limit: 2000,
+                    fields: 'campaign_id,spend,clicks,impressions,actions'
+                }).toString()}`).then(r => r.json()).catch(() => ({ data: [] }))
+            ]),
             fetch(`${url}?${new URLSearchParams({
                 level: 'campaign',
                 time_range: JSON.stringify({ since: fromDate, until: toDate }),
@@ -392,8 +409,10 @@ async function fetchAdsData() {
         ]);
         
         const json = await res.json();
-        const hourlyJson = await hourlyRes.json();
-        const hourlyCampJson = await hourlyCampRes.json();
+        const [hourlyYestJson, hourlyTodayJson] = hourlyDataPair;
+        const [hourlyCampYestJson, hourlyCampTodayJson] = hourlyCampDataPair;
+        const hourlyJson = { data: [...(hourlyYestJson?.data || []), ...(hourlyTodayJson?.data || [])] };
+        const hourlyCampJson = { data: [...(hourlyCampYestJson?.data || []), ...(hourlyCampTodayJson?.data || [])] };
         const campJson = await campRes.json();
         const budgetJson = await budgetRes.json();
         const adJson = await adRes.json();
@@ -687,6 +706,7 @@ function processAndRenderAds() {
         timeline.push({
             dateKey: `${yyyy}-${mm}-${dd}`,
             hourKey: `${hh}:00:00 - ${hh}:59:59`,
+            hh: hh,
             label: `${dd}/${mm} ${hh}:00`
         });
     }
@@ -694,7 +714,11 @@ function processAndRenderAds() {
     timeline.forEach(t => {
         hourlyLabels.push(t.label);
         
-        const hourData = currentHourlyData.find(h => h.date_start === t.dateKey && h.hourly_stats_aggregated_by_advertiser_time_zone === t.hourKey);
+        const hourData = currentHourlyData.find(h => 
+            h.date_start === t.dateKey && 
+            (h.hourly_stats_aggregated_by_advertiser_time_zone === t.hourKey || 
+             (h.hourly_stats_aggregated_by_advertiser_time_zone && h.hourly_stats_aggregated_by_advertiser_time_zone.startsWith(`${t.hh}:`)))
+        );
         
         if (hourData) {
             hourlySpendData.push(parseFloat(hourData.spend || 0));
@@ -1325,13 +1349,18 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
         timelineModal.push({
             dateKey: `${yyyy}-${mm}-${dd}`,
             hourKey: `${hh}:00:00 - ${hh}:59:59`,
+            hh: hh,
             label: `${dd}/${mm} ${hh}:00`
         });
     }
 
     timelineModal.forEach(t => {
         modalHourlyLabels.push(t.label);
-        const hourData = campHourlyData.find(h => h.date_start === t.dateKey && h.hourly_stats_aggregated_by_advertiser_time_zone === t.hourKey);
+        const hourData = campHourlyData.find(h => 
+            h.date_start === t.dateKey && 
+            (h.hourly_stats_aggregated_by_advertiser_time_zone === t.hourKey || 
+             (h.hourly_stats_aggregated_by_advertiser_time_zone && h.hourly_stats_aggregated_by_advertiser_time_zone.startsWith(`${t.hh}:`)))
+        );
         
         if (hourData) {
             const spend = parseFloat(hourData.spend || 0);

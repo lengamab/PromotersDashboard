@@ -455,7 +455,7 @@ def save_rate_commissions():
 @app.route('/api/meta-proxy/<path:endpoint>', methods=['GET'])
 def meta_proxy(endpoint):
     import requests
-    token = os.getenv("META_ACCESS_TOKEN")
+    token = os.getenv("META_ACCESS_TOKEN") or os.getenv("IG_ACCESS_TOKEN") or os.getenv("INSTAGRAM_ACCESS_TOKEN")
     if not token:
         return jsonify({"error": {"message": "META_ACCESS_TOKEN not configured in backend"}}), 500
         
@@ -489,7 +489,7 @@ def ig_proxy(endpoint):
 @app.route('/api/meta-proxy-mutate/<path:endpoint>', methods=['POST'])
 def meta_proxy_mutate(endpoint):
     import requests
-    token = os.getenv("META_ACCESS_TOKEN")
+    token = os.getenv("META_ACCESS_TOKEN") or os.getenv("IG_ACCESS_TOKEN") or os.getenv("INSTAGRAM_ACCESS_TOKEN")
     if not token:
         return jsonify({"error": {"message": "META_ACCESS_TOKEN not configured in backend"}}), 500
         
