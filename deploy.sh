@@ -6,7 +6,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd "$DIR"
 
 # Defaults (can be overridden via environment variables)
-SERVICE_NAME="${CLOUD_RUN_SERVICE:-promoters-dashboard}"
+SERVICE_NAME="${CLOUD_RUN_SERVICE:-promotersdashboard}"
 REGION="${CLOUD_RUN_REGION:-europe-west1}"
 
 echo "======================================================================"
