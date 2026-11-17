@@ -88,12 +88,12 @@ DEFAULT_MESSAGES = [
         "scheduled_time": "2026-11-18T12:00:00",
         "status": "scheduled",
         "event_name": "Wednesday Experience @ Verne",
-        "content_base": "Qui est chaud pour le dîner tapas + open bar sangria à 15€ avant le club ce soir ? 🍷\n\nVotez ci-dessous pour réserver la grande table collective !",
+        "content_base": "Qui est chaud pour le dîner buffet tapas à 15€ avant le club ce soir ? 🍷\n\nRejoignez la table collective !",
         "content_variants": {
-            "whatsapp": "*LA FRENCH BARCELONA* 🇫🇷\n\nQui est chaud pour le dîner tapas + open bar sangria à *15€* avant le club demain ? 🍷✨\n\n📍 *Verne Barcelona* (Carrer d'Aribau 150)\n⏰ *21:30*\n\n📊 *SONDAGE :*\n1️⃣ Chaud pour le dîner + Club (15€)\n2️⃣ Je viens juste au Club après (Gratuit sur liste)\n3️⃣ Pas dispo cette semaine",
-            "telegram": "**LA FRENCH WEDNESDAY EXPERIENCE** 🇫🇷\n\nWho's ready for our famous 15€ Tapas & Sangria dinner before party? 🍷\n\n📍 **Verne Barcelona**\n⏰ **21:30**\n\n📊 **POLL:**\n1️⃣ Dinner + Club (15€)\n2️⃣ Club only (Free on Guestlist)\n3️⃣ Next time!",
-            "facebook": "🇫🇷 *FRANÇAIS :*\nMercredi Tapas & Club avec La French ! 🍷 Dîner tapas complet + sangria à seulement 15€ à Verne Barcelona, suivi d'une entrée offerte en club.\n\n━━━━━━━━━━━━━━\n\n🇬🇧 *ENGLISH :*\nWednesday Tapas & Club with La French! 🍷 Full tapas dinner + sangria for only 15€ at Verne Barcelona, followed by free club entrance.\n\n🎟️ Tickets & Free Guestlist: https://site.fourvenues.com/es/la-french-list",
-            "instagram": "🚨 *WEDNESDAY SECRET DROP* 🚨\n\nDemain soir c'est notre Wednesday Experience :\n🍽️ Dîner Tapas + Verne Club pour 15€\n🎉 Entrée gratuite en club sur La French List\n\nQui vient avec son crew ? Répondez au sondage !"
+            "whatsapp": "🍷🔥 *WEDNESDAY EXPERIENCE* 🇪🇸\n\nQui est chaud pour le grand dîner buffet tapas à volonté à *15€* avant le club demain ? 🍽️✨\n\n📍 *El Jardinet Verde* (C/ Aribau)\n⏰ *20:00 - 22:30*\n\nSuivi de Bar Verne (shots offerts) et entrée offerte au club Luz de Gas sur liste La French !",
+            "telegram": "**LA FRENCH WEDNESDAY EXPERIENCE** 🇫🇷\n\nWho's ready for our famous 15€ Tapas buffet dinner before party? 🍷\n\n📍 **El Jardinet Verde**\n⏰ **20:00**\n\n📊 **POLL:**\n1️⃣ Dinner + Club (15€)\n2️⃣ Club only (Free on Guestlist)\n3️⃣ Next time!",
+            "facebook": "🇫🇷 *FRANÇAIS :*\nMercredi Tapas & Club avec La French ! 🍷 Buffet de tapas espagnoles à volonté à seulement 15€, suivi d'une entrée offerte en club.\n\n━━━━━━━━━━━━━━\n\n🇬🇧 *ENGLISH :*\nWednesday Tapas & Club with La French! 🍷 Full Spanish tapas buffet for only 15€, followed by free club entrance.\n\n🎟️ Tickets & Free Guestlist: https://site.fourvenues.com/es/la-french-list",
+            "instagram": "🚨 *WEDNESDAY SECRET DROP* 🚨\n\nDemain soir c'est notre Wednesday Experience :\n🍽️ Dîner Tapas à volonté pour 15€\n🎉 Entrée gratuite en club sur La French List\n\nQui vient avec son crew ?"
         }
     },
     {
@@ -164,10 +164,7 @@ def generate_platform_formats(base_text, event_name="", event_link="", poll_opti
     if ev_clean and not fr_body.startswith("*"):
         wa_fr_parts.append(f"🔥 *{ev_clean.upper()}* 🔥\n")
     wa_fr_parts.append(fr_body)
-    if poll_options:
-        wa_fr_parts.append("\n📊 *SONDAGE (Votez ci-dessous) :*")
-        for i, opt in enumerate(poll_options, 1):
-            wa_fr_parts.append(f"{i}️⃣ {opt}")
+    # Note: WhatsApp messages must NEVER include poll text blocks (native WhatsApp polls are created separately)
     if link_str:
         wa_fr_parts.append(f"\n📲 *RÉSERVEZ VOTRE PASS ICI :*\n{link_str}")
     wa_fr_parts.append("\nOn se voit sur le dancefloor ! 🍾🔥")
@@ -211,10 +208,7 @@ def generate_platform_formats(base_text, event_name="", event_link="", poll_opti
     if ev_clean and not en_body.startswith("*"):
         wa_en_parts.append(f"🔥 *{ev_clean.upper()}* 🔥\n")
     wa_en_parts.append(en_body)
-    if poll_options:
-        wa_en_parts.append("\n📊 *ATTENDANCE POLL (Vote below) :*")
-        for i, opt in enumerate(poll_options, 1):
-            wa_en_parts.append(f"{i}️⃣ {opt}")
+    # Note: WhatsApp messages must NEVER include poll text blocks (native WhatsApp polls are created separately)
     if link_str:
         wa_en_parts.append(f"\n📲 *BOOK YOUR PASS HERE :*\n{link_str}")
     wa_en_parts.append("\nTag your crew. See you tonight! 🍾🔥")
@@ -591,16 +585,17 @@ Your core channels:
 4. Instagram VIP Broadcast Channel (@la_french_bcn)
 
 Your signature weekly experiences:
-- Wednesday Experience: 3-step night (Step 1: All-you-can-eat Spanish Tapas buffet at El Jardinet Verde for 15€ with sangria; Step 2: Warmup & free shots at Bar Verne; Step 3: Free Club Entry at Luz de Gas / Sutton).
+- Wednesday Experience: 3-step night (Step 1: All-you-can-eat Spanish Tapas buffet at El Jardinet Verde for 15€ [STRICTLY NO SANGRIA]; Step 2: Warmup & free shots at Bar Verne; Step 3: Free Club Entry at Luz de Gas / Sutton).
 - Friday Circus Pre-Party & Twenties: Step 1: Pre-party at La Fira Provença with 2 FREE SHOTS, Beer Pong & DJ; Step 2: Free Club Entry + Skip-the-line at Twenties Barcelona before 01:00 on "La French List".
 - Sunday Off Duty: Free sushi/burger dinner + drink + free club entry at Opium Barcelona.
 
 Authentic Copywriting Guidelines (Derived from real La French WhatsApp exports):
+- NO SANGRIA: There is NO sangria in the Spanish tapas buffet (it is strictly unlimited Spanish tapas buffet for 15€).
+- NO POLL IN WHATSAPP MESSAGES: Never embed poll blocks (options or numbering) in WhatsApp messages. In WhatsApp groups, native polls are created separately using the platform feature; the WhatsApp message itself must remain clean, direct promotional copy.
 - Structural Hook: Punchy, high-energy headlines like `🍷🔥 *WEDNESDAY NIGHT JUST GOT BETTER!*`, `🚨 *TICKETS ARE RUNNING LOW!* 🎪🔥`, `*🎪🎰 CIRCUS CASINO — CE SOIR !*`, or `🚨 *LAST CALL FOR TONIGHT!* 🎪🔥`. Never use generic robot labels like "Announcement" or artificial flag badges.
 - Multi-Step Format: Use `*STEP 1 — ...*` and `*STEP 2 — ...*` (or `*ÉTAPE 1 — ...*`) with clear venue locations, timings, and free shot/tapas perks.
 - Signature VIP Incentive: Always include the classic girls group perk: `👑 GIRLS GROUPS: Free VIP Table available! Reply VIP to claim yours.` (FR: `👑 GROUPES DE FILLES : Table VIP offerte disponible ! Répondez VIP en privé pour réserver la vôtre.`).
 - Call To Action: Use `📲 BOOK NOW:` or `📲 RÉSERVEZ VOTRE PASS ICI :` followed by the Fourvenues link directly on its own line.
-- Polls: Introduce polls casually like `Dropping a poll below — what's the move tomorrow night? 👇` with 4 clear numbered options with emojis.
 - Door Policy: Clear reminders on physical ID (`🪪 Physical ID strictly required (no photos on phone)`) and classy dress code (`👔 Dress code: Club chic & elegant, no sportswear`).
 - Tone: Warm, energetic, insider club promoter vibe that gets students hyped without sounding corporate or stiff.
 """

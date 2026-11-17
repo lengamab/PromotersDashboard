@@ -243,7 +243,7 @@ To ensure messages convert and resonate with Barcelona's student, expat, and Era
      🌿 *STEP 1 – UNLIMITED SPANISH TAPAS*
      📍 El Jardinet Verde (Secret indoor garden)
      🕗 20:00–22:30
-     Enjoy an ALL-YOU-CAN-EAT Spanish tapas buffet for just *15€* with sangria!
+     Enjoy an ALL-YOU-CAN-EAT Spanish tapas buffet for just *15€*!
 
      🥃 *STEP 2 – WARMUP & FREE SHOTS*
      📍 Bar Verne (C/ Aribau 150)
@@ -255,16 +255,17 @@ To ensure messages convert and resonate with Barcelona's student, expat, and Era
      🕛 From midnight
      *100% FREE CLUB ENTRY* on the LA FRENCH LIST!
      ```
-3. **The Signature Girls Group Perk**:
+3. **No Sangria in Tapas Buffet**:
+   - There is strictly **no sangria** in the tapas buffet (it is an unlimited Spanish tapas buffet for 15€). Never mention sangria for the buffet.
+4. **No Poll Blocks in WhatsApp Messages**:
+   - WhatsApp messages must **never** embed poll option lists (1️⃣ Option 1, 2️⃣ Option 2...). In WhatsApp groups, polls are created separately using WhatsApp's native poll tool; the message text itself must stay clean, direct, and copy-paste ready.
+5. **The Signature Girls Group Perk**:
    - Always include the VIP table offer for girls groups:
      - EN: `👑 GIRLS GROUPS: Free VIP Table available! Reply VIP to claim yours.`
      - FR: `👑 GROUPES DE FILLES : Table VIP offerte disponible ! Répondez VIP pour réserver la vôtre.`
-4. **Clean CTA & Bare Links**:
+6. **Clean CTA & Bare Links**:
    - Always place the booking link on its own line immediately under `📲 BOOK NOW:` or `📲 RÉSERVEZ ICI :`.
-5. **Interactive Poll Formatting**:
-   - Introduce polls naturally: `Dropping a poll below — what’s the move tomorrow night? 👇`
-   - Follow with 4 numbered options using clear emoji anchors.
-6. **Strict Door Rules**:
+7. **Strict Door Rules**:
    - `🪪 Physical ID strictly required at entrance (no photos on phone)`
    - `👔 Dress code: Club chic & elegant (no sportswear or beachwear)`
 
