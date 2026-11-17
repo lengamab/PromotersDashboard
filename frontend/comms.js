@@ -922,8 +922,15 @@ function setAiLoading(isLoading, subtext = "Auditing communications & cadence...
     if (document.getElementById('aiSectionPolls')) document.getElementById('aiSectionPolls').style.opacity = isLoading ? '0.3' : '1';
 }
 
+function updateAiModelBadge(model) {
+    const el = document.getElementById('aiModelBadge');
+    if (!el || !model) return;
+    const clean = model.replace('models/', '').replace('-preview', '').replace(/-/g, ' ').toUpperCase();
+    el.textContent = clean;
+}
+
 async function runAiStrategyAudit() {
-    setAiLoading(true, "Auditing complete communication schedule and multi-channel balance...");
+    setAiLoading(true, "Auditing complete communication schedule with Gemini 3.1 Pro...");
     try {
         const res = await fetch('/api/comms/ai/review-strategy', {
             method: 'POST',
@@ -932,6 +939,7 @@ async function runAiStrategyAudit() {
         const json = await res.json();
         setAiLoading(false);
         if (json.success && json.analysis) {
+            updateAiModelBadge(json.model);
             renderStrategyAuditResults(json.analysis);
         } else {
             alert("Strategy audit failed: " + (json.error || "Unknown error"));
@@ -1076,6 +1084,7 @@ async function runAiEventReview(presetEvent = '') {
         const json = await res.json();
         setAiLoading(false);
         if (json.success && json.analysis) {
+            updateAiModelBadge(json.model);
             renderEventReviewResults(json.analysis);
         } else {
             alert("Event audit failed: " + (json.error || "Unknown error"));
@@ -1189,6 +1198,7 @@ async function runAiSuggestPolls() {
         const json = await res.json();
         setAiLoading(false);
         if (json.success && json.polls) {
+            updateAiModelBadge(json.model);
             renderPollsResults(json.polls);
         } else {
             alert("Failed to generate polls: " + (json.error || "Unknown error"));
@@ -1326,6 +1336,7 @@ async function handleSendAiChat(event) {
         const json = await res.json();
         if (sendBtn) sendBtn.disabled = false;
         if (json.success && json.reply) {
+            updateAiModelBadge(json.model);
             aiChatHistory.push({ role: 'user', content: msgText });
             aiChatHistory.push({ role: 'assistant', content: json.reply });
             appendChatMessage('assistant', json.reply);

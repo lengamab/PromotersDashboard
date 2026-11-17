@@ -470,47 +470,73 @@ def register_comms_scheduler(app):
                 pass
         return key
 
-    def call_gemini_ai(prompt, system_instruction=None, json_mode=False, model="gemini-2.5-flash", temperature=0.7):
+    def extract_ai_json(text):
+        """Robust JSON extraction handling markdown code blocks, outer braces, and trailing commas."""
+        text = text.strip()
+        text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.MULTILINE)
+        text = re.sub(r"\s*```$", "", text, flags=re.MULTILINE)
+        try:
+            return json.loads(text)
+        except Exception:
+            pass
+
+        # Try regex to locate outermost { ... }
+        m = re.search(r"(\{[\s\S]*\})", text)
+        if m:
+            candidate = m.group(1)
+            try:
+                return json.loads(candidate)
+            except Exception:
+                cleaned = re.sub(r",\s*([\}\]])", r"\1", candidate)
+                return json.loads(cleaned)
+        raise ValueError("Could not parse valid JSON from AI response")
+
+    def call_gemini_ai(prompt, system_instruction=None, json_mode=False, model="gemini-3.1-pro-preview", temperature=0.5):
         key = get_gemini_api_key()
         if not key:
             return {"success": False, "error": "GEMINI_API_KEY is not configured in backend environment"}
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "temperature": temperature,
-                "maxOutputTokens": 4096
-            }
-        }
-        if system_instruction:
-            payload["systemInstruction"] = {
-                "parts": [{"text": system_instruction}]
-            }
-        if json_mode:
-            payload["generationConfig"]["responseMimeType"] = "application/json"
+        # Candidate models hierarchy: flagship 3.1 Pro -> Pro latest -> 3.8 Flash -> 2.5 Flash
+        candidate_models = [model, "gemini-pro-latest", "gemini-3.8-flash", "gemini-2.5-flash"]
+        # Deduplicate preserving order
+        candidate_models = list(dict.fromkeys(candidate_models))
 
-        try:
-            resp = requests.post(url, json=payload, timeout=35)
-            if resp.status_code == 200:
-                data = resp.json()
-                candidates = data.get("candidates", [])
-                if candidates:
-                    text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                    if json_mode:
-                        try:
-                            clean_text = re.sub(r'^```json\s*', '', text.strip(), flags=re.MULTILINE)
-                            clean_text = re.sub(r'\s*```$', '', clean_text.strip(), flags=re.MULTILINE)
-                            parsed = json.loads(clean_text)
-                            return {"success": True, "data": parsed, "raw": text}
-                        except Exception as je:
-                            return {"success": True, "data": None, "raw": text, "json_error": str(je)}
-                    return {"success": True, "text": text}
-                return {"success": False, "error": "No candidates returned by Gemini model"}
-            else:
-                return {"success": False, "error": f"Gemini API error ({resp.status_code}): {resp.text[:250]}"}
-        except Exception as e:
-            return {"success": False, "error": f"Failed to connect to Gemini API: {str(e)}"}
+        last_error = ""
+        for m_name in candidate_models:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{m_name}:generateContent?key={key}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "temperature": temperature,
+                    "maxOutputTokens": 8192
+                }
+            }
+            if system_instruction:
+                payload["systemInstruction"] = {
+                    "parts": [{"text": system_instruction}]
+                }
+            if json_mode:
+                payload["generationConfig"]["responseMimeType"] = "application/json"
+
+            try:
+                resp = requests.post(url, json=payload, timeout=40)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                        if json_mode:
+                            try:
+                                parsed = extract_ai_json(text)
+                                return {"success": True, "data": parsed, "model": m_name, "raw": text}
+                            except Exception as je:
+                                return {"success": True, "data": None, "model": m_name, "raw": text, "json_error": str(je)}
+                        return {"success": True, "text": text, "model": m_name}
+                last_error = f"Model {m_name} returned status {resp.status_code}: {resp.text[:150]}"
+            except Exception as e:
+                last_error = f"Model {m_name} error: {str(e)}"
+
+        return {"success": False, "error": f"All AI models failed. Last error: {last_error}"}
 
     AI_SYSTEM_PROMPT = """You are the Chief Community & Growth Marketing Director for 'La French Barcelona', the premier nightlife, student, and expat party brand in Barcelona.
 You specialize in multi-channel community growth across:
@@ -627,7 +653,7 @@ Ensure suggested_messages contains 2 high-impact messages that directly solve th
                     poll_options=msg.get("poll_options")
                 )
 
-        return jsonify({"success": True, "analysis": data})
+        return jsonify({"success": True, "analysis": data, "model": res.get("model", "gemini-3.1-pro-preview")})
 
     @app.route('/api/comms/ai/review-event', methods=['POST'])
     def ai_review_event():
@@ -743,7 +769,7 @@ Ensure status is strictly one of 'covered', 'missing', or 'improvable'.
                     poll_options=msg.get("poll_options")
                 )
 
-        return jsonify({"success": True, "analysis": data, "matched_count": len(matched_messages)})
+        return jsonify({"success": True, "analysis": data, "matched_count": len(matched_messages), "model": res.get("model", "gemini-3.1-pro-preview")})
 
     @app.route('/api/comms/ai/suggest-polls', methods=['POST'])
     def ai_suggest_polls():
@@ -788,7 +814,7 @@ Return strictly JSON format:
             p["scheduled_time"] = f"{tomorrow.isoformat()}T13:00:00"
             p["type"] = "poll"
 
-        return jsonify({"success": True, "polls": polls})
+        return jsonify({"success": True, "polls": polls, "model": res.get("model", "gemini-3.1-pro-preview")})
 
     @app.route('/api/comms/ai/chat', methods=['POST'])
     def ai_chat():
@@ -823,4 +849,4 @@ Use Markdown formatting with bolding and bullet points."""
         if not res.get("success"):
             return jsonify({"success": False, "error": res.get("error")}), 500
 
-        return jsonify({"success": True, "reply": res.get("text", "")})
+        return jsonify({"success": True, "reply": res.get("text", ""), "model": res.get("model", "gemini-3.1-pro-preview")})
