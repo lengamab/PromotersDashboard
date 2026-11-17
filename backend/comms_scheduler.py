@@ -169,6 +169,7 @@ def generate_platform_formats(base_text, event_name="", event_link="", poll_opti
             
     if link_str:
         wa_parts.append(f"\n🎟️ *Lien Billetterie & Liste :*\n{link_str}")
+    wa_parts.append("\n---\n🇬🇧 *English:* Free guestlist entry before 01:30 on La French list! Vote in the poll above.")
         
     wa_content = "\n".join(wa_parts)
     # Convert any markdown **bold** to whatsapp *bold*
@@ -176,7 +177,8 @@ def generate_platform_formats(base_text, event_name="", event_link="", poll_opti
 
     # 2. Telegram format (**bold**, __italic__, clean tags)
     tg_parts = []
-    tg_parts.append(f"🇫🇷 **LA FRENCH BARCELONA** 🇫🇷")
+    tg_parts.append(f"🎪 **LA FRENCH BARCELONA** 🎪")
+    tg_parts.append(f"*(International & Erasmus Student Edition)*\n")
     if event_name:
         tg_parts.append(f"✨ **{event_name}** ✨\n")
     else:
@@ -190,22 +192,24 @@ def generate_platform_formats(base_text, event_name="", event_link="", poll_opti
             tg_parts.append(f"{i}️⃣ {opt}")
             
     if link_str:
-        tg_parts.append(f"\n🎟️ **Tickets & Guestlist:** [Click here]({link_str})\n{link_str}")
+        tg_parts.append(f"\n🎟️ **Tickets & Free Guestlist:** [Click here to register]({link_str})\n{link_str}")
+    tg_parts.append("\n_Note: Valid physical ID required at the door._")
         
     tg_content = "\n".join(tg_parts)
 
     # 3. Facebook format (Bilingual FR/EN with Unicode bold headers & clean dividers)
-    fb_header_fr = "🇫🇷 " + to_unicode_bold("LA FRENCH BARCELONA")
-    fb_header_en = "🇬🇧 " + to_unicode_bold("LA FRENCH BARCELONA - ENGLISH")
+    ev_header = f" - {to_unicode_bold(event_name)}" if event_name else ""
+    fb_header_fr = "🇫🇷 " + to_unicode_bold("LA FRENCH BARCELONA") + ev_header
+    fb_header_en = "🇬🇧 " + to_unicode_bold("LA FRENCH BARCELONA (ENGLISH)") + ev_header
     
     fb_parts = [
         f"{fb_header_fr}",
         base_text.strip(),
-        f"\n🎟️ Inscription Liste & Billetterie : {link_str}",
+        f"\n🎟️ Inscription Liste Gratuite & Billetterie : {link_str}",
         "\n━━━━━━━━━━━━━━━━━━━━━━\n",
         f"{fb_header_en}",
-        f"Join us for an unforgettable night in Barcelona! Free entry with La French guestlist, VIP tables and party vibes.",
-        f"\n🎟️ Tickets & Guestlist registration : {link_str}"
+        f"Join us for Barcelona's favorite international student & expat party! Free entrance with La French guestlist before 01:30, VIP bottle service, and party vibes.",
+        f"\n🎟️ Free Guestlist Registration & Tickets : {link_str}"
     ]
     fb_content = "\n".join(fb_parts)
 
@@ -570,8 +574,11 @@ Key principles:
             for g in groups
         ]
 
-        messages_summary = [
-            {
+        messages_summary = []
+        for m in messages:
+            variants = m.get("content_variants", {})
+            has_fb_bilingual = bool(variants.get("facebook") and "━━━━━━━━━━━━━━" in variants.get("facebook"))
+            messages_summary.append({
                 "id": m.get("id"),
                 "title": m.get("title"),
                 "event_name": m.get("event_name"),
@@ -579,10 +586,12 @@ Key principles:
                 "scheduled_time": m.get("scheduled_time"),
                 "status": m.get("status"),
                 "target_groups": m.get("target_group_ids", []),
-                "preview": (m.get("content_base") or "")[:120]
-            }
-            for m in messages
-        ]
+                "platform_variants_ready": list(variants.keys()),
+                "facebook_unicode_bilingual_divider": has_fb_bilingual,
+                "telegram_markdown_ready": bool(variants.get("telegram")),
+                "whatsapp_formatted_ready": bool(variants.get("whatsapp")),
+                "content_preview": (m.get("content_base") or "")[:120]
+            })
 
         now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M (%A)")
 
