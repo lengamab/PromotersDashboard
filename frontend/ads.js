@@ -23,6 +23,86 @@ window.getColorForCpc = function(cpc) {
     if (val <= 0.50) return '#f59e0b'; // Yellow
     return '#ef4444'; // Red
 };
+
+window.getActionValue = function(actions, actionTypes) {
+    if (!Array.isArray(actions) || !Array.isArray(actionTypes)) return 0;
+    for (const type of actionTypes) {
+        const match = actions.find(a => a && a.action_type === type);
+        if (match && match.value !== undefined && match.value !== null) {
+            return parseInt(match.value, 10) || 0;
+        }
+    }
+    return 0;
+};
+
+window.getPurchasesFromActions = function(actions) {
+    return window.getActionValue(actions, [
+        'omni_purchase',
+        'purchase',
+        'offsite_conversion.fb_pixel_purchase'
+    ]);
+};
+
+window.getRegistrationsFromActions = function(actions) {
+    return window.getActionValue(actions, [
+        'omni_complete_registration',
+        'complete_registration',
+        'offsite_conversion.fb_pixel_complete_registration'
+    ]);
+};
+
+window.getLpvFromActions = function(actions) {
+    return window.getActionValue(actions, [
+        'landing_page_view',
+        'omni_landing_page_view'
+    ]);
+};
+
+window.getCampaignConversionMeta = function(camp) {
+    const campId = camp?.campaign_id || camp?.id;
+    const adsets = (typeof currentAdSetsTargetingMap !== 'undefined' && currentAdSetsTargetingMap)
+        ? Object.values(currentAdSetsTargetingMap).filter(as => as.campaign_id === campId)
+        : [];
+    const customEventTypes = adsets
+        .map(as => as.promoted_object?.custom_event_type)
+        .filter(Boolean);
+    const objective = camp?.budget_info?.objective || '';
+    const regCount = window.getRegistrationsFromActions(camp?.actions);
+    const purchaseCount = window.getPurchasesFromActions(camp?.actions);
+
+    const isRegistration = customEventTypes.includes('COMPLETE_REGISTRATION')
+        || (!customEventTypes.includes('PURCHASE') && (
+            objective === 'OUTCOME_LEADS'
+            || objective === 'LEAD_GENERATION'
+            || (regCount > 0 && purchaseCount === 0)
+        ));
+
+    if (isRegistration) {
+        return {
+            type: 'complete_registration',
+            isRegistration: true,
+            label: 'Complete Reg.',
+            shortLabel: 'Reg.',
+            costLabel: 'Cost / Reg',
+            costSubLabel: 'per reg',
+            hourlyLabel: 'Hourly Complete Reg.',
+            color: '#06b6d4',
+            getCount: window.getRegistrationsFromActions
+        };
+    }
+
+    return {
+        type: 'purchase',
+        isRegistration: false,
+        label: 'Purchases',
+        shortLabel: 'Purchases',
+        costLabel: 'CPA (Purchase)',
+        costSubLabel: 'per purchase',
+        hourlyLabel: 'Hourly Purchases',
+        color: '#ff6b6b',
+        getCount: window.getPurchasesFromActions
+    };
+};
 window.renderSparklineAndTrend = function({
     statId,
     data,
@@ -257,12 +337,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const now = new Date();
             const hoursSinceStart = (now - start) / (1000 * 60 * 60);
             if (hoursSinceStart >= 0 && hoursSinceStart < 72) {
-                let purchases = 0;
-                if (camp.actions) {
-                    const pa = camp.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
-                    if (pa) purchases = parseInt(pa.value);
-                }
-                if (purchases < 50) return true;
+                const conversions = window.getCampaignConversionMeta(camp).getCount(camp.actions);
+                if (conversions < 50) return true;
             }
         }
         return false;
@@ -319,7 +395,7 @@ async function fetchAdsData() {
     if (tbody) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="11" style="padding: 25px;">
+                <td colspan="12" style="padding: 25px;">
                     <div class="skeleton-loader" style="height: 36px; margin-bottom: 12px; width: 100%;"></div>
                     <div class="skeleton-loader" style="height: 36px; margin-bottom: 12px; width: 92%;"></div>
                     <div class="skeleton-loader" style="height: 36px; width: 85%;"></div>
@@ -404,7 +480,7 @@ async function fetchAdsData() {
             fetch(`/api/meta-proxy/${META_ACCOUNT_ID}/adsets?${new URLSearchParams({
                 limit: 500,
                 effective_status: JSON.stringify(['ACTIVE', 'PAUSED', 'ARCHIVED', 'IN_PROCESS', 'WITH_ISSUES', 'PENDING_REVIEW', 'CAMPAIGN_PAUSED', 'ADSET_PAUSED', 'DISAPPROVED']),
-                fields: 'id,name,status,effective_status,end_time,targeting,campaign_id,optimization_goal,billing_event,daily_budget,lifetime_budget,daily_min_spend_target,daily_spend_cap,bid_strategy,bid_amount,learning_stage_info'
+                fields: 'id,name,status,effective_status,end_time,targeting,campaign_id,optimization_goal,billing_event,daily_budget,lifetime_budget,daily_min_spend_target,daily_spend_cap,bid_strategy,bid_amount,learning_stage_info,promoted_object'
             }).toString()}`)
         ]);
         
@@ -499,14 +575,19 @@ function processAndRenderAds() {
     let totalImpressions = 0;
     let totalClicks = 0;
     let totalPurchases = 0;
+    let totalRegistrations = 0;
+    let totalLpv = 0;
 
     const labels = [];
     const spendData = [];
     const clicksData = [];
     const purchasesData = [];
+    const registrationsData = [];
+    const lpvData = [];
     const impressionsData = [];
     const cpcData = [];
     const cpaData = [];
+    const cprData = [];
     const ctrData = [];
 
     // Pad missing dates
@@ -523,16 +604,17 @@ function processAndRenderAds() {
     let liveImpToday = 0;
     let liveClicksToday = 0;
     let livePurchasesToday = 0;
+    let liveRegistrationsToday = 0;
+    let liveLpvToday = 0;
     if (currentHourlyData && currentHourlyData.length) {
         currentHourlyData.forEach(hour => {
             if (hour.date_start === todayStr) {
                 liveSpendToday += parseFloat(hour.spend || 0);
                 liveImpToday += parseInt(hour.impressions || 0);
                 liveClicksToday += parseInt(hour.clicks || 0);
-                if (hour.actions) {
-                    const pu = hour.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
-                    if (pu) livePurchasesToday += parseInt(pu.value || 0);
-                }
+                livePurchasesToday += window.getPurchasesFromActions(hour.actions);
+                liveRegistrationsToday += window.getRegistrationsFromActions(hour.actions);
+                liveLpvToday += window.getLpvFromActions(hour.actions);
             }
         });
     }
@@ -547,49 +629,71 @@ function processAndRenderAds() {
         let imp = parseInt(day.impressions || 0);
         let clicks = parseInt(day.clicks || 0);
         
-        let purchases = 0;
-        if (day.actions) {
-            const purchaseAction = day.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
-            if (purchaseAction) {
-                purchases = parseInt(purchaseAction.value);
-            }
-        }
+        let purchases = window.getPurchasesFromActions(day.actions);
+        let registrations = window.getRegistrationsFromActions(day.actions);
+        let lpv = window.getLpvFromActions(day.actions);
 
         if (dateStr === todayStr) {
             if (spend < liveSpendToday) spend = liveSpendToday;
             if (imp < liveImpToday) imp = liveImpToday;
             if (clicks < liveClicksToday) clicks = liveClicksToday;
             if (purchases < livePurchasesToday) purchases = livePurchasesToday;
+            if (registrations < liveRegistrationsToday) registrations = liveRegistrationsToday;
+            if (lpv < liveLpvToday) lpv = liveLpvToday;
         }
 
         totalSpend += spend;
         totalImpressions += imp;
         totalClicks += clicks;
         totalPurchases += purchases;
+        totalRegistrations += registrations;
+        totalLpv += lpv;
 
         spendData.push(spend);
         clicksData.push(clicks);
         purchasesData.push(purchases);
+        registrationsData.push(registrations);
+        lpvData.push(lpv);
         impressionsData.push(imp);
         cpcData.push(clicks > 0 ? spend / clicks : 0);
         cpaData.push(purchases > 0 ? spend / purchases : 0);
+        cprData.push(registrations > 0 ? spend / registrations : 0);
         ctrData.push(imp > 0 ? (clicks / imp) * 100 : 0);
     }
+
+    let purchaseCampaignSpend = 0;
+    let registrationCampaignSpend = 0;
+    if (Array.isArray(currentCampaignsData)) {
+        currentCampaignsData.forEach(camp => {
+            const campSpend = parseFloat(camp.spend || 0);
+            if (window.getCampaignConversionMeta(camp).isRegistration) {
+                registrationCampaignSpend += campSpend;
+            } else {
+                purchaseCampaignSpend += campSpend;
+            }
+        });
+    }
+    const effectivePurchaseSpend = purchaseCampaignSpend > 0 ? purchaseCampaignSpend : totalSpend;
+    const effectiveRegSpend = registrationCampaignSpend > 0 ? registrationCampaignSpend : totalSpend;
 
     // Update Cards
     document.getElementById('stat-spend').textContent = totalSpend.toFixed(2) + '€';
     document.getElementById('stat-impressions').textContent = totalImpressions.toLocaleString();
     document.getElementById('stat-clicks').textContent = totalClicks.toLocaleString();
     document.getElementById('stat-purchases').textContent = totalPurchases.toLocaleString();
+    if (document.getElementById('stat-registrations')) document.getElementById('stat-registrations').textContent = totalRegistrations.toLocaleString();
+    if (document.getElementById('stat-lpv')) document.getElementById('stat-lpv').textContent = totalLpv.toLocaleString();
 
-    const cpc = totalClicks > 0 ? (totalSpend / totalClicks).toFixed(2) : 0;
-    const cpa = totalPurchases > 0 ? (totalSpend / totalPurchases).toFixed(2) : 0;
-    const ctr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : 0;
+    const cpc = totalClicks > 0 ? (totalSpend / totalClicks).toFixed(2) : '0.00';
+    const cpa = totalPurchases > 0 ? (effectivePurchaseSpend / totalPurchases).toFixed(2) : '0.00';
+    const cpr = totalRegistrations > 0 ? (effectiveRegSpend / totalRegistrations).toFixed(2) : '0.00';
+    const ctr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : '0.00';
     
     // Check if elements exist before updating (some templates might not have them yet)
-    if(document.getElementById('stat-cpc')) document.getElementById('stat-cpc').textContent = cpc + '€';
-    if(document.getElementById('stat-cpa')) document.getElementById('stat-cpa').textContent = cpa + '€';
-    if(document.getElementById('stat-ctr')) document.getElementById('stat-ctr').textContent = ctr + '%';
+    if (document.getElementById('stat-cpc')) document.getElementById('stat-cpc').textContent = cpc + '€';
+    if (document.getElementById('stat-cpa')) document.getElementById('stat-cpa').textContent = cpa + '€';
+    if (document.getElementById('stat-cpr')) document.getElementById('stat-cpr').textContent = cpr + '€';
+    if (document.getElementById('stat-ctr')) document.getElementById('stat-ctr').textContent = ctr + '%';
 
     if (window.renderSparklineAndTrend) {
         const hourlySpendSeries = currentHourlyData ? currentHourlyData.map(h => parseFloat(h.spend || 0)) : [0, 0];
@@ -599,10 +703,13 @@ function processAndRenderAds() {
         window.renderSparklineAndTrend({ statId: 'stat-spend-today', data: hourlySpendSeries.length ? hourlySpendSeries : [0, 0], dates: hourlyDates, colorHex: '#ff6b6b', labelSuffix: 'vs 24h ago' });
         window.renderSparklineAndTrend({ statId: 'stat-spend', data: spendData, dates: labels, colorHex: '#007bff' });
         window.renderSparklineAndTrend({ statId: 'stat-purchases', data: purchasesData, dates: labels, colorHex: '#28a745' });
+        window.renderSparklineAndTrend({ statId: 'stat-registrations', data: registrationsData, dates: labels, colorHex: '#06b6d4' });
+        window.renderSparklineAndTrend({ statId: 'stat-lpv', data: lpvData, dates: labels, colorHex: '#10b981' });
         window.renderSparklineAndTrend({ statId: 'stat-impressions', data: impressionsData, dates: labels, colorHex: '#17a2b8' });
         window.renderSparklineAndTrend({ statId: 'stat-clicks', data: clicksData, dates: labels, colorHex: '#ffc107' });
         window.renderSparklineAndTrend({ statId: 'stat-cpc', data: cpcData, dates: labels, colorHex: '#6f42c1', inverseTrend: true });
         window.renderSparklineAndTrend({ statId: 'stat-cpa', data: cpaData, dates: labels, colorHex: '#e83e8c', inverseTrend: true });
+        window.renderSparklineAndTrend({ statId: 'stat-cpr', data: cprData, dates: labels, colorHex: '#38bdf8', inverseTrend: true });
         window.renderSparklineAndTrend({ statId: 'stat-ctr', data: ctrData, dates: labels, colorHex: '#fd7e14' });
     }
 
@@ -611,7 +718,11 @@ function processAndRenderAds() {
         impressions: totalImpressions,
         clicks: totalClicks,
         purchases: totalPurchases,
+        registrations: totalRegistrations,
+        lpv: totalLpv,
         cpc: cpc,
+        cpa: cpa,
+        cpr: cpr,
         ctr: ctr
     };
 
@@ -649,6 +760,15 @@ function processAndRenderAds() {
                     borderWidth: 2,
                     tension: 0.3,
                     yAxisID: 'y1'
+                },
+                {
+                    label: 'Complete Reg.',
+                    data: registrationsData,
+                    type: 'line',
+                    borderColor: '#06b6d4',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    yAxisID: 'y1'
                 }
             ]
         },
@@ -676,7 +796,7 @@ function processAndRenderAds() {
                     type: 'linear',
                     display: true,
                     position: 'right',
-                    title: { display: true, text: 'Clicks / Purchases', color: '#a0a0a0' },
+                    title: { display: true, text: 'Clicks / Conversions', color: '#a0a0a0' },
                     grid: { drawOnChartArea: false },
                     ticks: { color: '#a0a0a0' }
                 }
@@ -693,6 +813,8 @@ function processAndRenderAds() {
     const hourlySpendData = [];
     const hourlyClicksData = [];
     const hourlyLandingPageViewsData = [];
+    const hourlyPurchasesData = [];
+    const hourlyRegistrationsData = [];
     
     const now = new Date();
     const timeline = [];
@@ -723,17 +845,15 @@ function processAndRenderAds() {
         if (hourData) {
             hourlySpendData.push(parseFloat(hourData.spend || 0));
             hourlyClicksData.push(parseInt(hourData.clicks || 0));
-            
-            let landingPageViews = 0;
-            if (hourData.actions) {
-                const lpvAction = hourData.actions.find(a => a.action_type === 'landing_page_view');
-                if (lpvAction) landingPageViews = parseInt(lpvAction.value);
-            }
-            hourlyLandingPageViewsData.push(landingPageViews);
+            hourlyLandingPageViewsData.push(window.getLpvFromActions(hourData.actions));
+            hourlyPurchasesData.push(window.getPurchasesFromActions(hourData.actions));
+            hourlyRegistrationsData.push(window.getRegistrationsFromActions(hourData.actions));
         } else {
             hourlySpendData.push(0);
             hourlyClicksData.push(0);
             hourlyLandingPageViewsData.push(0);
+            hourlyPurchasesData.push(0);
+            hourlyRegistrationsData.push(0);
         }
     });
 
@@ -774,6 +894,24 @@ function processAndRenderAds() {
                     borderWidth: 2,
                     tension: 0.3,
                     yAxisID: 'y1'
+                },
+                {
+                    label: 'Hourly Purchases',
+                    data: hourlyPurchasesData,
+                    type: 'line',
+                    borderColor: '#ff6b6b',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    yAxisID: 'y1'
+                },
+                {
+                    label: 'Hourly Complete Reg.',
+                    data: hourlyRegistrationsData,
+                    type: 'line',
+                    borderColor: '#06b6d4',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    yAxisID: 'y1'
                 }
             ]
         },
@@ -798,7 +936,7 @@ function processAndRenderAds() {
                     position: 'right',
                     grid: { drawOnChartArea: false },
                     ticks: { color: '#a0a0a0' },
-                    title: { display: true, text: 'Clicks / Views', color: '#a0a0a0' }
+                    title: { display: true, text: 'Clicks / Views / Conversions', color: '#a0a0a0' }
                 }
             }
         }
@@ -812,19 +950,12 @@ function processAndRenderAds() {
             const spend = parseFloat(camp.spend || 0);
             const imp = parseInt(camp.impressions || 0);
             const clicks = parseInt(camp.clicks || 0);
-            let purchases = 0;
-            let lpv = 0;
-            if (camp.actions) {
-                const purchaseAction = camp.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
-                if (purchaseAction) {
-                    purchases = parseInt(purchaseAction.value);
-                }
-                const lpvAction = camp.actions.find(a => a.action_type === 'landing_page_view');
-                if (lpvAction) {
-                    lpv = parseInt(lpvAction.value);
-                }
-            }
-            const cpa = purchases > 0 ? (spend / purchases).toFixed(2) : '0.00';
+            const purchases = window.getPurchasesFromActions(camp.actions);
+            const registrations = window.getRegistrationsFromActions(camp.actions);
+            const lpv = window.getLpvFromActions(camp.actions);
+            const convMeta = window.getCampaignConversionMeta(camp);
+            const primaryConversions = convMeta.isRegistration ? registrations : purchases;
+            const costPerResult = primaryConversions > 0 ? (spend / primaryConversions).toFixed(2) : '0.00';
             const cpc = clicks > 0 ? (spend / clicks).toFixed(2) : '0.00';
             const ctr = imp > 0 ? ((clicks / imp) * 100).toFixed(2) : '0.00';
             const cplpv = lpv > 0 ? (spend / lpv).toFixed(2) : '0.00';
@@ -854,11 +985,15 @@ function processAndRenderAds() {
                 <td class="tabular-nums" style="padding: 15px 12px; color: var(--text-secondary); text-align: right;">${cpc}€</td>
                 <td class="tabular-nums" style="padding: 15px 12px; color: var(--text-secondary); text-align: right;">${lpv.toLocaleString()}</td>
                 <td class="tabular-nums" style="padding: 15px 12px; color: var(--text-secondary); text-align: right;">${cplpv}€</td>
-                <td class="tabular-nums" style="padding: 15px 12px; color: var(--text-secondary); text-align: right;">${purchases.toLocaleString()}</td>
-                <td class="tabular-nums" style="padding: 15px 12px; color: var(--color-primary); font-weight: 600; text-align: right;">${cpa}€</td>
+                <td class="tabular-nums" style="padding: 15px 12px; color: ${purchases > 0 ? '#10b981' : 'var(--text-secondary)'}; font-weight: ${purchases > 0 ? '600' : '400'}; text-align: right;">${purchases.toLocaleString()}</td>
+                <td class="tabular-nums" style="padding: 15px 12px; color: ${registrations > 0 ? '#06b6d4' : 'var(--text-secondary)'}; font-weight: ${registrations > 0 ? '600' : '400'}; text-align: right;">${registrations.toLocaleString()}</td>
+                <td class="tabular-nums" style="padding: 15px 12px; color: var(--color-primary); font-weight: 600; text-align: right;">
+                    ${costPerResult}€
+                    <div style="font-size: 0.72em; color: var(--text-secondary); font-weight: 400;">${convMeta.costSubLabel}</div>
+                </td>
             `;
 
-            tr.onclick = () => openCampaignModal(camp, spend, imp, clicks, purchases, lpv);
+            tr.onclick = () => openCampaignModal(camp, spend, imp, clicks, purchases, lpv, registrations);
             tbody.appendChild(tr);
         });
     }
@@ -879,20 +1014,18 @@ async function fetchTimeSeriesContext(endpointPrefix) {
         const hourlyJson = await hourlyRes.json();
 
         if (dailyJson.data && dailyJson.data.length > 0) {
-            text += 'Daily Breakdown (Last 7 Days):\n| Date | Spend | Imp | Clicks | Purchases | CPA | CPC | CTR |\n|---|---|---|---|---|---|---|---|\n';
+            text += 'Daily Breakdown (Last 7 Days):\n| Date | Spend | Imp | Clicks | Purchases | Complete Reg | CPA | CPC | CTR |\n|---|---|---|---|---|---|---|---|---|\n';
             dailyJson.data.forEach(d => {
                 const sp = parseFloat(d.spend || 0);
                 const im = parseInt(d.impressions || 0);
                 const cl = parseInt(d.clicks || 0);
-                let pu = 0;
-                if (d.actions) {
-                    const pa = d.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
-                    if (pa) pu = parseInt(pa.value);
-                }
-                const cpa = pu > 0 ? (sp / pu).toFixed(2) + '€' : '0€';
+                const pu = window.getPurchasesFromActions(d.actions);
+                const reg = window.getRegistrationsFromActions(d.actions);
+                const totalConv = pu + reg;
+                const cpa = totalConv > 0 ? (sp / totalConv).toFixed(2) + '€' : '0€';
                 const cpc = cl > 0 ? (sp / cl).toFixed(2) + '€' : '0€';
                 const ctr = im > 0 ? ((cl / im) * 100).toFixed(2) + '%' : '0%';
-                text += `| ${d.date_start} | ${sp.toFixed(2)}€ | ${im} | ${cl} | ${pu} | ${cpa} | ${cpc} | ${ctr} |\n`;
+                text += `| ${d.date_start} | ${sp.toFixed(2)}€ | ${im} | ${cl} | ${pu} | ${reg} | ${cpa} | ${cpc} | ${ctr} |\n`;
             });
         } else {
             text += 'Daily Breakdown (Last 7 Days): No data recorded.\n';
@@ -900,17 +1033,14 @@ async function fetchTimeSeriesContext(endpointPrefix) {
 
         if (hourlyJson.data && hourlyJson.data.length > 0) {
             const recentHours = hourlyJson.data.slice(-24);
-            text += '\nHourly Breakdown (Last 24 Hours):\n| Date & Hour | Spend | Imp | Clicks | Purchases |\n|---|---|---|---|---|\n';
+            text += '\nHourly Breakdown (Last 24 Hours):\n| Date & Hour | Spend | Imp | Clicks | Purchases | Complete Reg |\n|---|---|---|---|---|---|\n';
             recentHours.forEach(h => {
                 const sp = parseFloat(h.spend || 0);
                 const im = parseInt(h.impressions || 0);
                 const cl = parseInt(h.clicks || 0);
-                let pu = 0;
-                if (h.actions) {
-                    const pa = h.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
-                    if (pa) pu = parseInt(pa.value);
-                }
-                text += `| ${h.date_start} (${h.hourly_stats_aggregated_by_advertiser_time_zone}) | ${sp.toFixed(2)}€ | ${im} | ${cl} | ${pu} |\n`;
+                const pu = window.getPurchasesFromActions(h.actions);
+                const reg = window.getRegistrationsFromActions(h.actions);
+                text += `| ${h.date_start} (${h.hourly_stats_aggregated_by_advertiser_time_zone}) | ${sp.toFixed(2)}€ | ${im} | ${cl} | ${pu} | ${reg} |\n`;
             });
         } else {
             text += '\nHourly Breakdown (Last 24 Hours): No data recorded.\n';
@@ -968,7 +1098,11 @@ async function analyzeWithAI() {
 - Total Spend: ${currentSummary.spend.toFixed(2)}€
 - Impressions: ${currentSummary.impressions}
 - Link Clicks: ${currentSummary.clicks}
-- Purchases (Conversions): ${currentSummary.purchases}
+- Landing Page Views: ${currentSummary.lpv}
+- Purchases (Paid Conversions): ${currentSummary.purchases}
+- CPA (Cost per Purchase): ${currentSummary.cpa}€
+- Complete Registrations (Free Event Conversions): ${currentSummary.registrations}
+- Cost per Registration: ${currentSummary.cpr}€
 - CPC (Cost Per Click): ${currentSummary.cpc}€
 - CTR (Click-Through Rate): ${currentSummary.ctr}%
 `;
@@ -979,35 +1113,36 @@ async function analyzeWithAI() {
             const spend = parseFloat(camp.spend || 0);
             const imp = parseInt(camp.impressions || 0);
             const clicks = parseInt(camp.clicks || 0);
-            let purchases = 0;
-            if (camp.actions) {
-                const pa = camp.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
-                if (pa) purchases = parseInt(pa.value);
-            }
-            const cpa = purchases > 0 ? (spend / purchases).toFixed(2) : 0;
+            const purchases = window.getPurchasesFromActions(camp.actions);
+            const registrations = window.getRegistrationsFromActions(camp.actions);
+            const convMeta = window.getCampaignConversionMeta(camp);
+            const primaryConversions = convMeta.isRegistration ? registrations : purchases;
+            const costPerResult = primaryConversions > 0 ? (spend / primaryConversions).toFixed(2) : 0;
             const cpc = clicks > 0 ? (spend / clicks).toFixed(2) : 0;
             const ctr = imp > 0 ? ((clicks / imp) * 100).toFixed(2) : 0;
             
             let budgetText = "N/A";
             const status = camp.budget_info?.effective_status || 'UNKNOWN';
             if (camp.budget_info) {
-                if (camp.budget_info.daily_budget) {
-                    budgetText = (parseInt(camp.budget_info.daily_budget)/100).toFixed(2) + '€/day';
-                } else if (camp.budget_info.lifetime_budget) {
-                    budgetText = (parseInt(camp.budget_info.lifetime_budget)/100).toFixed(2) + '€ (life)';
+                if (parseInt(camp.budget_info.daily_budget, 10) > 0) {
+                    budgetText = (parseInt(camp.budget_info.daily_budget, 10)/100).toFixed(2) + '€/day';
+                } else if (parseInt(camp.budget_info.lifetime_budget, 10) > 0) {
+                    budgetText = (parseInt(camp.budget_info.lifetime_budget, 10)/100).toFixed(2) + '€ (life)';
+                } else {
+                    budgetText = "ABO (Ad Sets)";
                 }
             }
             
             let bidText = camp.budget_info?.bid_strategy || "LOWEST_COST_WITHOUT_CAP";
-            if (camp.budget_info?.bid_amount) {
-                bidText += ` (Cap: ${(parseInt(camp.budget_info.bid_amount)/100).toFixed(2)}€)`;
+            if (parseInt(camp.budget_info?.bid_amount, 10) > 0) {
+                bidText += ` (Cap: ${(parseInt(camp.budget_info.bid_amount, 10)/100).toFixed(2)}€)`;
             }
             
-            campaignsSummary += `- [${status}] ${camp.campaign_name} | Spend: ${spend.toFixed(2)}€ | Budget: ${budgetText} | Bid Strategy: ${bidText} | Purchases: ${purchases} | CPA: ${cpa}€ | CPC: ${cpc}€ | CTR: ${ctr}%\n`;
+            campaignsSummary += `- [${status}] ${camp.campaign_name} | Spend: ${spend.toFixed(2)}€ | Budget: ${budgetText} | Bid Strategy: ${bidText} | Purchases: ${purchases} | Complete Reg: ${registrations} | ${convMeta.costLabel}: ${costPerResult}€ | CPC: ${cpc}€ | CTR: ${ctr}%\n`;
         });
     }
 
-    const timeSeriesText = await fetchTimeSeriesContext('act_' + META_ACCOUNT_ID);
+    const timeSeriesText = await fetchTimeSeriesContext(META_ACCOUNT_ID);
     const fullContextData = contextData + timeSeriesText + campaignsSummary;
 
     if (window.updateCopilotContext) {
@@ -1018,13 +1153,26 @@ async function analyzeWithAI() {
 
 let currentSelectedCampaign = null;
 
-function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
-    currentSelectedCampaign = { camp, spend, imp, clicks, purchases, lpv };
+function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0, registrations = null) {
+    registrations = registrations !== null ? registrations : window.getRegistrationsFromActions(camp.actions);
+    currentSelectedCampaign = { camp, spend, imp, clicks, purchases, lpv, registrations };
+    const convMeta = window.getCampaignConversionMeta(camp);
+    const primaryConversions = convMeta.isRegistration ? registrations : purchases;
     const isLearning = window.isLearningPhase(camp);
     const learningBadge = isLearning ? `<span class="learning-badge"><i class="fa-solid fa-graduation-cap"></i>Learning</span>` : '';
     document.getElementById('modal-campaign-name').innerHTML = camp.campaign_name + ' ' + learningBadge;
     document.getElementById('modal-camp-spend').textContent = spend.toFixed(2) + '€';
-    document.getElementById('modal-camp-purchases').textContent = purchases.toLocaleString();
+
+    const modalPurchasesEl = document.getElementById('modal-camp-purchases');
+    if (modalPurchasesEl) {
+        modalPurchasesEl.textContent = purchases.toLocaleString();
+        modalPurchasesEl.style.color = purchases > 0 ? '#10b981' : (convMeta.isRegistration ? 'var(--text-secondary)' : 'var(--text-primary)');
+    }
+    const modalRegsEl = document.getElementById('modal-camp-registrations');
+    if (modalRegsEl) {
+        modalRegsEl.textContent = registrations.toLocaleString();
+        modalRegsEl.style.color = registrations > 0 ? '#06b6d4' : (!convMeta.isRegistration ? 'var(--text-secondary)' : 'var(--text-primary)');
+    }
     
     const campStatusDetails = window.getMetaStatusDetails(
         camp.budget_info?.status,
@@ -1050,10 +1198,10 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
     
     let budgetText = "N/A";
     if (camp.budget_info) {
-        if (camp.budget_info.daily_budget) {
-            budgetText = (parseInt(camp.budget_info.daily_budget)/100).toFixed(2) + '€/day';
-        } else if (camp.budget_info.lifetime_budget) {
-            budgetText = (parseInt(camp.budget_info.lifetime_budget)/100).toFixed(2) + '€ (life)';
+        if (parseInt(camp.budget_info.daily_budget, 10) > 0) {
+            budgetText = (parseInt(camp.budget_info.daily_budget, 10)/100).toFixed(2) + '€/day';
+        } else if (parseInt(camp.budget_info.lifetime_budget, 10) > 0) {
+            budgetText = (parseInt(camp.budget_info.lifetime_budget, 10)/100).toFixed(2) + '€ (life)';
         } else {
             budgetText = "ABO (Ad Sets)";
         }
@@ -1061,7 +1209,10 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
     const budgetEl = document.getElementById('modal-daily-budget');
     if (budgetEl) budgetEl.textContent = budgetText;
     
-    const cpa = purchases > 0 ? (spend / purchases).toFixed(2) : 0;
+    const cpaLabelEl = document.getElementById('modal-camp-cpa-label');
+    if (cpaLabelEl) cpaLabelEl.textContent = convMeta.costLabel;
+
+    const cpa = primaryConversions > 0 ? (spend / primaryConversions).toFixed(2) : 0;
     const cpc = clicks > 0 ? (spend / clicks).toFixed(2) : 0;
     const ctr = imp > 0 ? ((clicks / imp) * 100).toFixed(2) : 0;
     const cplpv = lpv > 0 ? (spend / lpv).toFixed(2) : 0;
@@ -1103,7 +1254,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
         // 1. Get all Ad Sets for this campaign from TargetingMap
         Object.values(currentAdSetsTargetingMap).forEach(as => {
             if (as.campaign_id === camp.campaign_id) {
-                adSetMap[as.id] = { name: as.name, spend: 0, imp: 0, clicks: 0, purchases: 0, lpv: 0, ads: [], reach: 0 };
+                adSetMap[as.id] = { name: as.name, spend: 0, imp: 0, clicks: 0, purchases: 0, registrations: 0, lpv: 0, ads: [], reach: 0 };
             }
         });
         
@@ -1132,22 +1283,19 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                 adSetMap[adsetId].clicks += combinedAd.clicks;
                 adSetMap[adsetId].reach += parseInt(combinedAd.reach || 0);
                 
-                let p = 0;
-                let l = 0;
-                if (combinedAd.actions) {
-                    const pa = combinedAd.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
-                    if (pa) p = parseInt(pa.value);
-                    const la = combinedAd.actions.find(a => a.action_type === 'landing_page_view');
-                    if (la) l = parseInt(la.value);
-                }
+                const p = window.getPurchasesFromActions(combinedAd.actions);
+                const r = window.getRegistrationsFromActions(combinedAd.actions);
+                const l = window.getLpvFromActions(combinedAd.actions);
                 adSetMap[adsetId].purchases += p;
+                adSetMap[adsetId].registrations += r;
                 adSetMap[adsetId].lpv += l;
             }
         });
 
         if (Object.keys(adSetMap).length > 0) {
             for (const [adsetId, adset] of Object.entries(adSetMap)) {
-                const asCpa = adset.purchases > 0 ? (adset.spend / adset.purchases).toFixed(2) : 0;
+                const asPrimaryConv = convMeta.isRegistration ? adset.registrations : adset.purchases;
+                const asCpa = asPrimaryConv > 0 ? (adset.spend / asPrimaryConv).toFixed(2) : 0;
                 const asCpc = adset.clicks > 0 ? (adset.spend / adset.clicks).toFixed(2) : 0;
                 const asCtr = adset.imp > 0 ? ((adset.clicks / adset.imp) * 100).toFixed(2) : 0;
                 const asCplpv = adset.lpv > 0 ? (adset.spend / adset.lpv).toFixed(2) : 0;
@@ -1162,18 +1310,18 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                 const asStatus = asStatusObj.text;
                 
                 let asBudgetText = '';
-                if (adsetTargeting.daily_budget) {
-                    asBudgetText = `<span>Budget: ${(parseInt(adsetTargeting.daily_budget)/100).toFixed(2)}€/day</span>`;
-                } else if (adsetTargeting.lifetime_budget) {
-                    asBudgetText = `<span>Budget: ${(parseInt(adsetTargeting.lifetime_budget)/100).toFixed(2)}€ (life)</span>`;
+                if (parseInt(adsetTargeting.daily_budget, 10) > 0) {
+                    asBudgetText = `<span>Budget: ${(parseInt(adsetTargeting.daily_budget, 10)/100).toFixed(2)}€/day</span>`;
+                } else if (parseInt(adsetTargeting.lifetime_budget, 10) > 0) {
+                    asBudgetText = `<span>Budget: ${(parseInt(adsetTargeting.lifetime_budget, 10)/100).toFixed(2)}€ (life)</span>`;
                 }
                 
                 let asBidText = '';
                 if (adsetTargeting.bid_strategy && adsetTargeting.bid_strategy !== 'LOWEST_COST_WITHOUT_CAP') {
                     asBidText = `<span>Strategy: ${adsetTargeting.bid_strategy}</span>`;
                 }
-                if (adsetTargeting.bid_amount) {
-                    asBidText += `<span>Bid Cap: ${(parseInt(adsetTargeting.bid_amount)/100).toFixed(2)}€</span>`;
+                if (parseInt(adsetTargeting.bid_amount, 10) > 0) {
+                    asBidText += `<span>Bid Cap: ${(parseInt(adsetTargeting.bid_amount, 10)/100).toFixed(2)}€</span>`;
                 }
                 
                 const adsetEl = document.createElement('div');
@@ -1197,8 +1345,15 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                             <span>Freq: <span style="color: ${window.getColorForFreq(asFreq)}; font-weight: 600;">${asFreq}</span></span>
                             <span>LPV: ${adset.lpv.toLocaleString()}</span>
                             <span>CPLPV: ${asCplpv}€</span>
-                            <span>Purchases: ${adset.purchases}</span>
-                            <span>CPA: ${asCpa}€</span>
+                            ${convMeta.isRegistration ? `
+                                <span>Complete Reg: <strong style="color: ${adset.registrations > 0 ? '#06b6d4' : 'inherit'};">${adset.registrations}</strong></span>
+                                ${adset.purchases > 0 ? `<span>Purchases: ${adset.purchases}</span>` : ''}
+                                <span>Cost/Reg: ${asCpa}€</span>
+                            ` : `
+                                <span>Purchases: <strong style="color: ${adset.purchases > 0 ? '#10b981' : 'inherit'};">${adset.purchases}</strong></span>
+                                ${adset.registrations > 0 ? `<span>Complete Reg: ${adset.registrations}</span>` : ''}
+                                <span>CPA: ${asCpa}€</span>
+                            `}
                         </div>
                     </div>
                     <i class="fa-solid fa-chevron-down"></i>
@@ -1247,15 +1402,11 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                         const adSpend = parseFloat(ad.spend || 0);
                         const adImp = parseInt(ad.impressions || 0);
                         const adClicks = parseInt(ad.clicks || 0);
-                        let adPurchases = 0;
-                        let adLpv = 0;
-                        if (ad.actions) {
-                            const pa = ad.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
-                            if (pa) adPurchases = parseInt(pa.value);
-                            const la = ad.actions.find(a => a.action_type === 'landing_page_view');
-                            if (la) adLpv = parseInt(la.value);
-                        }
-                        const adCpa = adPurchases > 0 ? (adSpend / adPurchases).toFixed(2) : 0;
+                        const adPurchases = window.getPurchasesFromActions(ad.actions);
+                        const adRegistrations = window.getRegistrationsFromActions(ad.actions);
+                        const adLpv = window.getLpvFromActions(ad.actions);
+                        const adPrimaryConv = convMeta.isRegistration ? adRegistrations : adPurchases;
+                        const adCpa = adPrimaryConv > 0 ? (adSpend / adPrimaryConv).toFixed(2) : 0;
                         const adCpc = adClicks > 0 ? (adSpend / adClicks).toFixed(2) : 0;
                         const adCtr = adImp > 0 ? ((adClicks / adImp) * 100).toFixed(2) : 0;
                         const adCplpv = adLpv > 0 ? (adSpend / adLpv).toFixed(2) : 0;
@@ -1285,8 +1436,15 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                                 <span>Freq: <span style="color: ${window.getColorForFreq(adFreq)}; font-weight: 600;">${adFreq}</span></span>
                                 <span>LPV: ${adLpv.toLocaleString()}</span>
                                 <span>CPLPV: ${adCplpv}€</span>
-                                <span>Purchases: ${adPurchases}</span>
-                                <span>CPA: ${adCpa}€</span>
+                                ${convMeta.isRegistration ? `
+                                    <span>Complete Reg: <strong style="color: ${adRegistrations > 0 ? '#06b6d4' : 'inherit'};">${adRegistrations}</strong></span>
+                                    ${adPurchases > 0 ? `<span>Purchases: ${adPurchases}</span>` : ''}
+                                    <span>Cost/Reg: ${adCpa}€</span>
+                                ` : `
+                                    <span>Purchases: <strong style="color: ${adPurchases > 0 ? '#10b981' : 'inherit'};">${adPurchases}</strong></span>
+                                    ${adRegistrations > 0 ? `<span>Complete Reg: ${adRegistrations}</span>` : ''}
+                                    <span>CPA: ${adCpa}€</span>
+                                `}
                             </div>
                             <div class="meta-creative-details">
                                 ${titleHtml}
@@ -1331,6 +1489,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
     const modalHourlyClicksData = [];
     const modalHourlyLandingPageViewsData = [];
     const modalHourlyPurchasesData = [];
+    const modalHourlyRegistrationsData = [];
     const modalHourlyCpcData = [];
     const modalHourlyCtrData = [];
     
@@ -1370,17 +1529,9 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
             modalHourlyClicksData.push(clicks);
             modalHourlyCpcData.push(clicks > 0 ? Number((spend / clicks).toFixed(2)) : 0);
             modalHourlyCtrData.push(impressions > 0 ? Number(((clicks / impressions) * 100).toFixed(2)) : 0);
-            
-            let landingPageViews = 0;
-            let purchases = 0;
-            if (hourData.actions) {
-                const lpvAction = hourData.actions.find(a => a.action_type === 'landing_page_view');
-                if (lpvAction) landingPageViews = parseInt(lpvAction.value);
-                const pAction = hourData.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
-                if (pAction) purchases = parseInt(pAction.value);
-            }
-            modalHourlyLandingPageViewsData.push(landingPageViews);
-            modalHourlyPurchasesData.push(purchases);
+            modalHourlyLandingPageViewsData.push(window.getLpvFromActions(hourData.actions));
+            modalHourlyPurchasesData.push(window.getPurchasesFromActions(hourData.actions));
+            modalHourlyRegistrationsData.push(window.getRegistrationsFromActions(hourData.actions));
         } else {
             modalHourlySpendData.push(0);
             modalHourlyClicksData.push(0);
@@ -1388,8 +1539,103 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
             modalHourlyCtrData.push(0);
             modalHourlyLandingPageViewsData.push(0);
             modalHourlyPurchasesData.push(0);
+            modalHourlyRegistrationsData.push(0);
         }
     });
+
+    const hasAnyModalPurchases = modalHourlyPurchasesData.some(v => v > 0);
+    const hasAnyModalRegs = modalHourlyRegistrationsData.some(v => v > 0);
+    const modalHourlyDatasets = [
+        {
+            label: 'Hourly Spend (24h) (€)',
+            data: modalHourlySpendData,
+            backgroundColor: 'rgba(23, 162, 184, 0.7)',
+            yAxisID: 'y'
+        },
+        {
+            label: 'Hourly Clicks',
+            data: modalHourlyClicksData,
+            type: 'line',
+            borderColor: '#ffc107',
+            borderWidth: 2,
+            tension: 0.3,
+            yAxisID: 'y1'
+        },
+        {
+            label: 'Hourly Landing Page Views',
+            data: modalHourlyLandingPageViewsData,
+            type: 'line',
+            borderColor: '#28a745',
+            borderWidth: 2,
+            tension: 0.3,
+            yAxisID: 'y1'
+        }
+    ];
+
+    if (convMeta.isRegistration) {
+        modalHourlyDatasets.push({
+            label: 'Hourly Complete Reg.',
+            data: modalHourlyRegistrationsData,
+            type: 'line',
+            borderColor: '#06b6d4',
+            borderWidth: 2,
+            tension: 0.3,
+            yAxisID: 'y1'
+        });
+        if (hasAnyModalPurchases) {
+            modalHourlyDatasets.push({
+                label: 'Hourly Purchases',
+                data: modalHourlyPurchasesData,
+                type: 'line',
+                borderColor: '#ff6b6b',
+                borderWidth: 2,
+                tension: 0.3,
+                yAxisID: 'y1'
+            });
+        }
+    } else {
+        modalHourlyDatasets.push({
+            label: 'Hourly Purchases',
+            data: modalHourlyPurchasesData,
+            type: 'line',
+            borderColor: '#ff6b6b',
+            borderWidth: 2,
+            tension: 0.3,
+            yAxisID: 'y1'
+        });
+        if (hasAnyModalRegs) {
+            modalHourlyDatasets.push({
+                label: 'Hourly Complete Reg.',
+                data: modalHourlyRegistrationsData,
+                type: 'line',
+                borderColor: '#06b6d4',
+                borderWidth: 2,
+                tension: 0.3,
+                yAxisID: 'y1'
+            });
+        }
+    }
+
+    modalHourlyDatasets.push(
+        {
+            label: 'Hourly CPC (€)',
+            data: modalHourlyCpcData,
+            type: 'line',
+            borderColor: '#9b59b6',
+            borderWidth: 2,
+            tension: 0.3,
+            yAxisID: 'y'
+        },
+        {
+            label: 'Hourly CTR (%)',
+            data: modalHourlyCtrData,
+            type: 'line',
+            borderColor: '#e67e22',
+            borderWidth: 2,
+            tension: 0.3,
+            yAxisID: 'y1'
+        }
+    );
 
     const modalHourlyCtx = document.getElementById('modalHourlyChart');
     if (modalHourlyCtx) {
@@ -1397,59 +1643,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
             type: 'bar',
             data: {
                 labels: modalHourlyLabels,
-                datasets: [
-                    {
-                        label: 'Hourly Spend (24h) (€)',
-                        data: modalHourlySpendData,
-                        backgroundColor: 'rgba(23, 162, 184, 0.7)',
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Hourly Clicks',
-                        data: modalHourlyClicksData,
-                        type: 'line',
-                        borderColor: '#ffc107',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        yAxisID: 'y1'
-                    },
-                    {
-                        label: 'Hourly Landing Page Views',
-                        data: modalHourlyLandingPageViewsData,
-                        type: 'line',
-                        borderColor: '#28a745',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        yAxisID: 'y1'
-                    },
-                    {
-                        label: 'Hourly Purchases',
-                        data: modalHourlyPurchasesData,
-                        type: 'line',
-                        borderColor: '#ff6b6b',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        yAxisID: 'y1'
-                    },
-                    {
-                        label: 'Hourly CPC (€)',
-                        data: modalHourlyCpcData,
-                        type: 'line',
-                        borderColor: '#9b59b6',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Hourly CTR (%)',
-                        data: modalHourlyCtrData,
-                        type: 'line',
-                        borderColor: '#e67e22',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        yAxisID: 'y1'
-                    }
-                ]
+                datasets: modalHourlyDatasets
             },
             options: {
                 responsive: true,
@@ -1472,7 +1666,7 @@ function openCampaignModal(camp, spend, imp, clicks, purchases, lpv = 0) {
                         position: 'right',
                         grid: { drawOnChartArea: false },
                         ticks: { color: '#a0a0a0' },
-                        title: { display: true, text: 'Clicks', color: '#a0a0a0' }
+                        title: { display: true, text: 'Clicks / Conversions', color: '#a0a0a0' }
                     }
                 }
             }
@@ -1503,16 +1697,11 @@ window.refreshCampaignModalData = async function() {
             const spend = parseFloat(updatedCamp.spend || 0);
             const imp = parseInt(updatedCamp.impressions || 0);
             const clicks = parseInt(updatedCamp.clicks || 0);
-            let purchases = 0;
-            let lpv = 0;
-            if (updatedCamp.actions) {
-                const purchaseAction = updatedCamp.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
-                if (purchaseAction) purchases = parseInt(purchaseAction.value);
-                const lpvAction = updatedCamp.actions.find(a => a.action_type === 'landing_page_view');
-                if (lpvAction) lpv = parseInt(lpvAction.value);
-            }
+            const purchases = window.getPurchasesFromActions(updatedCamp.actions);
+            const registrations = window.getRegistrationsFromActions(updatedCamp.actions);
+            const lpv = window.getLpvFromActions(updatedCamp.actions);
 
-            openCampaignModal(updatedCamp, spend, imp, clicks, purchases, lpv);
+            openCampaignModal(updatedCamp, spend, imp, clicks, purchases, lpv, registrations);
         }
     } catch (e) {
         console.error("Failed to refresh campaign modal data", e);
@@ -1547,6 +1736,13 @@ async function analyzeCampaignWithAI(campData) {
         campData.camp.budget_info?.stop_time
     ).text;
     const objective = campData.camp.budget_info ? campData.camp.budget_info.objective : 'UNKNOWN';
+    const convMeta = window.getCampaignConversionMeta(campData.camp);
+    const registrations = campData.registrations !== undefined && campData.registrations !== null
+        ? campData.registrations
+        : window.getRegistrationsFromActions(campData.camp.actions);
+    const primaryConversions = convMeta.isRegistration ? registrations : campData.purchases;
+    const costPerResult = primaryConversions > 0 ? (campData.spend / primaryConversions).toFixed(2) : 0;
+
     let datesText = 'Ongoing';
     let daysActiveText = 'Unknown';
     const now = new Date();
@@ -1582,15 +1778,16 @@ Objective: ${objective}
 Duration: ${datesText} (Active for: ${daysActiveText})
 Last Significant Change: ${lastChangeText}
 Budget: ${budgetText}
-Bid Strategy: ${campData.camp.budget_info?.bid_strategy || 'LOWEST_COST_WITHOUT_CAP'} ${campData.camp.budget_info?.bid_amount ? '(Bid Cap: ' + (parseInt(campData.camp.budget_info.bid_amount)/100).toFixed(2) + '€)' : ''}
+Bid Strategy: ${campData.camp.budget_info?.bid_strategy || 'LOWEST_COST_WITHOUT_CAP'} ${parseInt(campData.camp.budget_info?.bid_amount, 10) > 0 ? '(Bid Cap: ' + (parseInt(campData.camp.budget_info.bid_amount, 10)/100).toFixed(2) + '€)' : ''}
 Spend: ${campData.spend.toFixed(2)}€
 Impressions: ${campData.imp}
 Reach: ${campData.camp.reach || 'N/A'}
 Frequency: ${campData.camp.frequency || 'N/A'}
 Clicks: ${campData.clicks}
 Purchases: ${campData.purchases}
+Complete Registrations: ${registrations}
 CPC: ${campData.clicks > 0 ? (campData.spend / campData.clicks).toFixed(2) : 0}€
-CPA: ${campData.purchases > 0 ? (campData.spend / campData.purchases).toFixed(2) : 0}€
+${convMeta.costLabel}: ${costPerResult}€
 CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 0}%`;
 
     let adsText = '\n\n**Ad Sets & Ads Details:**\n';
@@ -1637,13 +1834,13 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
                 targetingDataStr = JSON.stringify(adsetData.targeting || {}, null, 2);
                 optGoal = adsetData.optimization_goal || 'UNKNOWN';
                 billEvent = adsetData.billing_event || 'UNKNOWN';
-                if (adsetData.daily_budget) asBudgetStr = (parseInt(adsetData.daily_budget)/100).toFixed(2) + '€/day';
-                else if (adsetData.lifetime_budget) asBudgetStr = (parseInt(adsetData.lifetime_budget)/100).toFixed(2) + '€ (life)';
+                if (parseInt(adsetData.daily_budget, 10) > 0) asBudgetStr = (parseInt(adsetData.daily_budget, 10)/100).toFixed(2) + '€/day';
+                else if (parseInt(adsetData.lifetime_budget, 10) > 0) asBudgetStr = (parseInt(adsetData.lifetime_budget, 10)/100).toFixed(2) + '€ (life)';
                 
-                if (adsetData.daily_min_spend_target) asBudgetStr += ` [Min Limit: ${(parseInt(adsetData.daily_min_spend_target)/100).toFixed(2)}€]`;
-                if (adsetData.daily_spend_cap) asBudgetStr += ` [Max Limit: ${(parseInt(adsetData.daily_spend_cap)/100).toFixed(2)}€]`;
+                if (parseInt(adsetData.daily_min_spend_target, 10) > 0) asBudgetStr += ` [Min Limit: ${(parseInt(adsetData.daily_min_spend_target, 10)/100).toFixed(2)}€]`;
+                if (parseInt(adsetData.daily_spend_cap, 10) > 0) asBudgetStr += ` [Max Limit: ${(parseInt(adsetData.daily_spend_cap, 10)/100).toFixed(2)}€]`;
                 if (adsetData.bid_strategy) asBidStr = adsetData.bid_strategy;
-                if (adsetData.bid_amount) asBidStr += ` (Cap: ${(parseInt(adsetData.bid_amount)/100).toFixed(2)}€)`;
+                if (parseInt(adsetData.bid_amount, 10) > 0) asBidStr += ` (Cap: ${(parseInt(adsetData.bid_amount, 10)/100).toFixed(2)}€)`;
                 asStatus = window.getMetaStatusDetails(
                     adsetData.status,
                     adsetData.effective_status,
@@ -1690,14 +1887,12 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
                     
                     const adReach = ad.reach || 0;
                     const adFreq = ad.frequency || 0;
-                    let linkClicks = 0;
-                    if (ad.actions) {
-                        const lca = ad.actions.find(a => a.action_type === 'link_click');
-                        if (lca) linkClicks = parseInt(lca.value);
-                    }
+                    const linkClicks = window.getActionValue(ad.actions, ['link_click']);
+                    const adPurchases = window.getPurchasesFromActions(ad.actions);
+                    const adRegs = window.getRegistrationsFromActions(ad.actions);
                     
                     adsText += `- Ad: ${ad.ad_name || ad.ad_id} (Status: ${adStatus})
-       Spend: ${ad.spend || 0}€, Impressions: ${ad.impressions || 0}, Reach: ${adReach}, Frequency: ${adFreq}, Link Clicks: ${linkClicks}${titleText}${copyText}${descText}${destLinkText}\n`;
+       Spend: ${ad.spend || 0}€, Impressions: ${ad.impressions || 0}, Reach: ${adReach}, Frequency: ${adFreq}, Link Clicks: ${linkClicks}, Purchases: ${adPurchases}, Complete Reg: ${adRegs}${titleText}${copyText}${descText}${destLinkText}\n`;
                 });
             }
         }
@@ -1707,7 +1902,7 @@ CTR: ${campData.imp > 0 ? ((campData.clicks / campData.imp) * 100).toFixed(2) : 
     const fullContext = campStatsText + timeSeriesText + adsText;
 
     if (window.updateCopilotContext) {
-        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze the performance of this specific campaign AND its individual Ad Sets and Ads (including Ad Copy/Title performance) based on the context data provided. VERY IMPORTANT: Pay close attention to the Status of each Ad Set and Ad. Do NOT suggest optimizing or changing Ad Sets or Ads that are PAUSED or ARCHIVED, focus only on ACTIVE ones. 🚨 ZERO-IMPRESSION / BID CAP DIAGNOSTIC RULE: Whenever an ACTIVE campaign or ad set has generated 0 Impressions and 0 Spend over the last 24 hours (or since launching yesterday), check its Bid Strategy and Bid Cap. If a Cost Cap (COST_CAP) or Bid Cap (LOWEST_COST_WITH_BID_CAP) is set, diagnose Auction Exclusion due to Low Bid Cap immediately and recommend raising or removing the cap. Analyze the Temporal Evolution tables (Daily for last 7 days and Hourly for last 24 hours) to diagnose trends like creative fatigue, bid exhaustion, intraday conversion hours, or scaling opportunities. Tell me what is working well, what is underperforming, and give 3 highly actionable pieces of advice to improve the active creatives and targeting based on CPC, CPA, and CTR.";
+        const customPrompt = "Please act as an expert Meta Ads Media Buyer. Analyze the performance of this specific campaign AND its individual Ad Sets and Ads (including Ad Copy/Title performance) based on the context data provided. VERY IMPORTANT: Pay close attention to the Status of each Ad Set and Ad. Do NOT suggest optimizing or changing Ad Sets or Ads that are PAUSED or ARCHIVED, focus only on ACTIVE ones. 🚨 ZERO-IMPRESSION / BID CAP DIAGNOSTIC RULE: Whenever an ACTIVE campaign or ad set has generated 0 Impressions and 0 Spend over the last 24 hours (or since launching yesterday), check its Bid Strategy and Bid Cap. If a Cost Cap (COST_CAP) or Bid Cap (LOWEST_COST_WITH_BID_CAP) is set, diagnose Auction Exclusion due to Low Bid Cap immediately and recommend raising or removing the cap. Analyze the Temporal Evolution tables (Daily for last 7 days and Hourly for last 24 hours) to diagnose trends like creative fatigue, bid exhaustion, intraday conversion hours, or scaling opportunities. Tell me what is working well, what is underperforming, and give 3 highly actionable pieces of advice to improve the active creatives and targeting based on CPC, CPA / Cost per Reg, and CTR.";
         window.updateCopilotContext(fullContext, customPrompt, 'campaign_' + campData.camp.campaign_id);
     }
 }
@@ -1723,6 +1918,8 @@ window.fetchAssetPerformance = async function(adId) {
         const adData = currentAdCreativesMap[adId] || {};
         const creative = adData.creative || {};
         if (!creative.asset_feed_spec) return;
+        const campObj = currentCampaignsData.find(c => c.campaign_id === adData.campaign_id) || { campaign_id: adData.campaign_id };
+        const convMeta = window.getCampaignConversionMeta(campObj);
 
         // Determine date range matching the current dashboard
         const dateFromInput = document.getElementById('date-from').value;
@@ -1773,16 +1970,17 @@ window.fetchAssetPerformance = async function(adId) {
 
                 if (perfRow) {
                     const spend = parseFloat(perfRow.spend || 0);
-                    let purchases = 0;
-                    if (perfRow.actions) {
-                        const pa = perfRow.actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
-                        if (pa) purchases = parseInt(pa.value);
-                    }
+                    const purchases = window.getPurchasesFromActions(perfRow.actions);
+                    const registrations = window.getRegistrationsFromActions(perfRow.actions);
                     let cpc = 0;
                     const clicks = parseInt(perfRow.clicks || 0);
                     if (clicks > 0) cpc = spend / clicks;
 
-                    spanEl.textContent = `| Spend: ${spend.toFixed(2)}€ | Purchases: ${purchases} | CPC: ${cpc.toFixed(2)}€`;
+                    const convSegment = convMeta.isRegistration
+                        ? `Complete Reg: ${registrations}${purchases > 0 ? ` | Purchases: ${purchases}` : ''}`
+                        : `Purchases: ${purchases}${registrations > 0 ? ` | Complete Reg: ${registrations}` : ''}`;
+
+                    spanEl.textContent = `| Spend: ${spend.toFixed(2)}€ | ${convSegment} | CPC: ${cpc.toFixed(2)}€`;
                 } else {
                     spanEl.textContent = `| Spend: 0.00€`;
                 }

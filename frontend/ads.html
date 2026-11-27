@@ -378,6 +378,17 @@
                 </div>
                 <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(255,193,7,0.1) 0%, transparent 70%);"></div>
             </div>
+
+            <div class="stat-card">
+                <div class="stat-icon-wrapper" style="color: #fd7e14; background: rgba(253,126,20,0.1);">
+                    <i class="fa-solid fa-percent"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>CTR</h3>
+                    <p id="stat-ctr">0.00%</p>
+                </div>
+                <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(253,126,20,0.1) 0%, transparent 70%);"></div>
+            </div>
             
             <div class="stat-card">
                 <div class="stat-icon-wrapper" style="color: #28a745; background: rgba(40,167,69,0.1);">
@@ -388,6 +399,17 @@
                     <p id="stat-purchases">0</p>
                 </div>
                 <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(40,167,69,0.1) 0%, transparent 70%);"></div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon-wrapper" style="color: #e83e8c; background: rgba(232,62,140,0.1);">
+                    <i class="fa-solid fa-handshake-angle"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>CPA (Cost / Purchase)</h3>
+                    <p id="stat-cpa">0.00€</p>
+                </div>
+                <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(232,62,140,0.1) 0%, transparent 70%);"></div>
             </div>
 
             <div class="stat-card">
@@ -402,25 +424,36 @@
             </div>
 
             <div class="stat-card">
-                <div class="stat-icon-wrapper" style="color: #e83e8c; background: rgba(232,62,140,0.1);">
-                    <i class="fa-solid fa-handshake-angle"></i>
+                <div class="stat-icon-wrapper" style="color: #06b6d4; background: rgba(6,182,212,0.1);">
+                    <i class="fa-solid fa-user-check"></i>
                 </div>
                 <div class="stat-info">
-                    <h3>CPA (Cost per Purchase)</h3>
-                    <p id="stat-cpa">0.00€</p>
+                    <h3>Complete Reg.</h3>
+                    <p id="stat-registrations">0</p>
                 </div>
-                <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(232,62,140,0.1) 0%, transparent 70%);"></div>
+                <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(6,182,212,0.1) 0%, transparent 70%);"></div>
             </div>
 
             <div class="stat-card">
-                <div class="stat-icon-wrapper" style="color: #fd7e14; background: rgba(253,126,20,0.1);">
-                    <i class="fa-solid fa-percent"></i>
+                <div class="stat-icon-wrapper" style="color: #38bdf8; background: rgba(56,189,248,0.1);">
+                    <i class="fa-solid fa-user-tag"></i>
                 </div>
                 <div class="stat-info">
-                    <h3>CTR</h3>
-                    <p id="stat-ctr">0.00%</p>
+                    <h3>Cost / Reg</h3>
+                    <p id="stat-cpr">0.00€</p>
                 </div>
-                <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(253,126,20,0.1) 0%, transparent 70%);"></div>
+                <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(56,189,248,0.1) 0%, transparent 70%);"></div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon-wrapper" style="color: #10b981; background: rgba(16,185,129,0.1);">
+                    <i class="fa-solid fa-arrow-pointer"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Landing Page Views</h3>
+                    <p id="stat-lpv">0</p>
+                </div>
+                <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(16,185,129,0.1) 0%, transparent 70%);"></div>
             </div>
         </section>
 
@@ -438,7 +471,7 @@
             <h2 style="margin-bottom: 20px; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
                 <i class="fa-solid fa-list" style="color: var(--color-primary);"></i> Campaigns Breakdown
             </h2>
-            <div class="table-container" style="background: var(--surface-color); border-radius: 16px; border: 1px solid var(--border-color); overflow: hidden;">
+            <div class="table-container" style="background: var(--surface-color); border-radius: 16px; border: 1px solid var(--border-color); overflow-x: auto;">
                 <table class="data-table" style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-color); text-align: left;">
@@ -452,7 +485,8 @@
                             <th style="padding: 15px 12px; color: var(--text-secondary); font-weight: 500; text-align: right;">LPV</th>
                             <th style="padding: 15px 12px; color: var(--text-secondary); font-weight: 500; text-align: right;">CPLPV</th>
                             <th style="padding: 15px 12px; color: var(--text-secondary); font-weight: 500; text-align: right;">Purchases</th>
-                            <th style="padding: 15px 12px; color: var(--text-secondary); font-weight: 500; text-align: right;">CPA</th>
+                            <th style="padding: 15px 12px; color: var(--text-secondary); font-weight: 500; text-align: right;">Complete Reg.</th>
+                            <th style="padding: 15px 12px; color: var(--text-secondary); font-weight: 500; text-align: right;">Cost / Result</th>
                         </tr>
                     </thead>
                     <tbody id="campaigns-table-body">
@@ -488,7 +522,7 @@
                     Status: <span id="modal-camp-status" style="font-weight: bold; color: white;"></span> &nbsp;|&nbsp; 
                     Dates: <span id="modal-camp-dates" style="color: white;"></span>
                 </div>
-                <div class="stats-grid" style="grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 25px;">
+                <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px;">
                     <div class="stat-card" style="padding: 15px;">
                         <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.85em;">Daily Budget</h4>
                         <p id="modal-daily-budget" class="tabular-nums" style="font-size: 1.3em; font-weight: 700; margin: 0; color: #10b981;">0€</p>
@@ -530,7 +564,11 @@
                         <p id="modal-camp-purchases" class="tabular-nums" style="font-size: 1.3em; font-weight: 700; margin: 0;">0</p>
                     </div>
                     <div class="stat-card" style="padding: 15px;">
-                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.85em;">CPA</h4>
+                        <h4 style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.85em;">Complete Reg.</h4>
+                        <p id="modal-camp-registrations" class="tabular-nums" style="font-size: 1.3em; font-weight: 700; margin: 0;">0</p>
+                    </div>
+                    <div class="stat-card" style="padding: 15px;">
+                        <h4 id="modal-camp-cpa-label" style="color: var(--text-secondary); margin: 0 0 5px 0; font-size: 0.85em;">CPA</h4>
                         <p id="modal-camp-cpa" class="tabular-nums" style="font-size: 1.3em; font-weight: 700; margin: 0; color: var(--color-primary);">0€</p>
                     </div>
                 </div>
@@ -554,12 +592,12 @@
     </div>
 
     <!-- Load AI Widget with cache busting -->
-    <script src="dist/copilot-chat.umd.cjs?v=13"></script>
+    <script src="dist/copilot-chat.umd.cjs?v=14"></script>
     <script>
         if (window.mountCopilotChat) {
              window.mountCopilotChat('copilot-root');
         }
     </script>
-    <script src="ads.js?v=17"></script>
+    <script src="ads.js?v=18"></script>
 </body>
 </html>

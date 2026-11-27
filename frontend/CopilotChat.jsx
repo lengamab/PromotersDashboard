@@ -70,6 +70,29 @@ const fetchWithTimeout = async (url, options = {}, timeoutMs = 30000) => {
   }
 };
 
+const extractMetaAction = (actions, types) => {
+  if (!Array.isArray(actions)) return 0;
+  for (const type of types) {
+    const found = actions.find(a => a && a.action_type === type);
+    if (found && found.value !== undefined && found.value !== null) {
+      return parseInt(found.value, 10) || 0;
+    }
+  }
+  return 0;
+};
+
+const extractPurchases = (actions) => extractMetaAction(actions, [
+  'omni_purchase',
+  'purchase',
+  'offsite_conversion.fb_pixel_purchase'
+]);
+
+const extractRegistrations = (actions) => extractMetaAction(actions, [
+  'omni_complete_registration',
+  'complete_registration',
+  'offsite_conversion.fb_pixel_complete_registration'
+]);
+
 const fetchCampaignHistoricalDataHandler = async ({ campaignId, since, until }) => {
   try {
     // Default to last 30 days if no dates provided
@@ -102,7 +125,8 @@ const fetchCampaignHistoricalDataHandler = async ({ campaignId, since, until }) 
         spend: d.spend,
         impressions: d.impressions,
         clicks: d.clicks,
-        purchases: d.actions ? d.actions.filter(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase').map(a => a.value).join(',') : 0
+        purchases: extractPurchases(d.actions),
+        complete_registrations: extractRegistrations(d.actions)
       }));
     }
     return data;
@@ -145,7 +169,8 @@ const fetchAccountHistoricalDataHandler = async ({ since, until }) => {
         spend: d.spend,
         impressions: d.impressions,
         clicks: d.clicks,
-        purchases: d.actions ? d.actions.filter(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase').map(a => a.value).join(',') : 0
+        purchases: extractPurchases(d.actions),
+        complete_registrations: extractRegistrations(d.actions)
       }));
     }
     return data;
@@ -173,7 +198,8 @@ const fetchCampaignHourlyDataHandler = async ({ campaignId, datePreset = 'last_2
         spend: d.spend,
         impressions: d.impressions,
         clicks: d.clicks,
-        purchases: d.actions ? d.actions.filter(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase').map(a => a.value).join(',') : 0
+        purchases: extractPurchases(d.actions),
+        complete_registrations: extractRegistrations(d.actions)
       }));
     }
     return data;
@@ -202,7 +228,8 @@ const fetchAccountHourlyDataHandler = async ({ datePreset = 'last_2d' }) => {
         spend: d.spend,
         impressions: d.impressions,
         clicks: d.clicks,
-        purchases: d.actions ? d.actions.filter(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase').map(a => a.value).join(',') : 0
+        purchases: extractPurchases(d.actions),
+        complete_registrations: extractRegistrations(d.actions)
       }));
     }
     return data;
@@ -396,7 +423,7 @@ const getTools = (allowWriteAccess) => {
       },
       {
         name: "fetchCampaignHistoricalData",
-        description: "Fetch daily historical insights (spend, impressions, clicks, purchases) for a specific campaign over a time period.",
+        description: "Fetch daily historical insights (spend, impressions, clicks, purchases, complete_registrations) for a specific campaign over a time period.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -409,7 +436,7 @@ const getTools = (allowWriteAccess) => {
       },
       {
         name: "fetchAccountHistoricalData",
-        description: "Fetch day-by-day historical insights (spend, impressions, clicks, purchases) for the ENTIRE Meta Ads account over a time period.",
+        description: "Fetch day-by-day historical insights (spend, impressions, clicks, purchases, complete_registrations) for the ENTIRE Meta Ads account over a time period.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -420,7 +447,7 @@ const getTools = (allowWriteAccess) => {
       },
       {
         name: "fetchCampaignHourlyData",
-        description: "Fetch hourly insights (spend, impressions, clicks, purchases by hour of the day) for a specific campaign over the last 24 to 48 hours.",
+        description: "Fetch hourly insights (spend, impressions, clicks, purchases, complete_registrations by hour of the day) for a specific campaign over the last 24 to 48 hours.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -432,7 +459,7 @@ const getTools = (allowWriteAccess) => {
       },
       {
         name: "fetchAccountHourlyData",
-        description: "Fetch hourly insights (spend, impressions, clicks, purchases by hour of the day) for the ENTIRE Meta Ads account over the last 24 to 48 hours.",
+        description: "Fetch hourly insights (spend, impressions, clicks, purchases, complete_registrations by hour of the day) for the ENTIRE Meta Ads account over the last 24 to 48 hours.",
         parameters: {
           type: "OBJECT",
           properties: {
